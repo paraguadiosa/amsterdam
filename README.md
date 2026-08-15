@@ -11,11 +11,15 @@ live balance and usage numbers fetched straight from provider APIs.
 
 ```bash
 ./scripts/amsterdam-install   # symlink amsterdam into ~/.local/bin (once)
-amsterdam                     # host daemon, live dashboard (Ctrl+C to stop)
+amsterdam                     # start the daemon in the background, print the URL
 ```
 
-Then open <http://localhost:3131>. Any new terminal can run `amsterdam` —
-it is a symlink on your PATH.
+The first `amsterdam` starts the host daemon in the background (the command
+returns to the prompt immediately) and prints the live URL
+(<http://localhost:3131>). It does not open a browser on that first call.
+When the daemon is already running, `amsterdam` opens the live dashboard in
+your browser instead. Use `amsterdam serve` for a foreground debug daemon
+(Ctrl+C to stop).
 
 ### Opt-in: Docker container
 
@@ -37,32 +41,43 @@ For a one-shot snapshot instead:
 ## CLI helper
 
 ```bash
-amsterdam               # Host daemon, live dashboard (Ctrl+C to stop)
-amsterdam serve         # Same as no arguments (daemon)
+amsterdam               # Start the daemon in the background, or open the dashboard
+amsterdam serve         # Foreground debug daemon (Ctrl+C to stop)
+amsterdam start         # Start the daemon in the background (same as no arguments)
+amsterdam status        # Show whether the host daemon is running
+amsterdam open          # Open the dashboard in a browser
 amsterdam docker        # Background Docker container, then print the URL
 amsterdam up            # Same as docker
 amsterdam stop          # Stop the background container
 amsterdam build         # Build the Docker image
 amsterdam run           # Run Docker in the foreground (Ctrl+C to stop)
 amsterdam dump          # Fetch billing data once (open the floodgates)
-amsterdam open          # Open the launcher with xdg-open
 amsterdam link          # Show the file:// URL
 amsterdam path          # Show the absolute path
 amsterdam help          # Show help
 ```
 
-The wrapper runs the daemon by default, passes `docker|up|stop|build|run`
-to `scripts/amster-docker`, and the rest to `scripts/amster`. The
-low-level helpers work the same way:
+The wrapper starts the host daemon by default, passes `docker|up|stop|build|run`
+to `scripts/amster-docker`, and the rest to `scripts/amster`. The low-level
+helpers work the same way:
 
 ```bash
-./scripts/amster serve   # Live server, auto-refresh every 2.5 min
-./scripts/amster dump    # Fetch billing data once (open the floodgates)
-./scripts/amster open    # Open the launcher with xdg-open
-./scripts/amster link    # Show the file:// URL
-./scripts/amster path    # Show the absolute path
-./scripts/amster help    # Show help
+./scripts/amster start    # Start the daemon in the background, print the URL
+./scripts/amster status   # Show whether the daemon is running
+./scripts/amster stop     # Stop the background daemon
+./scripts/amster serve    # Live server in the foreground (Ctrl+C to stop)
+./scripts/amster dump     # Fetch billing data once (open the floodgates)
+./scripts/amster open     # Open the dashboard in a browser
+./scripts/amster link     # Show the file:// URL
+./scripts/amster path     # Show the absolute path
+./scripts/amster help     # Show help
 ```
+
+The daemon state lives in `data/` (gitignored): `data/amsterdam.pid` holds the
+pid of the background daemon and `data/amsterdam.log` its output. `amster stop`
+reads the pidfile and kills exactly that process. The port is the `PORT`
+environment variable when set, otherwise 3131. Override the browser opener
+with `AMSTERDAM_OPEN` (default `xdg-open`) for headless use.
 
 ### Live mode vs static mode
 
@@ -73,7 +88,8 @@ low-level helpers work the same way:
 
 The dashboard detects how it is served. Over HTTP it polls `/api/billing`
 and shows a live status; over `file://` it renders the static snapshot and
-suggests `amster serve`.
+suggests `amster serve`. `amster open` opens the live URL when the daemon is
+running and falls back to the static file otherwise.
 
 ### Spend by model
 

@@ -15,8 +15,9 @@ Desktop.ini
 *.log
 *.tmp
 
-# Generated billing data
+# Generated billing data and daemon state
 data/billing.js
+data/amsterdam.pid
 
 # Node
 node_modules/

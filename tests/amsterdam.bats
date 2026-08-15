@@ -1,10 +1,20 @@
 #!/usr/bin/env bats
 
+TEST_PORT=3199
+
 setup() {
     REPO_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
     AMSTERDAM="$REPO_DIR/scripts/amsterdam"
+    AMSTER="$REPO_DIR/scripts/amster"
     INSTALL="$REPO_DIR/scripts/amsterdam-install"
     HTML="$REPO_DIR/index.html"
+    PID_FILE="$REPO_DIR/data/amsterdam.pid"
+
+    export PORT="$TEST_PORT"
+
+    # Isolate the daemon from real credentials (no .env, no hermes pool).
+    export HOME="$BATS_TEST_TMPDIR/fake-home"
+    mkdir -p "$HOME"
 
     # Stub docker: log args and print nothing.
     BIN_DIR="$BATS_TEST_TMPDIR/bin"
@@ -15,32 +25,66 @@ echo "$@" >> "$DOCKER_LOG"
 EOF
     chmod +x "$BIN_DIR/docker"
     export DOCKER_LOG="$BATS_TEST_TMPDIR/docker.log"
-
-    # Stub node: log args and exit (keeps serve from blocking).
-    cat > "$BIN_DIR/node" <<'EOF'
-#!/bin/sh
-echo "$@" >> "$NODE_LOG"
-EOF
-    chmod +x "$BIN_DIR/node"
-    export NODE_LOG="$BATS_TEST_TMPDIR/node.log"
-
+    : > "$DOCKER_LOG"
     export PATH="$BIN_DIR:$PATH"
+
+    # Stub the browser opener: log the target instead of launching one.
+    OPEN_SH="$BATS_TEST_TMPDIR/open.sh"
+    cat > "$OPEN_SH" <<'EOF'
+#!/bin/sh
+echo "open:$*" >> "$OPEN_LOG"
+EOF
+    chmod +x "$OPEN_SH"
+    export AMSTERDAM_OPEN="$OPEN_SH"
+    export OPEN_LOG="$BATS_TEST_TMPDIR/open.log"
+    : > "$OPEN_LOG"
 
     ENV_FILE="$BATS_TEST_TMPDIR/.env"
     echo "DEEPSEEK_API_KEY=sk-test" > "$ENV_FILE"
     export AMSTERDAM_ENV_FILE="$ENV_FILE"
 }
 
-# ── default: host daemon ────────────────────────
-
-@test "no arguments runs the host daemon" {
-    run "$AMSTERDAM"
-    [ "$status" -eq 0 ]
-    [[ "$(cat "$NODE_LOG")" == *"src/server.js"* ]]
+# bats runs teardown even on failure (its own EXIT trap), so the daemon
+# never survives a test, passing or failing.
+teardown() {
+    "$AMSTER" stop >/dev/null 2>&1 || true
+    PORT=3198 "$AMSTER" stop >/dev/null 2>&1 || true
+    rm -f "$PID_FILE"
 }
 
-@test "serve runs the host daemon" {
-    run "$AMSTERDAM" serve
+# ── smart default: start or open ─────────────────
+
+@test "no arguments starts the daemon when stopped and does not open" {
+    run "$AMSTERDAM"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"up at http://localhost:$TEST_PORT"* ]]
+    [ -f "$PID_FILE" ]
+    [ ! -s "$OPEN_LOG" ]
+
+    run "$AMSTER" status
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"running"* ]]
+}
+
+@test "no arguments opens the dashboard when the daemon is already running" {
+    "$AMSTER" start
+    run "$AMSTERDAM"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"already running"* ]]
+    [[ "$(cat "$OPEN_LOG")" == *"http://localhost:$TEST_PORT"* ]]
+}
+
+@test "serve runs the host daemon in the foreground" {
+    local bin="$BATS_TEST_TMPDIR/serve-bin"
+    mkdir -p "$bin"
+    cat > "$bin/node" <<'EOF'
+#!/bin/sh
+echo "$@" >> "$NODE_LOG"
+EOF
+    chmod +x "$bin/node"
+    export NODE_LOG="$BATS_TEST_TMPDIR/node.log"
+    : > "$NODE_LOG"
+    run env PATH="$bin:$PATH" "$AMSTERDAM" serve
     [ "$status" -eq 0 ]
     [[ "$(cat "$NODE_LOG")" == *"src/server.js"* ]]
 }
@@ -85,6 +129,8 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"usage: amsterdam"* ]]
     [[ "$output" == *"serve"* ]]
+    [[ "$output" == *"start"* ]]
+    [[ "$output" == *"status"* ]]
     [[ "$output" == *"docker"* ]]
     [[ "$output" == *"dump"* ]]
     [[ "$output" == *"open"* ]]

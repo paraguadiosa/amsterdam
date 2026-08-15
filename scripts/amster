@@ -10,17 +10,54 @@ if [ -f "$SCRIPT_DIR/../index.html" ]; then
     HTML="$REPO_DIR/index.html"
 fi
 
+PORT="${PORT:-3131}"
+DATA_DIR="$REPO_DIR/data"
+PID_FILE="$DATA_DIR/amsterdam.pid"
+LOG_FILE="$DATA_DIR/amsterdam.log"
+URL="http://localhost:$PORT"
+OPEN="${AMSTERDAM_OPEN:-xdg-open}"
+
+# Return 0 when the daemon answers on the health endpoint.
+daemon_up() {
+    curl --max-time 1 -s -o /dev/null "$URL/api/billing"
+}
+
+# Print the pid of the process listening on $PORT, if it can be found.
+pid_on_port() {
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -t -i "TCP:$PORT" 2>/dev/null | head -1
+    elif command -v ss >/dev/null 2>&1; then
+        ss -ltnp "sport = :$PORT" 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -1
+    fi
+}
+
+# Print a hint about a daemon that has no pidfile. Exit 1: we do not
+# kill a process we cannot attribute to this repo.
+hint_manual() {
+    echo "A daemon is running on $URL but it has no pidfile." >&2
+    pid="$(pid_on_port)"
+    if [ -n "$pid" ]; then
+        echo "It was started manually: run 'kill $pid' to stop it." >&2
+    else
+        echo "Find its pid with: lsof -i :$PORT" >&2
+    fi
+    exit 1
+}
+
 usage() {
     cat <<'EOF'
 usage: amster [command]
 
 commands:
-  dump   Fetch billing data once (open the floodgates)
-  serve  Start a local server with live auto-refresh (every 2.5 min)
-  open   Open the launcher in a browser
-  link   Show the file:// URL of the launcher
-  path   Show the absolute path of the launcher
-  help   Show this help
+  start   Start the host daemon in the background, then print the URL
+  status  Show whether the host daemon is running
+  stop    Stop the background host daemon
+  dump    Fetch billing data once (open the floodgates)
+  serve   Start a local server in the foreground (Ctrl+C to stop)
+  open    Open the dashboard in a browser
+  link    Show the file:// URL of the launcher
+  path    Show the absolute path of the launcher
+  help    Show this help
 
 Without arguments, shows this help and the file:// URL.
 EOF
@@ -30,6 +67,87 @@ EOF
 case "${1:-}" in
     '')
         usage
+        ;;
+    start)
+        if daemon_up; then
+            pid="$(cat "$PID_FILE" 2>/dev/null)"
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                echo "Amsterdam Console already running at $URL (pid $pid)"
+            else
+                echo "Amsterdam Console already running at $URL"
+            fi
+            exit 0
+        fi
+        if ! command -v node >/dev/null 2>&1; then
+            echo "Error: node is required for start" >&2
+            exit 1
+        fi
+        if [ -z "$REPO_DIR" ]; then
+            echo "Error: cannot find repo root" >&2
+            exit 1
+        fi
+        mkdir -p "$DATA_DIR"
+        nohup node "$REPO_DIR/src/server.js" "$PORT" >"$LOG_FILE" 2>&1 </dev/null &
+        echo "$!" > "$PID_FILE"
+        i=0
+        while [ "$i" -lt 20 ]; do
+            if daemon_up; then
+                echo "Amsterdam Console up at $URL (pid $(cat "$PID_FILE"))"
+                exit 0
+            fi
+            sleep 0.5
+            i=$((i + 1))
+        done
+        echo "Error: Amsterdam Console did not answer on $URL within 10s" >&2
+        echo "--- tail of $LOG_FILE ---" >&2
+        tail -n 20 "$LOG_FILE" 2>/dev/null >&2
+        exit 1
+        ;;
+    status)
+        if daemon_up; then
+            pid="$(cat "$PID_FILE" 2>/dev/null)"
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                echo "running $URL (pid $pid)"
+            else
+                echo "running $URL"
+            fi
+        else
+            echo "stopped"
+        fi
+        exit 0
+        ;;
+    stop)
+        if [ -f "$PID_FILE" ]; then
+            pid="$(cat "$PID_FILE")"
+            rm -f "$PID_FILE"
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                kill "$pid" 2>/dev/null || true
+                i=0
+                while [ "$i" -lt 10 ]; do
+                    if ! daemon_up; then
+                        echo "stopped"
+                        exit 0
+                    fi
+                    sleep 0.5
+                    i=$((i + 1))
+                done
+                echo "Error: daemon did not stop on $URL within 5s" >&2
+                echo "Process $pid still alive - run 'kill $pid' to force stop" >&2
+                exit 1
+            fi
+            # The pidfile pid is gone. If the port still answers, another
+            # process holds it - do not kill it blindly.
+            if daemon_up; then
+                hint_manual
+            fi
+            echo "stopped"
+            exit 0
+        fi
+        if daemon_up; then
+            hint_manual
+        fi
+        echo "stopped"
+        exit 0
         ;;
     dump|fetch)
         if ! command -v node >/dev/null 2>&1; then
@@ -54,11 +172,16 @@ case "${1:-}" in
         node "$REPO_DIR/src/server.js" "${2:-}"
         ;;
     open)
+        if daemon_up; then
+            "$OPEN" "$URL"
+            exit 0
+        fi
         if [ ! -f "$HTML" ]; then
             echo "Error: file not found: $HTML" >&2
+            echo "Run 'amsterdam' first to start the daemon." >&2
             exit 1
         fi
-        xdg-open "$HTML"
+        "$OPEN" "$HTML"
         ;;
     link)
         printf 'file://%s\n' "$HTML"
