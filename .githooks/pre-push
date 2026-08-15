@@ -2,12 +2,41 @@
 # Pre-push hook: FAIL the push if any outgoing commit contains a secret.
 # Fail-closed on purpose: the push is the last gate before the remote.
 # Installed via `git config core.hooksPath .githooks` (see README).
+#
+# gitleaks >= 8.30 has no --pre-push flag; we scan the outgoing range
+# (remote_sha..local_sha) with `gitleaks detect --log-opts`, which is the
+# same range the old --pre-push mode covered.
 
 command -v gitleaks >/dev/null 2>&1 || {
     echo "pre-push: gitleaks is NOT installed — refusing to push." >&2
     echo "pre-push: install it first: https://github.com/gitleaks/gitleaks" >&2
-    echo "pre-push:   curl -sL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.30.1_linux_x64.tar.gz" >&2
     exit 1
 }
 
-gitleaks git --pre-push --no-banner
+ZERO=0000000000000000000000000000000000000000
+status=0
+
+while read local_ref local_sha remote_ref remote_sha; do
+    [ -z "$local_sha" ] && continue
+    [ "$local_sha" = "$ZERO" ] && continue   # branch deletion
+
+    case "$local_ref" in
+        refs/tags/*)
+            range="$local_sha"
+            ;;
+        *)
+            if [ "$remote_sha" = "$ZERO" ]; then
+                range="$local_sha"           # new branch: scan its whole history
+            else
+                range="$remote_sha..$local_sha"
+            fi
+            ;;
+    esac
+
+    if ! gitleaks detect --source . --log-opts="$range" --no-banner -v; then
+        echo "pre-push: secrets found in $local_ref — push blocked." >&2
+        status=1
+    fi
+done
+
+exit $status
