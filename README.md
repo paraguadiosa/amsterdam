@@ -1,5 +1,7 @@
 # Launcher de consolas LLM
 
+> Amster-dam: the LLM river held by a little HTML dam. Run `amster dump` to open the floodgates.
+
 Panel estático para abrir todas las consolas de billing de LLM desde un solo lugar.
 
 ## Cómo abrirlo
