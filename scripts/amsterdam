@@ -1,0 +1,45 @@
+#!/bin/sh
+# amsterdam - run the Amsterdam Console as a background Docker container.
+
+SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SELF")" && pwd)
+AMSTER="$SCRIPT_DIR/amster"
+AMSTER_DOCKER="$SCRIPT_DIR/amster-docker"
+
+usage() {
+    cat <<'EOF'
+usage: amsterdam [command]
+
+commands:
+  (none)  Run the dashboard as a background Docker container and print the URL
+  up      Same as no arguments
+  stop    Stop the background container
+  run     Run in the foreground (Ctrl+C to stop)
+  build   Build the Docker image
+  serve   Run the local (non-Docker) live server
+  dump    Fetch billing data once
+  open    Open the launcher in a browser
+  link    Show the file:// URL of the launcher
+  path    Show the absolute path of the launcher
+  help    Show this help
+EOF
+}
+
+case "${1:-}" in
+    ''|up)
+        exec "$AMSTER_DOCKER" up
+        ;;
+    stop|build|run)
+        exec "$AMSTER_DOCKER" "$1"
+        ;;
+    help|-h|--help)
+        usage
+        ;;
+    serve|dump|fetch|open|link|path)
+        exec "$AMSTER" "$@"
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac

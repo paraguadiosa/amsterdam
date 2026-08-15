@@ -52,8 +52,8 @@ setup() {
     [[ "$HTML_CONTENT" == *'src="data/billing.js"'* ]]
 }
 
-@test "has populateSummary function" {
-    [[ "$HTML_CONTENT" == *"populateSummary"* ]]
+@test "has renderSummary function" {
+    [[ "$HTML_CONTENT" == *"renderSummary"* ]]
 }
 
 @test "has formatChip function" {
@@ -98,6 +98,22 @@ setup() {
 
 @test "has detected group" {
     [[ "$HTML_CONTENT" == *'data-group="detected"'* ]]
+}
+
+@test "detected cards container is empty by default" {
+    [[ "$HTML_CONTENT" == *'id="detected-cards"'* ]]
+}
+
+@test "has detected-empty hint" {
+    [[ "$HTML_CONTENT" == *'id="detected-empty"'* ]]
+}
+
+@test "summary filters to detected providers only" {
+    [[ "$HTML_CONTENT" == *"liveIds"* ]]
+}
+
+@test "cards are reorganized by detection" {
+    [[ "$HTML_CONTENT" == *"organizeCards"* ]]
 }
 
 @test "has extra group" {

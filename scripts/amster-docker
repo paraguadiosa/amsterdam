@@ -1,10 +1,15 @@
 #!/bin/sh
 # Build and run the Amsterdam Console as a container.
 
+SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SELF")" && pwd)
+cd "$SCRIPT_DIR/.." || exit 1
+
 IMAGE=${AMSTERDAM_IMAGE:-amsterdam}
 CONTAINER=${AMSTERDAM_CONTAINER:-amsterdam}
 HOST_PORT=${AMSTERDAM_PORT:-3131}
 ENV_FILE=${AMSTERDAM_ENV_FILE:-$HOME/.hermes/.env}
+AUTH_FILE=${AMSTERDAM_AUTH_FILE:-$HOME/.hermes/auth.json}
 
 usage() {
     cat <<'EOF'
@@ -21,6 +26,7 @@ env overrides:
   AMSTERDAM_CONTAINER   container name    (default: amsterdam)
   AMSTERDAM_PORT        host port         (default: 3131)
   AMSTERDAM_ENV_FILE    API keys file     (default: ~/.hermes/.env)
+  AMSTERDAM_AUTH_FILE   hermes pool file  (default: ~/.hermes/auth.json)
 EOF
 }
 
@@ -41,14 +47,20 @@ case "${1:-}" in
         docker run --rm -it \
             -p "$HOST_PORT:3131" \
             -v "$ENV_FILE:/app/.env:ro" \
+            -v "$AUTH_FILE:/app/.hermes/auth.json:ro" \
             --name "$CONTAINER" \
             "$IMAGE"
         ;;
     up)
         require_env_file
+        if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "Image $IMAGE not found - building..." >&2
+            docker build -t "$IMAGE" .
+        fi
         docker run --rm -d \
             -p "$HOST_PORT:3131" \
             -v "$ENV_FILE:/app/.env:ro" \
+            -v "$AUTH_FILE:/app/.hermes/auth.json:ro" \
             --name "$CONTAINER" \
             "$IMAGE"
         echo "http://localhost:$HOST_PORT"

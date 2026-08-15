@@ -1,7 +1,8 @@
 #!/bin/sh
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-HTML=/home/eve/Coding_Projects/amsterdam/index.html
+SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SELF")" && pwd)
+HTML=
 REPO_DIR=
 
 if [ -f "$SCRIPT_DIR/../index.html" ]; then

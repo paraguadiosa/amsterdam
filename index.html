@@ -215,6 +215,8 @@
   .warning .ico { font-size: 1.3rem; line-height: 1.2; }
   .empty { color: var(--muted); text-align: center; padding: 40px 0; display: none; }
   .empty.show { display: block; }
+  .hint { display: none; color: var(--muted); font-size: 0.85rem; padding: 12px 0; }
+  .hint.show { display: block; }
   footer { margin-top: 32px; color: var(--muted); font-size: 0.75rem; text-align: center; }
 
   @media (max-width: 480px) {
@@ -247,10 +249,17 @@
   <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
   <h2><span class="dot"></span>Detected on this machine</h2>
-  <div class="cards" data-group="detected">
+  <div class="cards" data-group="detected" id="detected-cards"></div>
+  <div class="hint" id="detected-empty">No providers detected — add API keys to <code>.env</code>, then run <code>amster serve</code>.</div>
+
+  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false">
+    <span class="dot"></span>If you also use these <span class="count" id="extra-count"></span>
+    <span class="chevron">▸</span>
+  </h2>
+  <div class="cards collapsed" data-group="extra" id="extra-cards">
     <div class="card" data-name="deepseek deep seek" data-provider="deepseek">
       <h3>DeepSeek</h3>
-      <span class="tag">Detected</span>
+      <span class="tag">Optional</span>
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: DEEPSEEK_API_KEY</p>
       <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -258,7 +267,7 @@
 
     <div class="card" data-name="kimi moonshot moonshot" data-provider="moonshot">
       <h3>Kimi / Moonshot</h3>
-      <span class="tag">Detected</span>
+      <span class="tag">Optional</span>
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: KIMI_API_KEY / MOONSHOT_API_KEY</p>
       <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -266,7 +275,7 @@
 
     <div class="card" data-name="anthropic claude" data-provider="anthropic">
       <h3>Anthropic</h3>
-      <span class="tag">Detected</span>
+      <span class="tag">Optional</span>
       <p class="note">Console: Settings &gt; Billing.</p>
       <p class="envs">Env: ANTHROPIC_API_KEY</p>
       <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -274,7 +283,7 @@
 
     <div class="card" data-name="huggingface hf hugging face" data-provider="huggingface">
       <h3>Hugging Face</h3>
-      <span class="tag">Detected</span>
+      <span class="tag">Optional</span>
       <p class="note">Inference providers, free tier included.</p>
       <p class="envs">Env: HF_TOKEN</p>
       <a class="btn" href="https://huggingface.co/settings/billing" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -287,13 +296,7 @@
       <p class="envs">URL: http://127.0.0.1:8080/v1</p>
       <a class="btn ghost" href="http://127.0.0.1:8080/v1" target="_blank" rel="noopener noreferrer">Open local</a>
     </div>
-  </div>
 
-  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false">
-    <span class="dot"></span>If you also use these <span class="count" id="extra-count"></span>
-    <span class="chevron">▸</span>
-  </h2>
-  <div class="cards collapsed" data-group="extra" id="extra-cards">
     <div class="card" data-name="openai gpt chatgpt" data-provider="openai">
       <h3>OpenAI</h3>
       <span class="tag">Optional</span>
@@ -386,21 +389,57 @@
       return;
     }
 
+    var liveIds = Object.keys(billing.providers).filter(function (id) {
+      return billing.providers[id] && billing.providers[id].detected;
+    });
+
+    if (liveIds.length === 0) {
+      summaryEl.innerHTML = '<div id="billing-prompt">No providers detected — add keys to <code>.env</code></div>';
+      return;
+    }
+
     var html = "";
-    var ids = Object.keys(billing.providers);
-    for (var i = 0; i < ids.length; i++) {
-      var id = ids[i];
+    liveIds.forEach(function (id) {
       var chip = formatChip(id, billing.providers[id]);
       html += '<div class="chip ' + chip.cls + '">'
             + '<span class="chip-name">' + id + '</span>'
             + '<span class="chip-value">' + chip.value + '</span>'
             + '</div>';
-    }
+    });
 
     var ts = new Date(billing.timestamp);
-    html += '<div id="billing-time">Fetched ' + ts.toLocaleTimeString()
-          + ' · auto-refresh every 2.5 min</div>';
+    html += '<div id="billing-time">' + liveIds.length + ' live · Fetched ' + ts.toLocaleTimeString()
+          + ' · auto-refresh 2.5 min</div>';
     summaryEl.innerHTML = html;
+  }
+
+  function organizeCards(billing) {
+    var detected = document.getElementById("detected-cards");
+    var extra = document.getElementById("extra-cards");
+
+    Array.from(document.querySelectorAll(".card[data-provider]")).forEach(function (card) {
+      var id = card.dataset.provider;
+      var isDetected = !!(billing && billing.providers[id] && billing.providers[id].detected);
+      var target = isDetected ? detected : extra;
+      if (card.parentElement !== target) target.appendChild(card);
+
+      var tag = card.querySelector(".tag");
+      if (tag && !tag.classList.contains("local")) {
+        tag.textContent = isDetected ? "Detected" : "Optional";
+      }
+    });
+
+    document.getElementById("detected-empty").classList.toggle(
+      "show",
+      detected.querySelectorAll(".card").length === 0
+    );
+    document.getElementById("extra-count").textContent =
+      "(" + extra.querySelectorAll(".card").length + ")";
+  }
+
+  function applyBilling(billing) {
+    renderSummary(billing);
+    organizeCards(billing);
   }
 
   function setStatus(text, cls) {
@@ -410,7 +449,7 @@
 
   function refresh(manual) {
     if (!live) {
-      renderSummary(window.BILLING);
+      applyBilling(window.BILLING);
       setStatus('Static snapshot — run <code>amster serve</code> for live updates');
       return;
     }
@@ -419,7 +458,7 @@
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function (data) {
         window.BILLING = data;
-        renderSummary(data);
+        applyBilling(data);
         setStatus('Live · auto-refresh every 2.5 min', 'live');
       })
       .catch(function (err) {
@@ -431,7 +470,7 @@
     refresh(true);
   });
 
-  renderSummary(window.BILLING);
+  applyBilling(window.BILLING);
   if (live) {
     setStatus('Live · auto-refresh every 2.5 min', 'live');
     setInterval(function () { refresh(false); }, REFRESH_INTERVAL_MS);

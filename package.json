@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dump": "node src/dam.js",
-    "test": "c8 --lines 80 --reporter text node --test 'tests/*.test.js'",
+    "test": "c8 --check-coverage --lines 80 --reporter text node --test 'tests/*.test.js'",
     "test:shell": "bats tests/*.bats",
     "test:all": "npm test && npm run test:shell"
   },
