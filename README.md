@@ -7,7 +7,7 @@ Panel estático para abrir todas las consolas de billing de LLM desde un solo lu
 ## Cómo abrirlo
 
 ```bash
-xdg-open /home/eve/Coding_Projects/llm-billing/index.html
+xdg-open /home/eve/Coding_Projects/amsterdam/index.html
 ```
 
 O abrí `index.html` con tu navegador (doble clic en el explorador de archivos).
@@ -32,7 +32,7 @@ ln -s "$PWD/scripts/amster" ~/.local/bin/amster
 
 Copiar también funciona: si `scripts/amster` no encuentra el `index.html`
 relativo, usa como respaldo la ruta absoluta
-`/home/eve/Coding_Projects/llm-billing/index.html`:
+`/home/eve/Coding_Projects/amsterdam/index.html`:
 
 ```bash
 install -m 755 scripts/amster ~/.local/bin/amster
