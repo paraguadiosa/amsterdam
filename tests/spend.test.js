@@ -1,7 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { readSpend, resolveDbPath } from '../src/spend.js';
@@ -70,8 +70,16 @@ describe('spend', () => {
 
   after(() => rmSync(dir, { recursive: true, force: true }));
 
+  // Isolate the local-models scan so the real ~/models never leaks in.
+  function readFromDb(path = dbPath, modelsDir = join(dir, 'no-models')) {
+    return readSpend({
+      HERMES_STATE_DB: path,
+      AMSTERDAM_LOCAL_MODELS_DIR: modelsDir,
+    });
+  }
+
   it('aggregates by model and provider', () => {
-    const spend = readSpend(dbPath);
+    const spend = readFromDb();
     assert.equal(spend.source, 'hermes-state-db');
     assert.ok(Date.parse(spend.generatedAt));
 
@@ -91,7 +99,7 @@ describe('spend', () => {
   });
 
   it('marks groups with any non-estimated row as unknown', () => {
-    const spend = readSpend(dbPath);
+    const spend = readFromDb();
     const auto = spend.models.find((m) => m.model === 'claude-opus-4-8' && m.provider === 'auto');
     assert.equal(auto.costStatus, 'unknown');
     assert.equal(auto.estimatedCostUsd, 0);
@@ -105,36 +113,36 @@ describe('spend', () => {
   });
 
   it('rounds costs to 4 decimals', () => {
-    const spend = readSpend(dbPath);
+    const spend = readFromDb();
     const claude = spend.models.find((m) => m.model === 'claude-opus-4-8' && m.provider === 'anthropic');
     assert.equal(claude.estimatedCostUsd, 0.165);
     assert.equal(claude.actualCostUsd, null);
   });
 
   it('orders models by estimated cost descending with nulls last', () => {
-    const spend = readSpend(dbPath);
+    const spend = readFromDb();
     const costs = spend.models.map((m) => m.estimatedCostUsd);
     assert.deepEqual(costs, [3.3333, 0.165, 0, 0, null]);
   });
 
   it('computes totals across all rows', () => {
-    const spend = readSpend(dbPath);
+    const spend = readFromDb();
     assert.equal(spend.modelCount, 5);
     assert.equal(spend.totalEstimatedUsd, 3.4983);
     assert.equal(spend.totalActualUsd, 3);
   });
 
   it('honors HERMES_STATE_DB env override', () => {
-    const spend = readSpend({ HERMES_STATE_DB: dbPath });
+    const spend = readFromDb();
     assert.equal(spend.modelCount, 5);
   });
 
   it('returns null when the DB file is missing', () => {
-    assert.equal(readSpend(join(dir, 'missing.db')), null);
+    assert.equal(readFromDb(join(dir, 'missing.db')), null);
   });
 
   it('returns null when the path is unreadable', () => {
-    assert.equal(readSpend(dir), null); // a directory is not openable
+    assert.equal(readFromDb(dir), null); // a directory is not openable
   });
 
   it('returns null when the DB has no usage table', () => {
@@ -142,7 +150,7 @@ describe('spend', () => {
     const db = new DatabaseSync(emptyPath);
     db.exec('CREATE TABLE other (id INTEGER)');
     db.close();
-    assert.equal(readSpend(emptyPath), null);
+    assert.equal(readFromDb(emptyPath), null);
   });
 
   it('returns empty models for a DB with no rows', () => {
@@ -150,11 +158,75 @@ describe('spend', () => {
     const db = new DatabaseSync(emptyPath);
     db.exec(SCHEMA);
     db.close();
-    const spend = readSpend(emptyPath);
+    const spend = readFromDb(emptyPath);
     assert.ok(spend);
     assert.equal(spend.modelCount, 0);
     assert.deepEqual(spend.models, []);
     assert.equal(spend.totalEstimatedUsd, null);
+  });
+});
+
+describe('local model inventory', () => {
+  let dir;
+  let dbPath;
+
+  function fixtureDb(modelsDir) {
+    return readSpend({
+      HERMES_STATE_DB: dbPath,
+      AMSTERDAM_LOCAL_MODELS_DIR: modelsDir,
+    });
+  }
+
+  before(() => {
+    dir = mkdtempSync(join(tmpdir(), 'amsterdam-local-'));
+    dbPath = join(dir, 'state.db');
+    const db = new DatabaseSync(dbPath);
+    db.exec(SCHEMA);
+    const insert = db.prepare(`
+      INSERT INTO session_model_usage (
+        session_id, model, billing_provider, api_call_count, input_tokens,
+        output_tokens, estimated_cost_usd, actual_cost_usd, cost_status, last_seen
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insert.run('s9', '/models/local.gguf', 'custom', 1, 100, 100, null, null, null, '2026-08-06T00:00:00Z');
+    db.close();
+  });
+
+  after(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('appends local GGUF files with no usage', () => {
+    const modelsDir = join(dir, 'models');
+    mkdirSync(modelsDir, { recursive: true });
+    writeFileSync(join(modelsDir, 'Hermes-3-8B.Q8_0.gguf'), 'x');
+    writeFileSync(join(modelsDir, 'Gemma4-12B.Q4_K_M.gguf'), 'x');
+
+    const spend = fixtureDb(modelsDir);
+    const local = spend.models.find((m) => m.model === 'Hermes-3-8B.Q8_0.gguf');
+    assert.ok(local);
+    assert.equal(local.provider, 'local');
+    assert.equal(local.sessions, 0);
+    assert.equal(local.calls, 0);
+    assert.equal(local.costStatus, 'no usage');
+    assert.equal(local.estimatedCostUsd, null);
+    assert.equal(spend.modelCount, 3); // 1 DB group + 2 local
+  });
+
+  it('does not duplicate a GGUF file that already has usage', () => {
+    const modelsDir = join(dir, 'models2');
+    mkdirSync(modelsDir, { recursive: true });
+    writeFileSync(join(modelsDir, 'local.gguf'), 'x'); // matches /models/local.gguf
+
+    const spend = fixtureDb(modelsDir);
+    assert.equal(spend.models.filter((m) => m.model === 'local.gguf').length, 0);
+    const used = spend.models.find((m) => m.model === '/models/local.gguf');
+    assert.ok(used);
+    assert.equal(used.sessions, 1);
+    assert.equal(spend.modelCount, 1);
+  });
+
+  it('ignores a missing models dir', () => {
+    const spend = fixtureDb(join(dir, 'does-not-exist'));
+    assert.equal(spend.modelCount, 1);
   });
 });
 

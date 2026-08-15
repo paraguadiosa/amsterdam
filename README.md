@@ -104,6 +104,9 @@ non-standard installs). In Docker there is no state DB, so the section shows
 the unavailable hint — run `amster serve` on the host to see spend data.
 
 The table is sortable by clicking any column header (default: est. cost desc).
+Click **Columns** to choose which columns are visible — the choice is saved
+per browser. Local GGUF files in `~/models` appear in the table even without
+recorded usage, marked with status `no usage`.
 
 ### Install to `~/.local/bin`
 

@@ -214,6 +214,40 @@ setup() {
     [[ "$HTML_CONTENT" == *"Nothing matches that filter"* ]]
 }
 
+# ── column picker ────────────────────────────────
+
+@test "column picker button exists with aria controls" {
+    [[ "$HTML_CONTENT" == *'id="columns-btn"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-expanded="false"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-controls="columns-panel"'* ]]
+}
+
+@test "column picker has 8 checkboxes" {
+    local count=$(grep -o 'data-col="' "$HTML" | wc -l)
+    [ "$count" -eq 8 ]
+}
+
+@test "column picker shows name and price by default" {
+    [[ "$HTML_CONTENT" == *'data-col="model" checked'* ]]
+    [[ "$HTML_CONTENT" == *'data-col="estimatedCostUsd" checked'* ]]
+}
+
+@test "column choice persists in localStorage" {
+    [[ "$HTML_CONTENT" == *'amsterdam.columns'* ]]
+}
+
+@test "renderSpend toggles th visibility per column state" {
+    [[ "$HTML_CONTENT" == *'th.hidden = !columnState['* ]]
+}
+
+@test "at least one column stays visible" {
+    [[ "$HTML_CONTENT" == *'keepsOne'* ]]
+}
+
+@test "columns panel labels are in English" {
+    [[ "$HTML_CONTENT" == *'Show columns'* ]]
+}
+
 # ── cards with provider IDs ──────────────────────
 
 @test "DeepSeek card has data-provider" {

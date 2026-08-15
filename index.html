@@ -289,6 +289,60 @@
   #spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
   #spend-table .cost.na { color: var(--faint); }
 
+  /* ── column picker ─────────────────────────────────────────── */
+  .table-tools { margin: -4px 0 14px; }
+
+  .columns-wrap { position: relative; display: inline-block; }
+
+  .columns-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 10;
+    min-width: 220px;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .columns-panel[hidden] { display: none; }
+
+  .columns-panel fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .columns-panel legend {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .columns-panel label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .columns-panel label:hover { background: var(--bg-soft); }
+
+  .columns-panel input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
+  }
+
   /* ── search ──────────────────────────────────────────────────── */
   #search {
     display: block;
@@ -369,7 +423,7 @@
     gap: 14px;
   }
 
-  .cards.collapsed { display: none; }
+  #extra-cards.collapsed { display: none; }
   .card.hidden     { display: none; }
 
   /* ── provider card ───────────────────────────────────────────── */
@@ -623,6 +677,24 @@
 
   <!-- spend by model — populated from data/billing.js and /api/billing -->
   <h2><span class="dot" aria-hidden="true"></span>Spend by model</h2>
+  <div class="table-tools">
+    <div class="columns-wrap">
+      <button id="columns-btn" class="btn ghost" type="button" aria-expanded="false" aria-controls="columns-panel">Columns</button>
+      <div id="columns-panel" class="columns-panel" hidden>
+        <fieldset>
+          <legend>Show columns</legend>
+          <label><input type="checkbox" data-col="model" checked> Model</label>
+          <label><input type="checkbox" data-col="provider" checked> Provider</label>
+          <label><input type="checkbox" data-col="sessions" checked> Sessions</label>
+          <label><input type="checkbox" data-col="calls" checked> Calls</label>
+          <label><input type="checkbox" data-col="inputTokens" checked> Tokens in</label>
+          <label><input type="checkbox" data-col="outputTokens" checked> Tokens out</label>
+          <label><input type="checkbox" data-col="estimatedCostUsd" checked> Est. cost</label>
+          <label><input type="checkbox" data-col="costStatus" checked> Status</label>
+        </fieldset>
+      </div>
+    </div>
+  </div>
   <table id="spend-table" aria-label="Spend by model">
     <thead>
       <tr>
@@ -862,6 +934,77 @@
     return '$' + model.estimatedCostUsd.toFixed(2);
   }
 
+  /* ── column visibility ─────────────────────────────────────── */
+  var COLUMN_KEYS = ['model', 'provider', 'sessions', 'calls', 'inputTokens', 'outputTokens', 'estimatedCostUsd', 'costStatus'];
+  var COLUMNS_STORAGE = 'amsterdam.columns';
+
+  function loadColumnState() {
+    var state = {};
+    try { state = JSON.parse(localStorage.getItem(COLUMNS_STORAGE)) || {}; } catch (e) { state = {}; }
+    COLUMN_KEYS.forEach(function (key) { state[key] = state[key] !== false; });
+    if (!COLUMN_KEYS.some(function (key) { return state[key]; })) state.model = true;
+    return state;
+  }
+
+  var columnState = loadColumnState();
+
+  function syncColumnCheckboxes() {
+    Array.from(document.querySelectorAll('#columns-panel input')).forEach(function (box) {
+      box.checked = columnState[box.getAttribute('data-col')] !== false;
+    });
+  }
+
+  function spendCell(m, key, known) {
+    switch (key) {
+      case 'model':        return '<td class="model">' + escapeHtml(m.model) + '</td>';
+      case 'provider':     return '<td>' + escapeHtml(m.provider || '—') + '</td>';
+      case 'sessions':     return '<td class="num">' + (m.sessions == null ? '—' : m.sessions) + '</td>';
+      case 'calls':        return '<td class="num">' + (m.calls == null ? '—' : m.calls) + '</td>';
+      case 'inputTokens':  return '<td class="num">' + formatTokens(m.inputTokens) + '</td>';
+      case 'outputTokens': return '<td class="num">' + formatTokens(m.outputTokens) + '</td>';
+      case 'estimatedCostUsd':
+        return '<td class="cost' + (known ? '' : ' na') + '">' + formatSpendCost(m) + '</td>';
+      case 'costStatus':   return '<td>' + escapeHtml(m.costStatus || 'unknown') + '</td>';
+    }
+    return '';
+  }
+
+  var columnsBtn   = document.getElementById('columns-btn');
+  var columnsPanel = document.getElementById('columns-panel');
+  var columnsWrap  = columnsBtn ? columnsBtn.closest('.columns-wrap') : null;
+  var columnsOpen  = false;
+
+  function setColumnsPanel(open) {
+    columnsOpen = open;
+    columnsPanel.hidden = !open;
+    columnsBtn.setAttribute('aria-expanded', String(open));
+  }
+
+  if (columnsBtn) {
+    columnsBtn.addEventListener('click', function () { setColumnsPanel(!columnsOpen); });
+
+    columnsPanel.addEventListener('change', function (e) {
+      var box = e.target;
+      if (!box || !box.hasAttribute('data-col')) return;
+      var next = columnState[box.dataset.col] === false;
+      var keepsOne = COLUMN_KEYS.some(function (key) {
+        return key === box.dataset.col ? next : columnState[key];
+      });
+      if (!keepsOne) { box.checked = true; return; } // at least one column stays
+      columnState[box.dataset.col] = next;
+      try { localStorage.setItem(COLUMNS_STORAGE, JSON.stringify(columnState)); } catch (err) {}
+      renderSpend(window.BILLING);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (columnsOpen && columnsWrap && !columnsWrap.contains(e.target)) setColumnsPanel(false);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && columnsOpen) setColumnsPanel(false);
+    });
+  }
+
   function renderSpend(billing) {
     var spend      = billing && billing.spend;
     var table      = document.getElementById('spend-table');
@@ -882,19 +1025,16 @@
     }
 
     table.style.display = 'table';
+    Array.from(document.querySelectorAll('#spend-table th')).forEach(function (th) {
+      th.hidden = !columnState[th.getAttribute('data-sort-key')];
+    });
+    syncColumnCheckboxes();
+    var visible = COLUMN_KEYS.filter(function (key) { return columnState[key]; });
     var rows = sortSpendModels(spend.models).map(function (m) {
       var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
       var known = m.costStatus === 'estimated' && m.estimatedCostUsd != null;
-      return '<tr' + title + '>'
-        + '<td class="model">' + escapeHtml(m.model) + '</td>'
-        + '<td>' + escapeHtml(m.provider) + '</td>'
-        + '<td class="num">' + (m.sessions == null ? '—' : m.sessions) + '</td>'
-        + '<td class="num">' + (m.calls == null ? '—' : m.calls) + '</td>'
-        + '<td class="num">' + formatTokens(m.inputTokens) + '</td>'
-        + '<td class="num">' + formatTokens(m.outputTokens) + '</td>'
-        + '<td class="cost' + (known ? '' : ' na') + '">' + formatSpendCost(m) + '</td>'
-        + '<td>' + escapeHtml(m.costStatus || 'unknown') + '</td>'
-        + '</tr>';
+      var cells = visible.map(function (key) { return spendCell(m, key, known); }).join('');
+      return '<tr' + title + '>' + cells + '</tr>';
     }).join('');
     document.getElementById('spend-body').innerHTML = rows;
     updateSortIndicator();
