@@ -100,9 +100,6 @@ describe('spend', () => {
 
   it('marks groups with any non-estimated row as unknown', () => {
     const spend = readFromDb();
-    const auto = spend.models.find((m) => m.model === 'claude-opus-4-8' && m.provider === 'auto');
-    assert.equal(auto.costStatus, 'estimated'); // filled from tokens at $5/$25
-    assert.equal(auto.estimatedCostUsd, 0.0075); // 500 in + 200 out
 
     const gguf = spend.models.find((m) => m.model === '/models/local.gguf');
     assert.equal(gguf.costStatus, 'local');
@@ -112,30 +109,32 @@ describe('spend', () => {
     assert.equal(kimi.costStatus, 'unknown'); // no authoritative rate
   });
 
-  it('rounds costs to 4 decimals', () => {
+  it('purges anthropic and claude models from the aggregation', () => {
     const spend = readFromDb();
-    const claude = spend.models.find((m) => m.model === 'claude-opus-4-8' && m.provider === 'anthropic');
-    assert.equal(claude.estimatedCostUsd, 0.165);
-    assert.equal(claude.actualCostUsd, null);
+    const leftovers = spend.models.filter(
+      (m) => m.model.includes('claude') || m.provider === 'anthropic',
+    );
+    assert.equal(leftovers.length, 0);
+    assert.equal(spend.models.some((m) => m.model === 'claude-opus-4-8'), false);
   });
 
   it('orders models by estimated cost descending with nulls last', () => {
     const spend = readFromDb();
     const costs = spend.models.map((m) => m.estimatedCostUsd);
-    // Null cost sorts last; the fill then prices claude-opus-4-8 [auto].
-    assert.deepEqual(costs, [3.3333, 0.165, 0.0075, 0, 0]);
+    // Null cost sorts last; local and unknown models price as zero.
+    assert.deepEqual(costs, [3.3333, 0, 0]);
   });
 
   it('computes totals across all rows', () => {
     const spend = readFromDb();
-    assert.equal(spend.modelCount, 5);
-    assert.equal(spend.totalEstimatedUsd, 3.4983);
+    assert.equal(spend.modelCount, 3);
+    assert.equal(spend.totalEstimatedUsd, 3.3333);
     assert.equal(spend.totalActualUsd, 3);
   });
 
   it('honors HERMES_STATE_DB env override', () => {
     const spend = readFromDb();
-    assert.equal(spend.modelCount, 5);
+    assert.equal(spend.modelCount, 3);
   });
 
   it('returns null when the DB file is missing', () => {
@@ -277,10 +276,10 @@ describe('cost estimation fill', () => {
     assert.equal(m.estimatedCostUsd, 0.0028); // 10k in * 0.14 + 5k out * 0.28
   });
 
-  it('estimates claude-opus-4-8 from tokens', () => {
-    const m = read().models.find((x) => x.model === 'claude-opus-4-8');
-    assert.equal(m.costStatus, 'estimated');
-    assert.equal(m.estimatedCostUsd, 0.0075); // 500 in * 5 + 200 out * 25
+  it('purges claude even when tokens would fill a cost', () => {
+    const models = read().models;
+    assert.equal(models.some((x) => x.model === 'claude-opus-4-8'), false);
+    assert.equal(models.length, 3); // deepseek, kimi, local gguf
   });
 
   it('keeps kimi-k3 as unknown (no authoritative rate)', () => {

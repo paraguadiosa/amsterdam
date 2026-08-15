@@ -1719,9 +1719,10 @@
     // Anthropic was purged from the console: its usage history is
     // filtered out of the spend table entirely. Anthropic models are
     // all named claude-*, whatever billing provider labels them.
+    // (The data layer already purges; this guards old snapshots.)
     var models = spend.models.filter(function (m) {
       var name = String(m.model || '').toLowerCase();
-      return name.indexOf('claude') === -1 && (m.provider || '') !== 'anthropic';
+      return name.indexOf('claude') !== 0 && (m.provider || '') !== 'anthropic';
     });
     if (!models || models.length === 0) {
       table.style.display = 'none';

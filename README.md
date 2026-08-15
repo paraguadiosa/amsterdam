@@ -122,8 +122,12 @@ Click **Columns** to choose which columns are visible — the choice is saved
 per browser. Local GGUF files in `~/models` appear in the table even without
 recorded usage, marked with status `no usage`. Groups with usage but no
 recorded cost get a token-based estimate when the model has an authoritative
-rate (deepseek-v4-flash, deepseek-v4-pro, claude-opus-4-8); local GGUF runs
-show as `free`. Models without a known rate keep `n/a`.
+rate (deepseek-v4-flash, deepseek-v4-pro); local GGUF runs show as `free`.
+Models without a known rate keep `n/a`.
+
+Anthropic is purged at the data layer: rows from the `anthropic` billing
+provider and any `claude-*` model are dropped from the aggregation, the
+totals, and the CLI output — wherever the spend data goes.
 
 ### Install to `~/.local/bin`
 

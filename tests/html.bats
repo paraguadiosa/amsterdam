@@ -344,7 +344,7 @@ setup() {
 }
 
 @test "spend table filters purged providers" {
-    [[ "$HTML_CONTENT" == *"name.indexOf('claude') === -1"* ]]
+    [[ "$HTML_CONTENT" == *"name.indexOf('claude') !== 0"* ]]
     [[ "$HTML_CONTENT" == *"(m.provider || '') !== 'anthropic'"* ]]
 }
 

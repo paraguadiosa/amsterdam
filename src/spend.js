@@ -30,6 +30,8 @@ const AGGREGATE_SQL = `
     END AS costStatus,
     MAX(last_seen) AS lastSeen
   FROM session_model_usage
+  WHERE LOWER(billing_provider) <> 'anthropic'
+    AND LOWER(model) NOT LIKE 'claude%'
   GROUP BY model, billing_provider
   ORDER BY estimatedCostUsd DESC, model ASC, billing_provider ASC
 `;
@@ -39,6 +41,8 @@ const TOTAL_SQL = `
     ROUND(SUM(estimated_cost_usd), 4) AS estimated,
     ROUND(SUM(actual_cost_usd), 4) AS actual
   FROM session_model_usage
+  WHERE LOWER(billing_provider) <> 'anthropic'
+    AND LOWER(model) NOT LIKE 'claude%'
 `;
 
 // Resolve the state DB path from an env-like object.
@@ -71,7 +75,6 @@ function listLocalModels(dir) {
 const PRICING = {
   'deepseek-v4-flash': { input: 0.14, output: 0.28, cacheRead: 0.0028 },
   'deepseek-v4-pro': { input: 0.435, output: 0.87, cacheRead: 0.003625 },
-  'claude-opus-4-8': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
 };
 
 function isLocalModel(model, provider) {
