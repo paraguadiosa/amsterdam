@@ -66,12 +66,12 @@ describe('formatConsoleLine', () => {
   });
 
   it('shows model count', () => {
-    const line = formatConsoleLine('anthropic', { detected: true, models: 10, verified: true });
+    const line = formatConsoleLine('openai', { detected: true, models: 10, verified: true });
     assert.ok(line.includes('10 models'));
   });
 
   it('shows key verified', () => {
-    const line = formatConsoleLine('anthropic', { detected: true, verified: true });
+    const line = formatConsoleLine('openai', { detected: true, verified: true });
     assert.ok(line.includes('*'));
     assert.ok(line.includes('key verified'));
   });

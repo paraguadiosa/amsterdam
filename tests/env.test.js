@@ -88,7 +88,7 @@ describe('loadEnvFile', () => {
 describe('parseHermesPool', () => {
   const pool = JSON.stringify({
     credential_pool: {
-      anthropic: [{ source: 'manual', access_token: 'sk-ant-test' }],
+      openai: [{ source: 'manual', access_token: 'sk-openai-test' }],
       'kimi-coding': [{ source: 'manual', access_token: 'sk-kimi-test' }],
       deepseek: [{ source: 'env:DEEPSEEK_API_KEY' }],
       huggingface: [{ source: 'env:HF_TOKEN' }],
@@ -97,7 +97,7 @@ describe('parseHermesPool', () => {
 
   it('maps manual credentials to env vars', () => {
     const vars = parseHermesPool(pool);
-    assert.equal(vars.ANTHROPIC_API_KEY, 'sk-ant-test');
+    assert.equal(vars.OPENAI_API_KEY, 'sk-openai-test');
     assert.equal(vars.KIMI_API_KEY, 'sk-kimi-test');
   });
 
@@ -155,14 +155,14 @@ describe('parseHermesPool', () => {
   it('takes the first manual credential per provider', () => {
     const content = JSON.stringify({
       credential_pool: {
-        anthropic: [
+        openai: [
           { source: 'manual', access_token: 'sk-first' },
           { source: 'manual', access_token: 'sk-second' },
         ],
       },
     });
     const vars = parseHermesPool(content);
-    assert.equal(vars.ANTHROPIC_API_KEY, 'sk-first');
+    assert.equal(vars.OPENAI_API_KEY, 'sk-first');
   });
 
   it('returns empty object for invalid JSON', () => {
@@ -193,13 +193,13 @@ describe('loadHermesPool', () => {
     const file = join(tmpDir, 'auth.json');
     writeFileSync(file, JSON.stringify({
       credential_pool: {
-        anthropic: [{ source: 'manual', access_token: 'sk-ant-test' }],
+        openai: [{ source: 'manual', access_token: 'sk-openai-test' }],
       },
     }));
     const target = {};
     const keys = loadHermesPool(file, target);
-    assert.equal(target.ANTHROPIC_API_KEY, 'sk-ant-test');
-    assert.ok(keys.includes('ANTHROPIC_API_KEY'));
+    assert.equal(target.OPENAI_API_KEY, 'sk-openai-test');
+    assert.ok(keys.includes('OPENAI_API_KEY'));
     rmSync(tmpDir, { recursive: true });
   });
 
@@ -208,12 +208,12 @@ describe('loadHermesPool', () => {
     const file = join(tmpDir, 'auth.json');
     writeFileSync(file, JSON.stringify({
       credential_pool: {
-        anthropic: [{ source: 'manual', access_token: 'sk-new' }],
+        openai: [{ source: 'manual', access_token: 'sk-new' }],
       },
     }));
-    const target = { ANTHROPIC_API_KEY: 'sk-original' };
+    const target = { OPENAI_API_KEY: 'sk-original' };
     loadHermesPool(file, target);
-    assert.equal(target.ANTHROPIC_API_KEY, 'sk-original');
+    assert.equal(target.OPENAI_API_KEY, 'sk-original');
     rmSync(tmpDir, { recursive: true });
   });
 
@@ -233,29 +233,29 @@ describe('loadDefaults', () => {
     writeFileSync(join(tmpDir, '.hermes', '.env'), 'HOME_KEY=def');
     writeFileSync(join(tmpDir, '.hermes', 'auth.json'), JSON.stringify({
       credential_pool: {
-        anthropic: [{ source: 'manual', access_token: 'sk-pool' }],
+        openai: [{ source: 'manual', access_token: 'sk-pool' }],
       },
     }));
     const target = {};
     const loaded = loadDefaults(target, { cwd: tmpDir, home: tmpDir });
     assert.equal(target.PROJECT_KEY, 'abc');
     assert.equal(target.HOME_KEY, 'def');
-    assert.equal(target.ANTHROPIC_API_KEY, 'sk-pool');
+    assert.equal(target.OPENAI_API_KEY, 'sk-pool');
     assert.equal(loaded.length, 3);
     rmSync(tmpDir, { recursive: true });
   });
 
   it('project env wins over pool', () => {
     mkdirSync(join(tmpDir, '.hermes'), { recursive: true });
-    writeFileSync(join(tmpDir, '.env'), 'ANTHROPIC_API_KEY=sk-project');
+    writeFileSync(join(tmpDir, '.env'), 'OPENAI_API_KEY=sk-project');
     writeFileSync(join(tmpDir, '.hermes', 'auth.json'), JSON.stringify({
       credential_pool: {
-        anthropic: [{ source: 'manual', access_token: 'sk-pool' }],
+        openai: [{ source: 'manual', access_token: 'sk-pool' }],
       },
     }));
     const target = {};
     loadDefaults(target, { cwd: tmpDir, home: tmpDir });
-    assert.equal(target.ANTHROPIC_API_KEY, 'sk-project');
+    assert.equal(target.OPENAI_API_KEY, 'sk-project');
     rmSync(tmpDir, { recursive: true });
   });
 });

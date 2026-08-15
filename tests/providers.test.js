@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import deepseek from '../src/providers/deepseek.js';
 import huggingface from '../src/providers/huggingface.js';
 import moonshot from '../src/providers/moonshot.js';
-import { createVerifyProvider, anthropic, openai, groq, together, mistral, google, fireworks } from '../src/providers/verify.js';
+import { createVerifyProvider, openai, groq, together, mistral, google, fireworks } from '../src/providers/verify.js';
 import providers from '../src/providers/index.js';
 
 function mockFetch(body, status = 200) {
@@ -200,7 +200,7 @@ describe('createVerifyProvider', () => {
 // ── verify-only providers metadata ───────────────
 
 describe('verify-only providers', () => {
-  const verifyProviders = [anthropic, openai, groq, together, mistral, google, fireworks];
+  const verifyProviders = [openai, groq, together, mistral, google, fireworks];
 
   for (const p of verifyProviders) {
     it(`${p.id} has id and envKey`, () => {
@@ -215,21 +215,6 @@ describe('verify-only providers', () => {
       assert.equal(result.models, 1);
     });
   }
-});
-
-// ── anthropic uses custom auth header ────────────
-
-describe('anthropic auth', () => {
-  it('sends x-api-key header', async () => {
-    let headers = {};
-    const spy = async (url, opts) => {
-      headers = opts.headers;
-      return { ok: true, json: async () => ({}) };
-    };
-    await anthropic.fetchBalance({ apiKey: 'sk-ant-test', baseUrl: 'https://api.anthropic.com' }, spy);
-    assert.equal(headers['x-api-key'], 'sk-ant-test');
-    assert.equal(headers['anthropic-version'], '2023-06-01');
-  });
 });
 
 // ── google uses query param auth ─────────────────
@@ -250,7 +235,7 @@ describe('google auth', () => {
 
 describe('provider registry', () => {
   it('exports all providers', () => {
-    assert.equal(providers.length, 10);
+    assert.equal(providers.length, 9);
   });
 
   it('has unique ids', () => {

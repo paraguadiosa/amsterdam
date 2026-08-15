@@ -338,8 +338,14 @@ setup() {
     [[ "$HTML_CONTENT" == *'data-provider="deepseek"'* ]]
 }
 
-@test "Anthropic card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="anthropic"'* ]]
+@test "anthropic is purged from the dashboard" {
+    run grep -E 'data-provider="anthropic"|ANTHROPIC_API_KEY|console.anthropic.com' "$HTML"
+    [ "$status" -eq 1 ]
+}
+
+@test "spend table filters purged providers" {
+    [[ "$HTML_CONTENT" == *"name.indexOf('claude') === -1"* ]]
+    [[ "$HTML_CONTENT" == *"(m.provider || '') !== 'anthropic'"* ]]
 }
 
 @test "OpenAI card has data-provider" {

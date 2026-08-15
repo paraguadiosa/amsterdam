@@ -1267,7 +1267,7 @@
       <p class="credits-value" id="credits-total">&mdash;</p>
       <p class="credits-split" id="credits-split">&mdash;</p>
     </div>
-    <p class="credits-note">Live totals from the provider APIs, plus manually-tracked credits for providers without a billing API (e.g. Anthropic). Click <b>edit</b> on a verified chip to type the remaining amount. Run <code>amster serve</code> for live mode.</p>
+    <p class="credits-note">Live totals from the provider APIs, plus manually-tracked credits for providers without a billing API (e.g. OpenAI). Click <b>edit</b> on a verified chip to type the remaining amount. Run <code>amster serve</code> for live mode.</p>
   </section>
 
   <div class="warning">
@@ -1347,14 +1347,6 @@
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: KIMI_API_KEY / MOONSHOT_API_KEY</p>
       <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="anthropic claude" data-provider="anthropic">
-      <h3>Anthropic</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Console: Settings &gt; Billing.</p>
-      <p class="envs">Env: ANTHROPIC_API_KEY</p>
-      <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="huggingface hf hugging face" data-provider="huggingface">
@@ -1458,9 +1450,9 @@
   }
 
   /* ── manual credits ─────────────────────────────────────────── */
-  // Providers without a billing API (Anthropic and friends) cannot
-  // report a balance, so the user can type one in. It is stored per
-  // browser and feeds the credits total like a live balance.
+  // Verified-only providers have no billing API, so the user can
+  // type a balance in. It is stored per browser and feeds the
+  // credits total like a live balance.
   var MANUAL_STORAGE = 'amsterdam.manualCredits';
 
   function loadManualCredits() {
@@ -1724,7 +1716,14 @@
       unavailable.classList.add('show');
       return;
     }
-    if (!spend.models || spend.models.length === 0) {
+    // Anthropic was purged from the console: its usage history is
+    // filtered out of the spend table entirely. Anthropic models are
+    // all named claude-*, whatever billing provider labels them.
+    var models = spend.models.filter(function (m) {
+      var name = String(m.model || '').toLowerCase();
+      return name.indexOf('claude') === -1 && (m.provider || '') !== 'anthropic';
+    });
+    if (!models || models.length === 0) {
       table.style.display = 'none';
       empty.classList.add('show');
       return;
@@ -1736,7 +1735,7 @@
     });
     syncColumnCheckboxes();
     var visible = COLUMN_KEYS.filter(function (key) { return columnState[key]; });
-    var rows = sortSpendModels(spend.models).map(function (m) {
+    var rows = sortSpendModels(models).map(function (m) {
       var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
       var known = (m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null;
       var cells = visible.map(function (key) { return spendCell(m, key, known); }).join('');
