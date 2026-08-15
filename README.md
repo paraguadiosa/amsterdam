@@ -7,25 +7,25 @@ live balance and usage numbers fetched straight from provider APIs.
 
 ## Quick start
 
-### One command, anywhere
+### Default: host daemon (fast iteration)
 
 ```bash
 ./scripts/amsterdam-install   # symlink amsterdam into ~/.local/bin (once)
-amsterdam                     # build the image if needed, run in the background
+amsterdam                     # host daemon, live dashboard (Ctrl+C to stop)
 ```
 
-Then open <http://localhost:3131>. Stop it with `amsterdam stop`.
-Any new terminal can run `amsterdam` — it is a symlink on your PATH.
+Then open <http://localhost:3131>. Any new terminal can run `amsterdam` —
+it is a symlink on your PATH.
 
-### Without Docker
+### Opt-in: Docker container
 
 ```bash
-npm install
-./scripts/amster serve   # live dashboard with auto-refresh every 2.5 min
+amsterdam docker    # background container, then print the URL
+amsterdam stop      # stop the container
 ```
 
-Then open <http://localhost:3131> (the port is a nod to the Netherlands'
-calling code +31).
+The Docker image is rebuilt on `amsterdam build`. Prefer the daemon while
+iterating on code — the container runs the code baked at build time.
 
 For a one-shot snapshot instead:
 
@@ -37,11 +37,13 @@ For a one-shot snapshot instead:
 ## CLI helper
 
 ```bash
-amsterdam               # Background Docker container, then print the URL
+amsterdam               # Host daemon, live dashboard (Ctrl+C to stop)
+amsterdam serve         # Same as no arguments (daemon)
+amsterdam docker        # Background Docker container, then print the URL
+amsterdam up            # Same as docker
 amsterdam stop          # Stop the background container
 amsterdam build         # Build the Docker image
-amsterdam run           # Run in the foreground (Ctrl+C to stop)
-amsterdam serve         # Live server without Docker, auto-refresh every 2.5 min
+amsterdam run           # Run Docker in the foreground (Ctrl+C to stop)
 amsterdam dump          # Fetch billing data once (open the floodgates)
 amsterdam open          # Open the launcher with xdg-open
 amsterdam link          # Show the file:// URL
@@ -49,8 +51,9 @@ amsterdam path          # Show the absolute path
 amsterdam help          # Show help
 ```
 
-The wrapper passes Docker commands to `scripts/amster-docker` and the
-rest to `scripts/amster`. The low-level helpers work the same way:
+The wrapper runs the daemon by default, passes `docker|up|stop|build|run`
+to `scripts/amster-docker`, and the rest to `scripts/amster`. The
+low-level helpers work the same way:
 
 ```bash
 ./scripts/amster serve   # Live server, auto-refresh every 2.5 min
@@ -72,6 +75,18 @@ The dashboard detects how it is served. Over HTTP it polls `/api/billing`
 and shows a live status; over `file://` it renders the static snapshot and
 suggests `amster serve`.
 
+### Spend by model
+
+Alongside provider balances, the dashboard shows how much Eve spent per LLM
+model. The numbers come from the local Hermes agent state database at
+`~/.hermes/state.db` — read-only, host daemon only. Amsterdam never writes to
+that database. The data is aggregated per `(model, billing_provider)`:
+sessions, calls, tokens, and estimated/actual cost.
+
+Override the database path with `HERMES_STATE_DB` (useful for testing or
+non-standard installs). In Docker there is no state DB, so the section shows
+the unavailable hint — run `amster serve` on the host to see spend data.
+
 ### Install to `~/.local/bin`
 
 ```bash
@@ -88,13 +103,14 @@ directory and keep working after repo updates.
 src/
   providers/
     deepseek.js      # Balance endpoint (has real billing API)
-    openrouter.js    # Auth/key endpoint (has real billing API)
+    moonshot.js      # Balance endpoint (has real billing API)
     huggingface.js   # Whoami endpoint (account info)
     verify.js        # Factory for key-verification-only providers
     index.js         # Provider registry
   dam.js             # Orchestrator — fetches all, writes data/billing.js
   server.js          # Local HTTP server for live mode
   env.js             # Credential loader (.env files + hermes pool)
+  spend.js           # Read-only per-model spend from the Hermes state DB
   format.js          # Output formatters (JS file + console)
 data/
   billing.js         # Auto-generated (gitignored)
@@ -103,7 +119,7 @@ Dockerfile           # Container build (node:22-alpine, runs as non-root)
 .dockerignore        # Keeps the build context small
 scripts/
   amster             # CLI entry point (serve, dump, open, ...)
-  amsterdam          # Wrapper: default to background Docker, pass through to amster
+  amsterdam          # Wrapper: default to host daemon, Docker via `amsterdam docker`
   amsterdam-install  # Symlink the commands into ~/.local/bin
   amster-docker      # Docker build/run helper
 ```
@@ -112,9 +128,9 @@ scripts/
 
 | Type | Providers | What it returns |
 |------|-----------|-----------------|
-| Balance API | DeepSeek, OpenRouter | Actual balance / usage numbers |
+| Balance API | DeepSeek, Moonshot | Actual balance numbers |
 | Account info | Hugging Face | Username + verified status |
-| Key verification | Anthropic, OpenAI, Moonshot, Groq, Together, Mistral, Google, Fireworks | `verified: true` on HTTP 200 |
+| Key verification + model count | Anthropic, OpenAI, Groq, Together, Mistral, Google, Fireworks | Number of models + `verified: true` on HTTP 200 |
 
 ## Credentials — one place to keep them
 
@@ -131,7 +147,9 @@ The hermes credential pool is the recommended source. Keys added with
 Hermes provider ids are mapped to amsterdam variables (e.g.
 `kimi-coding` → `KIMI_API_KEY`, `anthropic` → `ANTHROPIC_API_KEY`).
 Only manual credentials carry a token; env-sourced ones resolve through
-the `.env` files above.
+the `.env` files above. The pool's `base_url` is also honored for
+providers that read one (`KIMI_BASE_URL`, `DEEPSEEK_BASE_URL`, `GROQ_BASE_URL`),
+with the OpenAI-style trailing `/v1` stripped.
 
 So you maintain your keys in **one place** (`hermes auth`), and amsterdam
 detects them without duplicating them in a project `.env`.
@@ -164,8 +182,11 @@ account or org):
 - Single HTML file, no build step, no bundler.
 - No secrets stored — keys come from environment variables or the
   hermes credential pool (`~/.hermes/auth.json`), never from git.
+- Spend by model reads `~/.hermes/state.db` (the Hermes agent's state DB)
+  in read-only mode; the DB is never mounted into the Docker container
+  (WAL/shm issues), so spend data is host-daemon-only.
 - The container runs as a non-root user and mounts the keys file read-only.
 - The search box filters cards live.
-- "If you also use these" is a collapsible dropdown (click to expand).
+- "Available platforms" is a collapsible dropdown (click to expand).
 - "Open console" buttons open each page in a new tab.
 - The repo is local-only: no remotes, no push.

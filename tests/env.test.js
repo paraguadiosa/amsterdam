@@ -112,6 +112,46 @@ describe('parseHermesPool', () => {
     assert.equal(vars.KIMI_API_KEY, 'sk-kimi-test');
   });
 
+  it('propagates base_url and strips the /v1 suffix', () => {
+    const content = JSON.stringify({
+      credential_pool: {
+        'kimi-coding': [
+          { source: 'manual', access_token: 'sk-kimi-test', base_url: 'https://api.moonshot.ai/v1' },
+        ],
+      },
+    });
+    const vars = parseHermesPool(content);
+    assert.equal(vars.KIMI_API_KEY, 'sk-kimi-test');
+    assert.equal(vars.KIMI_BASE_URL, 'https://api.moonshot.ai');
+  });
+
+  it('propagates base_url for deepseek and groq', () => {
+    const content = JSON.stringify({
+      credential_pool: {
+        deepseek: [
+          { source: 'manual', access_token: 'sk-ds', base_url: 'https://api.deepseek.com/v1' },
+        ],
+        groq: [
+          { source: 'manual', access_token: 'sk-gq', base_url: 'https://api.groq.com/openai/v1' },
+        ],
+      },
+    });
+    const vars = parseHermesPool(content);
+    assert.equal(vars.DEEPSEEK_BASE_URL, 'https://api.deepseek.com');
+    assert.equal(vars.GROQ_BASE_URL, 'https://api.groq.com/openai');
+  });
+
+  it('does not propagate base_url for env-sourced credentials', () => {
+    const content = JSON.stringify({
+      credential_pool: {
+        'kimi-coding': [
+          { source: 'env:KIMI_API_KEY', base_url: 'https://api.moonshot.cn/v1' },
+        ],
+      },
+    });
+    assert.deepEqual(parseHermesPool(content), {});
+  });
+
   it('takes the first manual credential per provider', () => {
     const content = JSON.stringify({
       credential_pool: {

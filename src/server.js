@@ -74,9 +74,18 @@ async function sendFile(res, filePath, type) {
 
 export function start(port = DEFAULT_PORT) {
   const app = createApp();
+  app.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use.`);
+      console.error('   Another Amsterdam instance may be running.');
+      console.error(`   Stop it first, or run: PORT=${port + 1} amsterdam`);
+      process.exit(1);
+    }
+    throw err;
+  });
   app.listen(port, () => {
-    console.log(`🌊 Amsterdam Console — http://localhost:${port}`);
-    console.log('   Auto-refreshes every 2.5 min. Press Ctrl+C to stop.');
+    console.log(`Amsterdam Console — http://localhost:${port}`);
+    console.log(`   PID ${process.pid} — Ctrl+C to stop, auto-refresh every 2.5 min.`);
   });
   return app;
 }

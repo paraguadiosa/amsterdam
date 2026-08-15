@@ -68,6 +68,53 @@ setup() {
     [[ "$HTML_CONTENT" == *'id="billing-status"'* ]]
 }
 
+# ── spend by model ────────────────────────────────
+
+@test "has spend by model section" {
+    [[ "$HTML_CONTENT" == *"Spend by model"* ]]
+}
+
+@test "spend section sits between summary and search" {
+    local summary_line=$(grep -n 'id="billing-summary"' "$HTML" | head -1 | cut -d: -f1)
+    local spend_line=$(grep -n 'id="spend-table"' "$HTML" | head -1 | cut -d: -f1)
+    local search_line=$(grep -n '<input id="search"' "$HTML" | head -1 | cut -d: -f1)
+    [ "$spend_line" -gt "$summary_line" ]
+    [ "$spend_line" -lt "$search_line" ]
+}
+
+@test "spend table lists expected columns" {
+    [[ "$HTML_CONTENT" == *"Est. cost"* ]]
+    [[ "$HTML_CONTENT" == *"Tokens out"* ]]
+    [[ "$HTML_CONTENT" == *"Sessions"* ]]
+}
+
+@test "spend table has provider and model columns" {
+    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Model</th>"* ]]
+    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Provider</th>"* ]]
+}
+
+@test "spend shows unavailable hint for missing DB" {
+    [[ "$HTML_CONTENT" == *"Spend data unavailable"* ]]
+    [[ "$HTML_CONTENT" == *"amster serve"* ]]
+}
+
+@test "spend shows empty hint for no usage" {
+    [[ "$HTML_CONTENT" == *"No usage recorded yet"* ]]
+}
+
+@test "has renderSpend function" {
+    [[ "$HTML_CONTENT" == *"renderSpend"* ]]
+}
+
+@test "has formatSpendCost function" {
+    [[ "$HTML_CONTENT" == *"formatSpendCost"* ]]
+}
+
+@test "spend cost shows n/a for unknown status" {
+    [[ "$HTML_CONTENT" == *"costStatus !== 'estimated'"* ]]
+    [[ "$HTML_CONTENT" == *"n/a"* ]]
+}
+
 @test "polls /api/billing" {
     [[ "$HTML_CONTENT" == *"fetch('/api/billing')"* ]]
 }
@@ -159,10 +206,6 @@ setup() {
 
 @test "OpenAI card has data-provider" {
     [[ "$HTML_CONTENT" == *'data-provider="openai"'* ]]
-}
-
-@test "OpenRouter card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="openrouter"'* ]]
 }
 
 @test "Groq card has data-provider" {

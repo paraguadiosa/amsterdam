@@ -42,38 +42,43 @@ describe('formatConsoleLine', () => {
 
   it('shows balance with currency', () => {
     const line = formatConsoleLine('deepseek', { detected: true, balance: 42.5, currency: 'CNY' });
-    assert.ok(line.includes('✓'));
+    assert.ok(line.includes('*'));
     assert.ok(line.includes('CNY 42.50'));
     assert.ok(line.includes('remaining'));
   });
 
   it('shows usage with limit', () => {
-    const line = formatConsoleLine('openrouter', { detected: true, usage: 3.14, limit: 50 });
+    const line = formatConsoleLine('usagetest', { detected: true, usage: 3.14, limit: 50 });
     assert.ok(line.includes('$3.14 used'));
     assert.ok(line.includes('50.00 limit'));
   });
 
   it('shows usage without limit', () => {
-    const line = formatConsoleLine('openrouter', { detected: true, usage: 1.0, limit: null });
+    const line = formatConsoleLine('usagetest', { detected: true, usage: 1.0, limit: null });
     assert.ok(line.includes('$1.00 used'));
     assert.ok(line.includes('no limit'));
   });
 
   it('shows username', () => {
     const line = formatConsoleLine('huggingface', { detected: true, username: 'eve' });
-    assert.ok(line.includes('✓'));
+    assert.ok(line.includes('*'));
     assert.ok(line.includes('eve'));
+  });
+
+  it('shows model count', () => {
+    const line = formatConsoleLine('anthropic', { detected: true, models: 10, verified: true });
+    assert.ok(line.includes('10 models'));
   });
 
   it('shows key verified', () => {
     const line = formatConsoleLine('anthropic', { detected: true, verified: true });
-    assert.ok(line.includes('✓'));
+    assert.ok(line.includes('*'));
     assert.ok(line.includes('key verified'));
   });
 
   it('shows error', () => {
     const line = formatConsoleLine('groq', { detected: true, error: 'HTTP 401' });
-    assert.ok(line.includes('✗'));
+    assert.ok(line.includes('!'));
     assert.ok(line.includes('HTTP 401'));
   });
 

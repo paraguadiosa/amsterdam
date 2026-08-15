@@ -1,5 +1,6 @@
 #!/bin/sh
-# amsterdam - run the Amsterdam Console as a background Docker container.
+# amsterdam - run the Amsterdam Console with the host daemon (default),
+# or as an opt-in Docker container.
 
 SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SELF")" && pwd)
@@ -11,12 +12,13 @@ usage() {
 usage: amsterdam [command]
 
 commands:
-  (none)  Run the dashboard as a background Docker container and print the URL
-  up      Same as no arguments
-  stop    Stop the background container
-  run     Run in the foreground (Ctrl+C to stop)
+  (none)  Run the host daemon in the foreground (Ctrl+C to stop)
+  serve   Same as no arguments (host daemon, live dashboard)
+  docker  Run the dashboard as a background Docker container
+  up      Same as docker
+  stop    Stop the background Docker container
+  run     Run Docker in the foreground (Ctrl+C to stop)
   build   Build the Docker image
-  serve   Run the local (non-Docker) live server
   dump    Fetch billing data once
   open    Open the launcher in a browser
   link    Show the file:// URL of the launcher
@@ -26,7 +28,10 @@ EOF
 }
 
 case "${1:-}" in
-    ''|up)
+    ''|serve|daemon)
+        exec "$AMSTER" serve
+        ;;
+    docker|up)
         exec "$AMSTER_DOCKER" up
         ;;
     stop|build|run)
@@ -35,7 +40,7 @@ case "${1:-}" in
     help|-h|--help)
         usage
         ;;
-    serve|dump|fetch|open|link|path)
+    dump|fetch|open|link|path)
         exec "$AMSTER" "$@"
         ;;
     *)

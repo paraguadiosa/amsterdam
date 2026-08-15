@@ -11,13 +11,26 @@ const POOL_PROVIDER_TO_ENV = {
   deepseek: 'DEEPSEEK_API_KEY',
   huggingface: 'HF_TOKEN',
   openai: 'OPENAI_API_KEY',
-  openrouter: 'OPENROUTER_API_KEY',
   groq: 'GROQ_API_KEY',
   together: 'TOGETHER_API_KEY',
   mistral: 'MISTRAL_API_KEY',
   google: 'GOOGLE_API_KEY',
   fireworks: 'FIREWORKS_API_KEY',
 };
+
+// Provider id → base-url env var for providers that read one.
+const POOL_PROVIDER_TO_BASE_URL_ENV = {
+  'kimi-coding': 'KIMI_BASE_URL',
+  'kimi-coding-cn': 'KIMI_CN_BASE_URL',
+  deepseek: 'DEEPSEEK_BASE_URL',
+  groq: 'GROQ_BASE_URL',
+};
+
+// Pool base urls follow the OpenAI convention and end in /v1.
+// Amsterdam appends its own paths, so strip the suffix.
+function normalizeBaseUrl(url) {
+  return url.replace(/\/v1\/?$/, '');
+}
 
 export function parseHermesPool(content) {
   const vars = {};
@@ -32,6 +45,10 @@ export function parseHermesPool(content) {
         // env-sourced credentials resolve through .env files.
         if (cred && cred.source === 'manual' && cred.access_token) {
           vars[envKey] = cred.access_token;
+          const baseUrlEnv = POOL_PROVIDER_TO_BASE_URL_ENV[providerId];
+          if (baseUrlEnv && cred.base_url) {
+            vars[baseUrlEnv] = normalizeBaseUrl(cred.base_url);
+          }
           break;
         }
       }

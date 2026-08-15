@@ -5,221 +5,585 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Amsterdam Console</title>
 <style>
+  /* ── design tokens ──────────────────────────────────────────── */
   :root {
-    --bg: #0d0b14;
-    --bg-soft: #14101f;
-    --card: #1a1526;
-    --card-hover: #211a30;
-    --border: #2c2340;
-    --text: #ece6f7;
-    --muted: #9a8fb5;
-    --accent: #c9a2ff;
-    --accent-2: #ff7eb3;
-    --green: #7dffb3;
-    --warning: #ffb86b;
-    --danger: #ff6b6b;
-    --warning-bg: #2a1f12;
-    --warning-border: #6b4a1f;
-    --radius: 14px;
+    /* surfaces */
+    --bg:          #070a10;
+    --bg-soft:     #0f1520;
+    --card:        #111825;
+    --card-hover:  #172030;
+
+    /* borders */
+    --border:      #1a2638;
+    --border-hi:   #2d4060;
+
+    /* text — all pass WCAG AA on --bg (#070a10) */
+    --text:        #dde4f0;
+    --muted:       #8898b8;
+    --faint:       #6888a8;
+
+    /* accent: indigo */
+    --accent:      #818cf8;
+    --accent-2:    #a5b4fc;
+
+    /* semantic */
+    --green:       #34d399;
+    --amber:       #fbbf24;
+    --red:         #f87171;
+
+    /* warning strip */
+    --warn-bg:     #181205;
+    --warn-border: #3d2c10;
+    --warn-text:   #d4a04a;
+
+    /* button gradient */
+    --btn-from:    #4f46e5;
+    --btn-to:      #4338ca;
+
+    /* shape */
+    --radius-sm:   6px;
+    --radius-md:   10px;
+    --radius-lg:   14px;
+    --radius-pill: 999px;
+
+    /* elevation */
+    --shadow-sm:    0 1px 3px rgba(0,0,0,.55);
+    --shadow-hover: 0 6px 20px rgba(0,0,0,.65);
+
+    /* motion */
+    --t-fast: 120ms ease;
+    --t-base: 180ms ease;
+
+    /* type */
+    --font:      "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── reset ──────────────────────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── base ────────────────────────────────────────────────────── */
   body {
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-    background: radial-gradient(1200px 600px at 20% -10%, #241a3a 0%, var(--bg) 55%);
+    font-family: var(--font);
+    background-color: var(--bg);
+    background-image: radial-gradient(ellipse 1000px 480px at 25% -8%, #111a40 0%, transparent 60%);
     color: var(--text);
     min-height: 100vh;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
 
-  header { margin-bottom: 24px; }
+  /* ── focus ring ──────────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── screen-reader only ──────────────────────────────────────── */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ── layout ──────────────────────────────────────────────────── */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* ── header ──────────────────────────────────────────────────── */
+  header { margin-bottom: 36px; }
+
   h1 {
-    font-size: 1.9rem;
-    letter-spacing: 0.5px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    font-size: 1.875rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    background: linear-gradient(110deg, var(--accent-2) 10%, var(--accent) 60%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .sub { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
-  .meta { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
 
-  /* ── billing summary (top of page) ────────────── */
-  #billing-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 10px;
-    margin-bottom: 24px;
+  .sub {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 0.9375rem;
   }
+
+  .meta {
+    margin-top: 4px;
+    color: var(--faint);
+    font-size: 0.8125rem;
+  }
+
+  /* ── warning banner ──────────────────────────────────────────── */
+  .warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    margin-bottom: 28px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: var(--radius-md);
+    color: var(--warn-text);
+    font-size: 0.875rem;
+  }
+
+  .warning::before {
+    content: "!";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ── billing toolbar ─────────────────────────────────────────── */
   #billing-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
+
   #billing-status {
+    font-size: 0.8125rem;
     color: var(--muted);
-    font-size: 0.8rem;
   }
-  #billing-status.live { color: var(--green); }
-  #billing-status.error { color: var(--danger); }
-  #refresh-btn {
-    font-size: 0.8rem;
-    padding: 6px 12px;
-    cursor: pointer;
+
+  #billing-status.live  { color: var(--green); }
+  #billing-status.error { color: var(--red); }
+
+  /* ── billing summary ─────────────────────────────────────────── */
+  #billing-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    gap: 10px;
+    margin-bottom: 32px;
   }
+
+  /* ── chips ───────────────────────────────────────────────────── */
   .chip {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 10px 14px;
-    border-radius: 10px;
+    gap: 4px;
+    padding: 12px 14px;
     background: var(--card);
     border: 1px solid var(--border);
-    font-size: 0.82rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    font-size: 0.8125rem;
   }
-  .chip .chip-name { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
-  .chip .chip-value { font-weight: 600; font-size: 0.95rem; }
-  .chip.balance .chip-value { color: var(--green); }
-  .chip.usage .chip-value { color: var(--warning); }
-  .chip.verified .chip-value { color: var(--accent); }
-  .chip.error .chip-value { color: var(--danger); }
-  .chip.off .chip-value { color: var(--muted); font-style: italic; font-weight: 400; }
+
+  .chip .chip-name {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  .chip .chip-value {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .chip.balance  .chip-value { color: var(--green); }
+  .chip.usage    .chip-value { color: var(--amber); }
+  .chip.verified .chip-value { color: var(--accent-2); }
+  .chip.error    .chip-value { color: var(--red); }
+  .chip.off      .chip-value { color: var(--faint); font-style: italic; font-weight: 400; }
+
   #billing-prompt {
     grid-column: 1 / -1;
-    text-align: center;
+    padding: 20px 0;
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     font-style: italic;
-    padding: 14px 0;
+    text-align: center;
   }
+
   #billing-prompt code {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 0.875em;
+    color: var(--accent-2);
     background: var(--bg-soft);
     padding: 2px 7px;
-    border-radius: 5px;
-    font-size: 0.85em;
+    border-radius: var(--radius-sm);
   }
+
   #billing-time {
     grid-column: 1 / -1;
     text-align: right;
-    color: var(--muted);
-    font-size: 0.7rem;
+    color: var(--faint);
+    font-size: 0.6875rem;
+    letter-spacing: 0.2px;
   }
 
-  /* ── search ───────────────────────────────────── */
-  #search {
+  /* ── spend by model ─────────────────────────────────────────── */
+  #spend-table {
     width: 100%;
-    padding: 13px 16px;
-    font-size: 1rem;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-bottom: 28px;
+  }
+
+  #spend-table th {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-hi);
+    white-space: nowrap;
+  }
+
+  #spend-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+    word-break: break-word;
+  }
+
+  #spend-table tbody tr:hover { background: var(--bg-soft); }
+
+  #spend-table .num {
+    text-align: right;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+
+  #spend-table .model { font-family: var(--font-mono); }
+  #spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
+  #spend-table .cost.na { color: var(--faint); }
+
+  /* ── search ──────────────────────────────────────────────────── */
+  #search {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    font-family: var(--font);
+    font-size: 0.9375rem;
     color: var(--text);
     background: var(--bg-soft);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     outline: none;
-    margin-bottom: 28px;
-    transition: border-color 0.2s;
+    margin-bottom: 36px;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
   }
-  #search:focus { border-color: var(--accent); }
-  #search::placeholder { color: var(--muted); }
 
-  /* ── sections ─────────────────────────────────── */
+  #search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(129,140,248,.15);
+  }
+
+  #search::placeholder { color: var(--faint); }
+
+  /* ── section headings ────────────────────────────────────────── */
   h2 {
-    font-size: 1.05rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    margin: 28px 0 14px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    margin: 32px 0 14px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: var(--muted);
   }
-  h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  h2.toggle { cursor: pointer; user-select: none; }
-  h2.toggle:hover { color: var(--text); }
-  h2.toggle .dot { background: var(--muted); }
-  h2.toggle.expanded .dot { background: var(--accent); }
-  h2 .count { font-size: 0.8rem; text-transform: none; letter-spacing: 0; }
-  h2 .chevron { margin-left: auto; font-size: 0.9rem; transition: transform 0.15s; }
-  h2.toggle.expanded .chevron { transform: rotate(90deg); }
-  .cards.collapsed { display: none; }
 
-  /* ── cards ─────────────────────────────────────── */
+  h2 .dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  h2 .count {
+    font-size: 0.75rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--faint);
+  }
+
+  h2 .chevron {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--faint);
+    transition: transform var(--t-fast);
+  }
+
+  h2.toggle {
+    cursor: pointer;
+    user-select: none;
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+    margin-left: -4px;
+  }
+
+  h2.toggle:hover { color: var(--text); }
+  h2.toggle:hover .dot { background: var(--accent-2); }
+
+  h2.toggle.expanded .dot { background: var(--accent-2); }
+  h2.toggle.expanded .chevron { transform: rotate(90deg); }
+
+  /* ── cards grid ──────────────────────────────────────────────── */
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
   }
+
+  .cards.collapsed { display: none; }
+  .card.hidden     { display: none; }
+
+  /* ── provider card ───────────────────────────────────────────── */
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition:
+      transform var(--t-fast),
+      border-color var(--t-fast),
+      background var(--t-fast),
+      box-shadow var(--t-fast);
   }
-  .card:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--card-hover); }
-  .card.hidden { display: none; }
-  .card h3 { font-size: 1.05rem; font-weight: 600; }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-hi);
+    background: var(--card-hover);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    color: var(--text);
+  }
+
   .card .tag {
     align-self: flex-start;
-    font-size: 0.7rem;
-    letter-spacing: 0.8px;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(201, 162, 255, 0.12);
-    color: var(--accent);
-    border: 1px solid rgba(201, 162, 255, 0.3);
+    color: var(--accent-2);
+    background: rgba(129,140,248,.1);
+    border: 1px solid rgba(129,140,248,.25);
   }
-  .card .tag.local { background: rgba(255, 126, 179, 0.1); color: var(--accent-2); border-color: rgba(255, 126, 179, 0.3); }
-  .card .note { font-size: 0.85rem; color: var(--muted); flex: 1; }
-  .card .envs { font-size: 0.8rem; color: var(--muted); font-family: "Cascadia Code", Consolas, monospace; word-break: break-word; }
 
-  /* ── buttons ──────────────────────────────────── */
+  .card .tag.local {
+    color: var(--green);
+    background: rgba(52,211,153,.08);
+    border-color: rgba(52,211,153,.25);
+  }
+
+  .card .note {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .card .envs {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--muted);
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  /* ── list rows: detected + extra ─────────────────────────────── */
+  .cards[data-group="detected"],
+  .cards[data-group="extra"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+
+  .cards[data-group="detected"] .card,
+  .cards[data-group="extra"] .card {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 4px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .cards[data-group="detected"] .card:hover,
+  .cards[data-group="extra"] .card:hover {
+    transform: none;
+    background: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+
+  .cards[data-group="detected"] .card h3,
+  .cards[data-group="extra"] .card h3 {
+    font-size: 0.9375rem;
+    min-width: 130px;
+  }
+
+  .cards[data-group="detected"] .card .note,
+  .cards[data-group="extra"] .card .note { display: none; }
+
+  .cards[data-group="detected"] .card .tag,
+  .cards[data-group="extra"] .card .tag {
+    font-size: 0.625rem;
+    padding: 2px 7px;
+    background: rgba(129,140,248,.07);
+    border-color: rgba(129,140,248,.2);
+  }
+
+  .cards[data-group="detected"] .card .tag.local,
+  .cards[data-group="extra"] .card .tag.local {
+    background: rgba(52,211,153,.07);
+    border-color: rgba(52,211,153,.2);
+  }
+
+  .cards[data-group="detected"] .card .envs,
+  .cards[data-group="extra"] .card .envs {
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
+
+  .cards[data-group="detected"] .card .btn,
+  .cards[data-group="extra"] .card .btn {
+    margin-left: auto;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: var(--accent-2);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .cards[data-group="detected"] .card .btn:hover,
+  .cards[data-group="extra"] .card .btn:hover {
+    filter: none;
+    box-shadow: none;
+    text-decoration: underline;
+  }
+
+  /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
     display: inline-block;
+    padding: 9px 16px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 600;
     text-align: center;
     text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 10px 14px;
-    border-radius: 9px;
-    color: var(--bg);
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    transition: filter 0.15s;
+    color: #fff;
+    background: linear-gradient(135deg, var(--btn-from) 0%, var(--btn-to) 100%);
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: 0 2px 8px rgba(79,70,229,.35);
+    cursor: pointer;
+    transition: filter var(--t-fast), box-shadow var(--t-fast);
   }
-  .btn:hover { filter: brightness(1.15); }
+
+  .btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 14px rgba(79,70,229,.5);
+  }
+
   .btn.ghost {
-    background: transparent;
-    color: var(--accent);
+    background: var(--bg-soft);
+    color: var(--accent-2);
     border: 1px solid var(--border);
+    box-shadow: none;
   }
-  .btn.ghost:hover { border-color: var(--accent); filter: brightness(1.3); }
 
-  /* ── warning / footer ─────────────────────────── */
-  .warning {
-    margin-top: 28px;
-    background: var(--warning-bg);
-    border: 1px solid var(--warning-border);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    color: var(--warning);
-    font-size: 0.95rem;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
+  .btn.ghost:hover {
+    filter: none;
+    border-color: var(--border-hi);
+    color: var(--text);
+    box-shadow: none;
   }
-  .warning .ico { font-size: 1.3rem; line-height: 1.2; }
-  .empty { color: var(--muted); text-align: center; padding: 40px 0; display: none; }
+
+  /* ── empty states ────────────────────────────────────────────── */
+  .empty {
+    display: none;
+    padding: 48px 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.9375rem;
+  }
+
   .empty.show { display: block; }
-  .hint { display: none; color: var(--muted); font-size: 0.85rem; padding: 12px 0; }
-  .hint.show { display: block; }
-  footer { margin-top: 32px; color: var(--muted); font-size: 0.75rem; text-align: center; }
 
-  @media (max-width: 480px) {
+  .hint {
+    display: none;
+    padding: 10px 0 4px;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .hint.show { display: block; }
+
+  .hint code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    color: var(--accent-2);
+    background: var(--bg-soft);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── footer ──────────────────────────────────────────────────── */
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--faint);
+    font-size: 0.75rem;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── responsive ──────────────────────────────────────────────── */
+  @media (max-width: 540px) {
+    .wrap { padding: 32px 16px 64px; }
     .cards { grid-template-columns: 1fr; }
     #billing-summary { grid-template-columns: repeat(2, 1fr); }
     h1 { font-size: 1.5rem; }
@@ -235,8 +599,7 @@
   </header>
 
   <div class="warning">
-    <span class="ico">⚠️</span>
-    <span>Never paste API keys here; this is only a console launcher.</span>
+    <span>Never paste API keys here — this is a console launcher only.</span>
   </div>
 
   <!-- billing summary — populated by data/billing.js and /api/billing -->
@@ -246,20 +609,43 @@
   </div>
   <div id="billing-summary"></div>
 
+  <!-- spend by model — populated from data/billing.js and /api/billing -->
+  <h2><span class="dot" aria-hidden="true"></span>Spend by model</h2>
+  <table id="spend-table" aria-label="Spend by model">
+    <thead>
+      <tr>
+        <th scope="col">Model</th>
+        <th scope="col">Provider</th>
+        <th scope="col">Sessions</th>
+        <th scope="col">Calls</th>
+        <th scope="col">Tokens in</th>
+        <th scope="col">Tokens out</th>
+        <th scope="col">Est. cost</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody id="spend-body"></tbody>
+  </table>
+  <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
+  <div class="hint" id="spend-empty">No usage recorded yet.</div>
+
+  <label class="sr-only" for="search">Filter providers</label>
   <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
-  <h2><span class="dot"></span>Detected on this machine</h2>
+  <h2><span class="dot" aria-hidden="true"></span>Detected on this machine</h2>
   <div class="cards" data-group="detected" id="detected-cards"></div>
   <div class="hint" id="detected-empty">No providers detected — add API keys to <code>.env</code>, then run <code>amster serve</code>.</div>
 
-  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false">
-    <span class="dot"></span>If you also use these <span class="count" id="extra-count"></span>
-    <span class="chevron">▸</span>
+  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="extra-cards">
+    <span class="dot" aria-hidden="true"></span>Available platforms
+    <span class="count" id="extra-count"></span>
+    <span class="chevron" aria-hidden="true">&#9658;</span>
   </h2>
   <div class="cards collapsed" data-group="extra" id="extra-cards">
+
     <div class="card" data-name="deepseek deep seek" data-provider="deepseek">
       <h3>DeepSeek</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: DEEPSEEK_API_KEY</p>
       <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -267,7 +653,7 @@
 
     <div class="card" data-name="kimi moonshot moonshot" data-provider="moonshot">
       <h3>Kimi / Moonshot</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: KIMI_API_KEY / MOONSHOT_API_KEY</p>
       <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -275,7 +661,7 @@
 
     <div class="card" data-name="anthropic claude" data-provider="anthropic">
       <h3>Anthropic</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console: Settings &gt; Billing.</p>
       <p class="envs">Env: ANTHROPIC_API_KEY</p>
       <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -283,7 +669,7 @@
 
     <div class="card" data-name="huggingface hf hugging face" data-provider="huggingface">
       <h3>Hugging Face</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Inference providers, free tier included.</p>
       <p class="envs">Env: HF_TOKEN</p>
       <a class="btn" href="https://huggingface.co/settings/billing" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -299,72 +685,66 @@
 
     <div class="card" data-name="openai gpt chatgpt" data-provider="openai">
       <h3>OpenAI</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Usage and billing.</p>
       <a class="btn" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="google ai studio gemini" data-provider="google">
       <h3>Google AI Studio</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Try models and view usage.</p>
       <a class="btn" href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="google cloud gcp">
       <h3>Google Cloud Billing</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">GCP billing dashboard.</p>
       <a class="btn" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="openrouter" data-provider="openrouter">
-      <h3>OpenRouter</h3>
-      <span class="tag">Optional</span>
-      <p class="note">Credits and usage.</p>
-      <a class="btn" href="https://openrouter.ai/credits" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
     <div class="card" data-name="groq" data-provider="groq">
       <h3>Groq</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Usage and limits.</p>
       <a class="btn" href="https://console.groq.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="together" data-provider="together">
       <h3>Together</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">API and usage.</p>
       <a class="btn" href="https://api.together.xyz/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="mistral le chat" data-provider="mistral">
       <h3>Mistral</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console and usage.</p>
       <a class="btn" href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="fireworks" data-provider="fireworks">
       <h3>Fireworks</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Models and usage.</p>
       <a class="btn" href="https://app.fireworks.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
+
   </div>
 
   <div class="empty" id="empty">Nothing matches that filter.</div>
 
-  <footer>Amsterdam Console · Offline · No tracking · No secrets</footer>
+  <footer>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets</footer>
 </div>
 
 <script src="data/billing.js"></script>
 <script>
-  /* ── billing summary ──────────────────────────── */
+  /* ── billing summary ────────────────────────────────────────── */
   function formatChip(id, data) {
     if (!data || !data.detected) return { cls: "off", value: "—" };
-    if (data.error)              return { cls: "error", value: "✗ " + data.error };
+    if (data.error)              return { cls: "error", value: data.error };
     if (data.balance != null) {
       var sym = data.currency === "CNY" ? "¥" : data.currency === "EUR" ? "€" : "$";
       return { cls: "balance", value: sym + data.balance.toFixed(2) };
@@ -373,15 +753,75 @@
       var limit = data.limit != null ? " / $" + data.limit.toFixed(2) : "";
       return { cls: "usage", value: "$" + data.usage.toFixed(2) + " used" + limit };
     }
-    if (data.username)  return { cls: "verified", value: "✓ " + data.username };
-    if (data.verified)  return { cls: "verified", value: "✓ verified" };
+    if (data.username)       return { cls: "verified", value: data.username };
+    if (data.models != null) return { cls: "verified", value: data.models + " models" };
+    if (data.verified)       return { cls: "verified", value: "verified" };
     return { cls: "off", value: "?" };
+  }
+
+  /* ── spend by model ─────────────────────────────────────────── */
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatTokens(n) {
+    if (n == null) return '—';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return String(n);
+  }
+
+  function formatSpendCost(model) {
+    if (model.costStatus !== 'estimated' || model.estimatedCostUsd == null) return 'n/a';
+    return '$' + model.estimatedCostUsd.toFixed(2);
+  }
+
+  function renderSpend(billing) {
+    var spend      = billing && billing.spend;
+    var table      = document.getElementById('spend-table');
+    var unavailable = document.getElementById('spend-unavailable');
+    var empty      = document.getElementById('spend-empty');
+    unavailable.classList.remove('show');
+    empty.classList.remove('show');
+
+    if (!spend) {
+      table.style.display = 'none';
+      unavailable.classList.add('show');
+      return;
+    }
+    if (!spend.models || spend.models.length === 0) {
+      table.style.display = 'none';
+      empty.classList.add('show');
+      return;
+    }
+
+    table.style.display = 'table';
+    var rows = spend.models.map(function (m) {
+      var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
+      var known = m.costStatus === 'estimated' && m.estimatedCostUsd != null;
+      return '<tr' + title + '>'
+        + '<td class="model">' + escapeHtml(m.model) + '</td>'
+        + '<td>' + escapeHtml(m.provider) + '</td>'
+        + '<td class="num">' + (m.sessions == null ? '—' : m.sessions) + '</td>'
+        + '<td class="num">' + (m.calls == null ? '—' : m.calls) + '</td>'
+        + '<td class="num">' + formatTokens(m.inputTokens) + '</td>'
+        + '<td class="num">' + formatTokens(m.outputTokens) + '</td>'
+        + '<td class="cost' + (known ? '' : ' na') + '">' + formatSpendCost(m) + '</td>'
+        + '<td>' + escapeHtml(m.costStatus || 'unknown') + '</td>'
+        + '</tr>';
+    }).join('');
+    document.getElementById('spend-body').innerHTML = rows;
   }
 
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
   var live = location.protocol === "http:" || location.protocol === "https:";
   var summaryEl = document.getElementById("billing-summary");
-  var statusEl = document.getElementById("billing-status");
+  var statusEl  = document.getElementById("billing-status");
 
   function renderSummary(billing) {
     if (!billing) {
@@ -415,18 +855,13 @@
 
   function organizeCards(billing) {
     var detected = document.getElementById("detected-cards");
-    var extra = document.getElementById("extra-cards");
+    var extra    = document.getElementById("extra-cards");
 
     Array.from(document.querySelectorAll(".card[data-provider]")).forEach(function (card) {
-      var id = card.dataset.provider;
+      var id         = card.dataset.provider;
       var isDetected = !!(billing && billing.providers[id] && billing.providers[id].detected);
-      var target = isDetected ? detected : extra;
+      var target     = isDetected ? detected : extra;
       if (card.parentElement !== target) target.appendChild(card);
-
-      var tag = card.querySelector(".tag");
-      if (tag && !tag.classList.contains("local")) {
-        tag.textContent = isDetected ? "Detected" : "Optional";
-      }
     });
 
     document.getElementById("detected-empty").classList.toggle(
@@ -439,6 +874,7 @@
 
   function applyBilling(billing) {
     renderSummary(billing);
+    renderSpend(billing);
     organizeCards(billing);
   }
 
@@ -478,10 +914,10 @@
     setStatus('Static snapshot — run <code>amster serve</code> for live updates');
   }
 
-  /* ── collapsible extra group ─────────────────── */
+  /* ── collapsible extra group ────────────────────────────────── */
   var extraToggle = document.getElementById("extra-toggle");
-  var extraCards = document.getElementById("extra-cards");
-  var extraOpen = false;
+  var extraCards  = document.getElementById("extra-cards");
+  var extraOpen   = false;
 
   document.getElementById("extra-count").textContent =
     "(" + extraCards.querySelectorAll(".card").length + ")";
@@ -501,10 +937,10 @@
     }
   });
 
-  /* ── card filter ──────────────────────────────── */
+  /* ── card filter ────────────────────────────────────────────── */
   var search = document.getElementById("search");
-  var empty = document.getElementById("empty");
-  var cards = Array.from(document.querySelectorAll(".card"));
+  var empty  = document.getElementById("empty");
+  var cards  = Array.from(document.querySelectorAll(".card"));
 
   function groupCollapsed(card) {
     var group = card.closest(".cards");
@@ -512,7 +948,7 @@
   }
 
   search.addEventListener("input", function () {
-    var query = this.value.trim().toLowerCase();
+    var query   = this.value.trim().toLowerCase();
     var visible = 0;
     cards.forEach(function (card) {
       var show = card.dataset.name.includes(query) && !groupCollapsed(card);

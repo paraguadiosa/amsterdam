@@ -22,7 +22,12 @@ export function createVerifyProvider(config) {
       const { url, options } = buildRequest(apiKey, baseUrl);
       const res = await fetchFn(url, options);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return { verified: true };
+      const body = await res.json().catch(() => ({}));
+      const models = body.data ?? body.models ?? [];
+      return {
+        verified: true,
+        models: Array.isArray(models) ? models.length : null,
+      };
     },
   };
 }
@@ -52,14 +57,6 @@ export const openai = createVerifyProvider({
   name: 'OpenAI',
   envKey: 'OPENAI_API_KEY',
   defaultBaseUrl: 'https://api.openai.com',
-});
-
-export const moonshot = createVerifyProvider({
-  id: 'moonshot',
-  name: 'Kimi / Moonshot',
-  envKey: 'KIMI_API_KEY',
-  baseUrlEnv: 'KIMI_BASE_URL',
-  defaultBaseUrl: 'https://api.moonshot.cn',
 });
 
 export const groq = createVerifyProvider({

@@ -3,7 +3,8 @@
 FROM node:22-alpine
 
 ENV NODE_ENV=production \
-    PORT=3131
+    PORT=3131 \
+    HOME=/app
 
 WORKDIR /app
 

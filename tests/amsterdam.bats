@@ -15,6 +15,15 @@ echo "$@" >> "$DOCKER_LOG"
 EOF
     chmod +x "$BIN_DIR/docker"
     export DOCKER_LOG="$BATS_TEST_TMPDIR/docker.log"
+
+    # Stub node: log args and exit (keeps serve from blocking).
+    cat > "$BIN_DIR/node" <<'EOF'
+#!/bin/sh
+echo "$@" >> "$NODE_LOG"
+EOF
+    chmod +x "$BIN_DIR/node"
+    export NODE_LOG="$BATS_TEST_TMPDIR/node.log"
+
     export PATH="$BIN_DIR:$PATH"
 
     ENV_FILE="$BATS_TEST_TMPDIR/.env"
@@ -22,10 +31,24 @@ EOF
     export AMSTERDAM_ENV_FILE="$ENV_FILE"
 }
 
-# ── default: background Docker ──────────────────
+# ── default: host daemon ────────────────────────
 
-@test "no arguments runs docker up in background and prints URL" {
+@test "no arguments runs the host daemon" {
     run "$AMSTERDAM"
+    [ "$status" -eq 0 ]
+    [[ "$(cat "$NODE_LOG")" == *"src/server.js"* ]]
+}
+
+@test "serve runs the host daemon" {
+    run "$AMSTERDAM" serve
+    [ "$status" -eq 0 ]
+    [[ "$(cat "$NODE_LOG")" == *"src/server.js"* ]]
+}
+
+# ── opt-in Docker ───────────────────────────────
+
+@test "docker runs docker up in background and prints URL" {
+    run "$AMSTERDAM" docker
     [ "$status" -eq 0 ]
     [[ "$(cat "$DOCKER_LOG")" == *"run --rm -d"* ]]
     [[ "$output" == "http://localhost:3131" ]]
@@ -62,6 +85,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"usage: amsterdam"* ]]
     [[ "$output" == *"serve"* ]]
+    [[ "$output" == *"docker"* ]]
     [[ "$output" == *"dump"* ]]
     [[ "$output" == *"open"* ]]
     [[ "$output" == *"stop"* ]]

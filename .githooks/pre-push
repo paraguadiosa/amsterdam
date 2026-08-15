@@ -7,11 +7,24 @@
 # (remote_sha..local_sha) with `gitleaks detect --log-opts`, which is the
 # same range the old --pre-push mode covered.
 
-command -v gitleaks >/dev/null 2>&1 || {
+# Locate gitleaks: PATH first, then common fixed locations.
+# Non-login SSH sessions may miss ~/.local/bin, so fail-closed must
+# still find the binary or refuse loudly.
+GITLEAKS_BIN="$(command -v gitleaks 2>/dev/null)"
+if [ -z "$GITLEAKS_BIN" ]; then
+    for cand in "$HOME/.local/bin/gitleaks" /usr/local/bin/gitleaks /usr/bin/gitleaks /opt/homebrew/bin/gitleaks; do
+        if [ -x "$cand" ]; then
+            GITLEAKS_BIN="$cand"
+            break
+        fi
+    done
+fi
+
+if [ -z "$GITLEAKS_BIN" ]; then
     echo "pre-push: gitleaks is NOT installed — refusing to push." >&2
     echo "pre-push: install it first: https://github.com/gitleaks/gitleaks" >&2
     exit 1
-}
+fi
 
 ZERO=0000000000000000000000000000000000000000
 status=0
@@ -33,7 +46,7 @@ while read local_ref local_sha remote_ref remote_sha; do
             ;;
     esac
 
-    if ! gitleaks detect --source . --log-opts="$range" --no-banner -v; then
+    if ! "$GITLEAKS_BIN" detect --source . --log-opts="$range" --no-banner -v; then
         echo "pre-push: secrets found in $local_ref — push blocked." >&2
         status=1
     fi
