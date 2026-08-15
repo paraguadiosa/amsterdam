@@ -7,6 +7,24 @@ live balance and usage numbers fetched straight from provider APIs.
 
 ## Quick start
 
+### Docker (recommended)
+
+```bash
+./scripts/amster-docker build   # build the image once
+./scripts/amster-docker up      # start in the background
+```
+
+Then open <http://localhost:3131>. Stop it with `./scripts/amster-docker stop`.
+
+The helper mounts your API keys file (default `~/.hermes/.env`) into the
+container read-only. Override it if your keys live elsewhere:
+
+```bash
+AMSTERDAM_ENV_FILE=~/.env ./scripts/amster-docker run
+```
+
+### Without Docker
+
 ```bash
 npm install
 ./scripts/amster serve   # live dashboard with auto-refresh every 2.5 min
@@ -48,6 +66,7 @@ suggests `amster serve`.
 
 ```bash
 ln -s "$PWD/scripts/amster" ~/.local/bin/amster
+ln -s "$PWD/scripts/amster-docker" ~/.local/bin/amster-docker
 ```
 
 ## Architecture
@@ -67,8 +86,11 @@ src/
 data/
   billing.js         # Auto-generated (gitignored)
 index.html           # Dashboard — reads data/billing.js and /api/billing
+Dockerfile           # Container build (node:22-alpine, runs as non-root)
+.dockerignore        # Keeps the build context small
 scripts/
   amster             # CLI entry point
+  amster-docker      # Docker build/run helper
 ```
 
 ### Provider types
@@ -91,6 +113,7 @@ npm run test:all      # Both
 
 - Single HTML file, no build step, no bundler.
 - No secrets stored — keys come from environment variables.
+- The container runs as a non-root user and mounts the keys file read-only.
 - The search box filters cards live.
 - "If you also use these" is a collapsible dropdown (click to expand).
 - "Open console" buttons open each page in a new tab.

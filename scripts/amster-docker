@@ -1,0 +1,66 @@
+#!/bin/sh
+# Build and run the Amsterdam Console as a container.
+
+IMAGE=${AMSTERDAM_IMAGE:-amsterdam}
+CONTAINER=${AMSTERDAM_CONTAINER:-amsterdam}
+HOST_PORT=${AMSTERDAM_PORT:-3131}
+ENV_FILE=${AMSTERDAM_ENV_FILE:-$HOME/.hermes/.env}
+
+usage() {
+    cat <<'EOF'
+usage: amster-docker [build|run|up|stop]
+
+commands:
+  build   Build the Docker image
+  run     Run in the foreground (Ctrl+C to stop)
+  up      Run in the background
+  stop    Stop the background container
+
+env overrides:
+  AMSTERDAM_IMAGE       image name        (default: amsterdam)
+  AMSTERDAM_CONTAINER   container name    (default: amsterdam)
+  AMSTERDAM_PORT        host port         (default: 3131)
+  AMSTERDAM_ENV_FILE    API keys file     (default: ~/.hermes/.env)
+EOF
+}
+
+require_env_file() {
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "Error: env file not found: $ENV_FILE" >&2
+        echo "Copy .env.example to .env and fill in your keys, or set AMSTERDAM_ENV_FILE." >&2
+        exit 1
+    fi
+}
+
+case "${1:-}" in
+    build)
+        docker build -t "$IMAGE" .
+        ;;
+    run)
+        require_env_file
+        docker run --rm -it \
+            -p "$HOST_PORT:3131" \
+            -v "$ENV_FILE:/app/.env:ro" \
+            --name "$CONTAINER" \
+            "$IMAGE"
+        ;;
+    up)
+        require_env_file
+        docker run --rm -d \
+            -p "$HOST_PORT:3131" \
+            -v "$ENV_FILE:/app/.env:ro" \
+            --name "$CONTAINER" \
+            "$IMAGE"
+        echo "http://localhost:$HOST_PORT"
+        ;;
+    stop)
+        docker stop "$CONTAINER"
+        ;;
+    help|-h|--help|'')
+        usage
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac

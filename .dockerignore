@@ -1,0 +1,13 @@
+.git
+.githooks
+node_modules
+coverage
+data
+tests
+.env
+.env.*
+*.md
+.gitignore
+.dockerignore
+Dockerfile
+scripts/amster-docker

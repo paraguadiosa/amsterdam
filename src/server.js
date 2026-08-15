@@ -85,6 +85,6 @@ const isMainModule = process.argv[1] &&
   resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 
 if (isMainModule) {
-  const port = Number(process.argv[2]) || DEFAULT_PORT;
+  const port = Number(process.argv[2]) || Number(process.env.PORT) || DEFAULT_PORT;
   start(port);
 }
