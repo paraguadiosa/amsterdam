@@ -39,19 +39,6 @@ function bearerModels(apiKey, baseUrl) {
   };
 }
 
-export const anthropic = createVerifyProvider({
-  id: 'anthropic',
-  name: 'Anthropic',
-  envKey: 'ANTHROPIC_API_KEY',
-  defaultBaseUrl: 'https://api.anthropic.com',
-  buildRequest: (key, base) => ({
-    url: `${base}/v1/models`,
-    options: {
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    },
-  }),
-});
-
 export const openai = createVerifyProvider({
   id: 'openai',
   name: 'OpenAI',

@@ -5,7 +5,6 @@ import { homedir } from 'node:os';
 // Hermes credential pool provider id → amsterdam env var.
 // Hermes names differ from amsterdam (kimi-coding → moonshot).
 const POOL_PROVIDER_TO_ENV = {
-  anthropic: 'ANTHROPIC_API_KEY',
   'kimi-coding': 'KIMI_API_KEY',
   'kimi-coding-cn': 'KIMI_CN_API_KEY',
   deepseek: 'DEEPSEEK_API_KEY',

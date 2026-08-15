@@ -2,7 +2,6 @@ import deepseek from './deepseek.js';
 import huggingface from './huggingface.js';
 import moonshot from './moonshot.js';
 import {
-  anthropic,
   openai,
   groq,
   together,
@@ -13,7 +12,6 @@ import {
 
 const providers = [
   deepseek,
-  anthropic,
   openai,
   moonshot,
   groq,

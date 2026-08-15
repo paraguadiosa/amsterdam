@@ -88,12 +88,12 @@ describe('openFloodgates', () => {
     const env = {
       DEEPSEEK_API_KEY: 'sk-ds',
       KIMI_API_KEY: 'sk-kimi',
-      ANTHROPIC_API_KEY: 'sk-ant',
+      GROQ_API_KEY: 'sk-gq',
     };
     const result = await openFloodgates(env, mockFetch({ balance_infos: [], data: {} }));
     assert.equal(result.providers.deepseek.detected, true);
     assert.equal(result.providers.moonshot.detected, true);
-    assert.equal(result.providers.anthropic.detected, true);
+    assert.equal(result.providers.groq.detected, true);
     assert.equal(result.providers.openai.detected, false);
   });
 });

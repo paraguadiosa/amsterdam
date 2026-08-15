@@ -98,11 +98,12 @@ all provider balances with real billing APIs (DeepSeek, Moonshot), plus a
 per-provider split. It updates with every 2.5-minute auto-refresh, so the
 number on screen is always how much money is left in the accounts.
 
-Providers without a billing API (Anthropic and the other verified-only
-providers) cannot report a balance — the Anthropic API has no public
-credits endpoint. For those, click **edit** on the chip and type the
-remaining amount once; it is stored in the browser, shown as a USD value,
-and added to the total (marked *manual* in the split).
+Providers without a billing API (the verified-only providers) cannot
+report a balance — the API simply has no public credits endpoint (this is
+why Anthropic was purged from the console). For those, click **edit** on
+the chip and type the remaining amount once; it is stored in the browser,
+shown as a USD value, and added to the total (marked *manual* in the
+split).
 
 ### Spend by model
 
@@ -167,7 +168,7 @@ scripts/
 |------|-----------|-----------------|
 | Balance API | DeepSeek, Moonshot | Actual balance numbers |
 | Account info | Hugging Face | Username + verified status |
-| Key verification + model count | Anthropic, OpenAI, Groq, Together, Mistral, Google, Fireworks | Number of models + `verified: true` on HTTP 200 |
+| Key verification + model count | OpenAI, Groq, Together, Mistral, Google, Fireworks | Number of models + `verified: true` on HTTP 200 |
 
 ## Credentials — one place to keep them
 
@@ -182,7 +183,7 @@ source that defines a variable wins:
 The hermes credential pool is the recommended source. Keys added with
 `hermes auth add <provider> --api-key <key>` are picked up automatically.
 Hermes provider ids are mapped to amsterdam variables (e.g.
-`kimi-coding` → `KIMI_API_KEY`, `anthropic` → `ANTHROPIC_API_KEY`).
+`kimi-coding` → `KIMI_API_KEY`).
 Only manual credentials carry a token; env-sourced ones resolve through
 the `.env` files above. The pool's `base_url` is also honored for
 providers that read one (`KIMI_BASE_URL`, `DEEPSEEK_BASE_URL`, `GROQ_BASE_URL`),
