@@ -21,12 +21,19 @@ directamente desde el repo:
 ./scripts/amster open   # Abre el lanzador con xdg-open
 ```
 
-Instalación opcional en `~/.local/bin` (copia o symlink):
+Instalación opcional en `~/.local/bin`. Se recomienda el symlink, así
+el helper siempre apunta al `index.html` del repo:
+
+```bash
+ln -s "$PWD/scripts/amster" ~/.local/bin/amster
+```
+
+Copiar también funciona: si `scripts/amster` no encuentra el `index.html`
+relativo, usa como respaldo la ruta absoluta
+`/home/eve/Coding_Projects/llm-billing/index.html`:
 
 ```bash
 install -m 755 scripts/amster ~/.local/bin/amster
-# o
-ln -s "$PWD/scripts/amster" ~/.local/bin/amster
 ```
 
 ## Notas

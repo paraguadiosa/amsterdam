@@ -1,7 +1,12 @@
 #!/bin/sh
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-HTML="$SCRIPT_DIR/../index.html"
+HTML=/home/eve/Coding_Projects/llm-billing/index.html
+
+if [ -f "$SCRIPT_DIR/../index.html" ]; then
+    REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+    HTML="$REPO_DIR/index.html"
+fi
 
 usage() {
     cat <<'EOF'
