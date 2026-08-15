@@ -4,6 +4,8 @@
 
 A static panel to open all LLM billing consoles from one place — with
 live balance and usage numbers fetched straight from provider APIs.
+<img width="1468" height="677" alt="image" src="https://github.com/user-attachments/assets/aeaac237-1cc4-4afa-9771-7dc28f1bda9a" />
+
 
 ## Quick start
 
