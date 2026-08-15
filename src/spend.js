@@ -31,7 +31,7 @@ const AGGREGATE_SQL = `
     MAX(last_seen) AS lastSeen
   FROM session_model_usage
   GROUP BY model, billing_provider
-  ORDER BY estimatedCostUsd DESC
+  ORDER BY estimatedCostUsd DESC, model ASC, billing_provider ASC
 `;
 
 const TOTAL_SQL = `
@@ -64,6 +64,44 @@ function listLocalModels(dir) {
   } catch {
     return [];
   }
+}
+
+// USD per 1M tokens, mirroring the rates Hermes uses for its own estimates.
+// Only models with an authoritative rate are listed; unknown models keep n/a.
+const PRICING = {
+  'deepseek-v4-flash': { input: 0.14, output: 0.28, cacheRead: 0.0028 },
+  'deepseek-v4-pro': { input: 0.435, output: 0.87, cacheRead: 0.003625 },
+  'claude-opus-4-8': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+};
+
+function isLocalModel(model, provider) {
+  return model.includes('.gguf') && (provider === 'custom' || provider === 'local' || provider === '');
+}
+
+// Fill cost gaps for groups that have usage but no trustworthy estimate:
+// local GGUF runs are free, priced cloud models get a token-based estimate.
+// Groups without a known rate (or a recorded-but-untrusted cost) stay n/a.
+function fillMissingCosts(models) {
+  for (const m of models) {
+    if (m.costStatus === 'estimated' || m.costStatus === 'no usage') continue;
+    if (isLocalModel(m.model, m.provider)) {
+      m.costStatus = 'local';
+      m.estimatedCostUsd = 0;
+      continue;
+    }
+    const price = PRICING[m.model];
+    if (!price || (!m.inputTokens && !m.outputTokens)) continue;
+    const usd =
+      (m.inputTokens / 1e6) * price.input +
+      (m.outputTokens / 1e6) * price.output +
+      ((m.cacheReadTokens || 0) / 1e6) * (price.cacheRead || 0) +
+      ((m.cacheWriteTokens || 0) / 1e6) * (price.cacheWrite || 0);
+    if (usd > 0) {
+      m.costStatus = 'estimated';
+      m.estimatedCostUsd = Math.round(usd * 10000) / 10000;
+    }
+  }
+  return models;
 }
 
 // Read spend from the Hermes state DB. Never throws: any failure returns
@@ -115,6 +153,7 @@ export function readSpend(arg) {
         lastSeen: null,
       });
     }
+    fillMissingCosts(models);
     return {
       source: 'hermes-state-db',
       generatedAt: new Date().toISOString(),

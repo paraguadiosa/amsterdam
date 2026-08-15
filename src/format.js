@@ -4,9 +4,11 @@ export function formatBillingJs(data) {
 }
 
 export function formatSpendLine(model) {
-  const cost = model.costStatus === 'estimated' && model.estimatedCostUsd != null
-    ? `$${model.estimatedCostUsd.toFixed(2)}`
-    : 'n/a';
+  const cost = model.costStatus === 'local'
+    ? 'free'
+    : model.costStatus === 'estimated' && model.estimatedCostUsd != null
+      ? `$${model.estimatedCostUsd.toFixed(2)}`
+      : 'n/a';
   return `  * ${model.model.padEnd(44)} ${cost}  (${model.sessions} sessions)`;
 }
 

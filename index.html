@@ -858,6 +858,7 @@
       case 'inputTokens':  return model.inputTokens;
       case 'outputTokens': return model.outputTokens;
       case 'estimatedCostUsd':
+        if (model.costStatus === 'local') return 0;
         return model.costStatus === 'estimated' && model.estimatedCostUsd != null
           ? model.estimatedCostUsd
           : null;
@@ -930,6 +931,7 @@
   }
 
   function formatSpendCost(model) {
+    if (model.costStatus === 'local') return 'free';
     if (model.costStatus !== 'estimated' || model.estimatedCostUsd == null) return 'n/a';
     return '$' + model.estimatedCostUsd.toFixed(2);
   }
@@ -1032,7 +1034,7 @@
     var visible = COLUMN_KEYS.filter(function (key) { return columnState[key]; });
     var rows = sortSpendModels(spend.models).map(function (m) {
       var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
-      var known = m.costStatus === 'estimated' && m.estimatedCostUsd != null;
+      var known = (m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null;
       var cells = visible.map(function (key) { return spendCell(m, key, known); }).join('');
       return '<tr' + title + '>' + cells + '</tr>';
     }).join('');

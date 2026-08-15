@@ -135,6 +135,11 @@ setup() {
     [[ "$HTML_CONTENT" == *"n/a"* ]]
 }
 
+@test "local models show free instead of n/a" {
+    [[ "$HTML_CONTENT" == *"return 'free'"* ]]
+    [[ "$HTML_CONTENT" == *"costStatus === 'local'"* ]]
+}
+
 @test "polls /api/billing" {
     [[ "$HTML_CONTENT" == *"fetch('/api/billing')"* ]]
 }

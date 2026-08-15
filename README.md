@@ -106,7 +106,10 @@ the unavailable hint — run `amster serve` on the host to see spend data.
 The table is sortable by clicking any column header (default: est. cost desc).
 Click **Columns** to choose which columns are visible — the choice is saved
 per browser. Local GGUF files in `~/models` appear in the table even without
-recorded usage, marked with status `no usage`.
+recorded usage, marked with status `no usage`. Groups with usage but no
+recorded cost get a token-based estimate when the model has an authoritative
+rate (deepseek-v4-flash, deepseek-v4-pro, claude-opus-4-8); local GGUF runs
+show as `free`. Models without a known rate keep `n/a`.
 
 ### Install to `~/.local/bin`
 

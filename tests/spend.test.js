@@ -101,15 +101,15 @@ describe('spend', () => {
   it('marks groups with any non-estimated row as unknown', () => {
     const spend = readFromDb();
     const auto = spend.models.find((m) => m.model === 'claude-opus-4-8' && m.provider === 'auto');
-    assert.equal(auto.costStatus, 'unknown');
-    assert.equal(auto.estimatedCostUsd, 0);
+    assert.equal(auto.costStatus, 'estimated'); // filled from tokens at $5/$25
+    assert.equal(auto.estimatedCostUsd, 0.0075); // 500 in + 200 out
 
     const gguf = spend.models.find((m) => m.model === '/models/local.gguf');
-    assert.equal(gguf.costStatus, 'unknown');
-    assert.equal(gguf.estimatedCostUsd, null);
+    assert.equal(gguf.costStatus, 'local');
+    assert.equal(gguf.estimatedCostUsd, 0);
 
     const kimi = spend.models.find((m) => m.model === 'kimi-k3');
-    assert.equal(kimi.costStatus, 'unknown');
+    assert.equal(kimi.costStatus, 'unknown'); // no authoritative rate
   });
 
   it('rounds costs to 4 decimals', () => {
@@ -122,7 +122,8 @@ describe('spend', () => {
   it('orders models by estimated cost descending with nulls last', () => {
     const spend = readFromDb();
     const costs = spend.models.map((m) => m.estimatedCostUsd);
-    assert.deepEqual(costs, [3.3333, 0.165, 0, 0, null]);
+    // Null cost sorts last; the fill then prices claude-opus-4-8 [auto].
+    assert.deepEqual(costs, [3.3333, 0.165, 0.0075, 0, 0]);
   });
 
   it('computes totals across all rows', () => {
@@ -230,6 +231,71 @@ describe('local model inventory', () => {
   });
 });
 
+describe('cost estimation fill', () => {
+  let dir;
+  let dbPath;
+
+  const FILL_ROWS = [
+    // deepseek-v4-flash routed as 'auto' — no recorded cost.
+    ['s1', 'deepseek-v4-flash', 'auto', 1, 10000, 5000, 0, 0, 0, 0, 0, null, '2026-08-07T00:00:00Z'],
+    // claude-opus-4-8 routed as 'auto' — no recorded cost.
+    ['s2', 'claude-opus-4-8', 'auto', 1, 500, 200, 0, 0, 0, 0, 0, null, '2026-08-07T00:00:00Z'],
+    // kimi-k3 — no authoritative rate in the pricing table.
+    ['s3', 'kimi-k3', 'auto', 1, 100, 100, 0, 0, 0, 0, 0, null, '2026-08-07T00:00:00Z'],
+    // Local GGUF with usage — free.
+    ['s4', '/models/local.gguf', 'custom', 1, 1000, 500, 0, 0, 0, null, null, null, '2026-08-07T00:00:00Z'],
+  ];
+
+  before(() => {
+    dir = mkdtempSync(join(tmpdir(), 'amsterdam-fill-'));
+    dbPath = join(dir, 'state.db');
+    const db = new DatabaseSync(dbPath);
+    db.exec(SCHEMA);
+    const insert = db.prepare(`
+      INSERT INTO session_model_usage (
+        session_id, model, billing_provider, api_call_count, input_tokens,
+        output_tokens, cache_read_tokens, cache_write_tokens, reasoning_tokens,
+        estimated_cost_usd, actual_cost_usd, cost_status, last_seen
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const row of FILL_ROWS) insert.run(...row);
+    db.close();
+  });
+
+  after(() => rmSync(dir, { recursive: true, force: true }));
+
+  function read() {
+    return readSpend({
+      HERMES_STATE_DB: dbPath,
+      AMSTERDAM_LOCAL_MODELS_DIR: join(dir, 'no-models'),
+    });
+  }
+
+  it('estimates deepseek-v4-flash from tokens', () => {
+    const m = read().models.find((x) => x.model === 'deepseek-v4-flash');
+    assert.equal(m.costStatus, 'estimated');
+    assert.equal(m.estimatedCostUsd, 0.0028); // 10k in * 0.14 + 5k out * 0.28
+  });
+
+  it('estimates claude-opus-4-8 from tokens', () => {
+    const m = read().models.find((x) => x.model === 'claude-opus-4-8');
+    assert.equal(m.costStatus, 'estimated');
+    assert.equal(m.estimatedCostUsd, 0.0075); // 500 in * 5 + 200 out * 25
+  });
+
+  it('keeps kimi-k3 as unknown (no authoritative rate)', () => {
+    const m = read().models.find((x) => x.model === 'kimi-k3');
+    assert.equal(m.costStatus, 'unknown');
+    assert.equal(m.estimatedCostUsd, 0);
+  });
+
+  it('marks used local GGUF as free', () => {
+    const m = read().models.find((x) => x.model === '/models/local.gguf');
+    assert.equal(m.costStatus, 'local');
+    assert.equal(m.estimatedCostUsd, 0);
+  });
+});
+
 describe('resolveDbPath', () => {
   it('defaults to ~/.hermes/state.db', () => {
     assert.equal(resolveDbPath({}), join(homedir(), '.hermes', 'state.db'));
@@ -279,5 +345,16 @@ describe('formatSpendLine', () => {
       estimatedCostUsd: null,
     });
     assert.ok(line.includes('n/a'));
+  });
+
+  it('shows free for local status', () => {
+    const line = formatSpendLine({
+      model: '/models/local.gguf',
+      sessions: 1,
+      costStatus: 'local',
+      estimatedCostUsd: 0,
+    });
+    assert.ok(line.includes('free'));
+    assert.ok(!line.includes('n/a'));
   });
 });
