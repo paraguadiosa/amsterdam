@@ -1,0 +1,23 @@
+#!/bin/sh
+# Install amsterdam (and amster, amster-docker) into a bin dir on PATH.
+
+SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SELF")" && pwd)
+BIN_DIR="${AMSTERDAM_BIN_DIR:-$HOME/.local/bin}"
+
+mkdir -p "$BIN_DIR"
+ln -sf "$SCRIPT_DIR/amsterdam" "$BIN_DIR/amsterdam"
+ln -sf "$SCRIPT_DIR/amster" "$BIN_DIR/amster"
+ln -sf "$SCRIPT_DIR/amster-docker" "$BIN_DIR/amster-docker"
+
+echo "Installed:"
+printf '  %s\n' "$BIN_DIR/amsterdam" "$BIN_DIR/amster" "$BIN_DIR/amster-docker"
+
+case ":$PATH:" in
+    *":$BIN_DIR:"*)
+        echo "On PATH - try: amsterdam"
+        ;;
+    *)
+        echo "Not on PATH - add $BIN_DIR to your shell profile." >&2
+        ;;
+esac
