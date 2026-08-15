@@ -23,6 +23,57 @@ setup() {
     [ "$status" -eq 1 ]
 }
 
+# ── amsterdam banner ──────────────────────────────
+
+@test "hero banner exists" {
+    [[ "$HTML_CONTENT" == *'class="hero"'* ]]
+    [[ "$HTML_CONTENT" == *'class="hero-copy"'* ]]
+}
+
+@test "banner references the Amstel dam" {
+    [[ "$HTML_CONTENT" == *"a dam on the Amstel"* ]]
+}
+
+@test "banner shows the amsterdam flag badge" {
+    [[ "$HTML_CONTENT" == *'class="flag-badge"'* ]]
+    [[ "$HTML_CONTENT" == *"#c8102e"* ]]
+}
+
+@test "banner carries the dam metaphor" {
+    [[ "$HTML_CONTENT" == *"HTML dam"* ]]
+    [[ "$HTML_CONTENT" == *"The Amstel's dam once made this town"* ]]
+}
+
+@test "top flag stripe is present" {
+    [[ "$HTML_CONTENT" == *'class="ams-stripe"'* ]]
+}
+
+# ── credits remaining ─────────────────────────────
+
+@test "credits panel exists" {
+    [[ "$HTML_CONTENT" == *'id="credits"'* ]]
+    [[ "$HTML_CONTENT" == *'id="credits-total"'* ]]
+    [[ "$HTML_CONTENT" == *'id="credits-split"'* ]]
+}
+
+@test "credits total sums live balances" {
+    [[ "$HTML_CONTENT" == *"totalCredits"* ]]
+    [[ "$HTML_CONTENT" == *"total += p.balance"* ]]
+}
+
+@test "credits rendered on every billing update" {
+    [[ "$HTML_CONTENT" == *"renderCredits"* ]]
+    [[ "$HTML_CONTENT" == *"applyBilling"* ]]
+}
+
+@test "credits show split per provider" {
+    [[ "$HTML_CONTENT" == *'credits.split'* ]]
+}
+
+@test "credits fall back to a hint without balances" {
+    [[ "$HTML_CONTENT" == *"No live balances reported yet"* ]]
+}
+
 # ── warning at top ────────────────────────────────
 
 @test "warning appears before billing summary" {
@@ -66,6 +117,24 @@ setup() {
 
 @test "has billing status element" {
     [[ "$HTML_CONTENT" == *'id="billing-status"'* ]]
+}
+
+@test "polls /api/billing" {
+    [[ "$HTML_CONTENT" == *"fetch('/api/billing')"* ]]
+}
+
+@test "auto-refreshes on an interval" {
+    [[ "$HTML_CONTENT" == *"setInterval"* ]]
+    [[ "$HTML_CONTENT" == *"REFRESH_INTERVAL_MS"* ]]
+}
+
+@test "refresh interval is 2.5 minutes" {
+    [[ "$HTML_CONTENT" == *"150000"* ]]
+}
+
+@test "shows prompt when no billing data" {
+    [[ "$HTML_CONTENT" == *"amster serve"* ]]
+    [[ "$HTML_CONTENT" == *"floodgates"* ]]
 }
 
 # ── spend by model ────────────────────────────────
@@ -140,22 +209,43 @@ setup() {
     [[ "$HTML_CONTENT" == *"costStatus === 'local'"* ]]
 }
 
-@test "polls /api/billing" {
-    [[ "$HTML_CONTENT" == *"fetch('/api/billing')"* ]]
+@test "model counts are no longer shown as chips" {
+    run grep -F "10 models" "$HTML"
+    [ "$status" -eq 1 ]
 }
 
-@test "auto-refreshes on an interval" {
-    [[ "$HTML_CONTENT" == *"setInterval"* ]]
-    [[ "$HTML_CONTENT" == *"REFRESH_INTERVAL_MS"* ]]
+# ── column picker ────────────────────────────────
+
+@test "column picker button exists with aria controls" {
+    [[ "$HTML_CONTENT" == *'id="columns-btn"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-expanded="false"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-controls="columns-panel"'* ]]
 }
 
-@test "refresh interval is 2.5 minutes" {
-    [[ "$HTML_CONTENT" == *"150000"* ]]
+@test "column picker has 8 checkboxes" {
+    local count=$(grep -o 'data-col="' "$HTML" | wc -l)
+    [ "$count" -eq 8 ]
 }
 
-@test "shows prompt when no billing data" {
-    [[ "$HTML_CONTENT" == *"amster serve"* ]]
-    [[ "$HTML_CONTENT" == *"floodgates"* ]]
+@test "column picker shows name and price by default" {
+    [[ "$HTML_CONTENT" == *'data-col="model" checked'* ]]
+    [[ "$HTML_CONTENT" == *'data-col="estimatedCostUsd" checked'* ]]
+}
+
+@test "column choice persists in localStorage" {
+    [[ "$HTML_CONTENT" == *'amsterdam.columns'* ]]
+}
+
+@test "renderSpend toggles th visibility per column state" {
+    [[ "$HTML_CONTENT" == *'th.hidden = !columnState['* ]]
+}
+
+@test "at least one column stays visible" {
+    [[ "$HTML_CONTENT" == *'keepsOne'* ]]
+}
+
+@test "columns panel labels are in English" {
+    [[ "$HTML_CONTENT" == *'Show columns'* ]]
 }
 
 # ── structure ─────────────────────────────────────
@@ -219,40 +309,6 @@ setup() {
     [[ "$HTML_CONTENT" == *"Nothing matches that filter"* ]]
 }
 
-# ── column picker ────────────────────────────────
-
-@test "column picker button exists with aria controls" {
-    [[ "$HTML_CONTENT" == *'id="columns-btn"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-expanded="false"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-controls="columns-panel"'* ]]
-}
-
-@test "column picker has 8 checkboxes" {
-    local count=$(grep -o 'data-col="' "$HTML" | wc -l)
-    [ "$count" -eq 8 ]
-}
-
-@test "column picker shows name and price by default" {
-    [[ "$HTML_CONTENT" == *'data-col="model" checked'* ]]
-    [[ "$HTML_CONTENT" == *'data-col="estimatedCostUsd" checked'* ]]
-}
-
-@test "column choice persists in localStorage" {
-    [[ "$HTML_CONTENT" == *'amsterdam.columns'* ]]
-}
-
-@test "renderSpend toggles th visibility per column state" {
-    [[ "$HTML_CONTENT" == *'th.hidden = !columnState['* ]]
-}
-
-@test "at least one column stays visible" {
-    [[ "$HTML_CONTENT" == *'keepsOne'* ]]
-}
-
-@test "columns panel labels are in English" {
-    [[ "$HTML_CONTENT" == *'Show columns'* ]]
-}
-
 # ── cards with provider IDs ──────────────────────
 
 @test "DeepSeek card has data-provider" {
@@ -307,10 +363,10 @@ setup() {
     [[ "$HTML_CONTENT" == *"Amsterdam Console"* ]]
 }
 
-# ── amsterdam joke ────────────────────────────────
-
-@test "dam metaphor is present" {
-    [[ "$HTML_CONTENT" == *"HTML dam"* ]]
+@test "footer contains the amsterdam sonnet" {
+    [[ "$HTML_CONTENT" == *'<details class="sonnet">'* ]]
+    [[ "$HTML_CONTENT" == *"Read the Amsterdam sonnet"* ]]
+    [[ "$HTML_CONTENT" == *"the dam holds fast what you most need to know"* ]]
 }
 
 # ── script ────────────────────────────────────────

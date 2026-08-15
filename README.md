@@ -91,6 +91,13 @@ and shows a live status; over `file://` it renders the static snapshot and
 suggests `amster serve`. `amster open` opens the live URL when the daemon is
 running and falls back to the static file otherwise.
 
+### Credits remaining
+
+The dashboard leads with a big **Credits remaining** panel: the live sum of
+all provider balances with real billing APIs (DeepSeek, Moonshot), plus a
+per-provider split. It updates with every 2.5-minute auto-refresh, so the
+number on screen is always how much money is left in the accounts.
+
 ### Spend by model
 
 Alongside provider balances, the dashboard shows how much Eve spent per LLM
@@ -204,6 +211,9 @@ account or org):
 ## Notes
 
 - Single HTML file, no build step, no bundler.
+- The hero banner is an Amsterdam canal scene: gabled houses, a moon over
+  the water, a canal boat, and the city flag (red-black-red with the XXX).
+  A short verse sits in the banner, and a full sonnet hides in the footer.
 - No secrets stored — keys come from environment variables or the
   hermes credential pool (`~/.hermes/auth.json`), never from git.
 - Spend by model reads `~/.hermes/state.db` (the Hermes agent's state DB)
