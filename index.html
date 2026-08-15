@@ -362,6 +362,7 @@
 
   /* ── chips ───────────────────────────────────────────────────── */
   .chip {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -376,6 +377,62 @@
   }
 
   .chip:hover { transform: translateY(-1px); border-color: var(--border-hi); }
+
+  .chip .chip-edit {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 1px 7px;
+    font-family: var(--font);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--faint);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .chip .chip-edit:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
+  }
+
+  .chip-editor {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .chip-editor[hidden] { display: none; }
+
+  .chip-editor input {
+    width: 96px;
+    padding: 4px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    outline: none;
+  }
+
+  .chip-editor input:focus { border-color: var(--accent); }
+
+  .chip-editor button {
+    padding: 4px 10px;
+    font-family: var(--font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--btn-from), var(--btn-to));
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
 
   .chip .chip-name {
     font-size: 0.6875rem;
@@ -1210,7 +1267,7 @@
       <p class="credits-value" id="credits-total">&mdash;</p>
       <p class="credits-split" id="credits-split">&mdash;</p>
     </div>
-    <p class="credits-note">Live totals from the provider APIs &mdash; refreshed automatically every 2.5 minutes. Run <code>amster serve</code> for live mode.</p>
+    <p class="credits-note">Live totals from the provider APIs, plus manually-tracked credits for providers without a billing API (e.g. Anthropic). Click <b>edit</b> on a verified chip to type the remaining amount. Run <code>amster serve</code> for live mode.</p>
   </section>
 
   <div class="warning">
@@ -1400,6 +1457,29 @@
     return "$";
   }
 
+  /* ── manual credits ─────────────────────────────────────────── */
+  // Providers without a billing API (Anthropic and friends) cannot
+  // report a balance, so the user can type one in. It is stored per
+  // browser and feeds the credits total like a live balance.
+  var MANUAL_STORAGE = 'amsterdam.manualCredits';
+
+  function loadManualCredits() {
+    var manual = {};
+    try { manual = JSON.parse(localStorage.getItem(MANUAL_STORAGE)) || {}; } catch (e) { manual = {}; }
+    return manual;
+  }
+
+  function saveManualCredits(manual) {
+    try { localStorage.setItem(MANUAL_STORAGE, JSON.stringify(manual)); } catch (e) {}
+  }
+
+  var manualCredits = loadManualCredits();
+
+  function manualValue(id) {
+    var v = manualCredits[id];
+    return v != null && v >= 0 ? Number(v) : null;
+  }
+
   /* ── billing summary ────────────────────────────────────────── */
   function formatChip(id, data) {
     if (!data || !data.detected) return { cls: "off", value: "—" };
@@ -1412,7 +1492,15 @@
       return { cls: "usage", value: "$" + data.usage.toFixed(2) + " used" + limit };
     }
     if (data.username)       return { cls: "verified", value: data.username };
-    if (data.verified)       return { cls: "verified", value: "verified" };
+    // Verified-only providers (no billing API): a manually tracked
+    // balance overrides the badge; the chip stays editable.
+    if (data.verified) {
+      var manual = manualValue(id);
+      if (manual != null) {
+        return { cls: "balance", value: "$" + manual.toFixed(2), editable: true };
+      }
+      return { cls: "verified", value: "verified", editable: true };
+    }
     return { cls: "off", value: "?" };
   }
 
@@ -1422,15 +1510,21 @@
     var total = 0;
     Object.keys(billing.providers).forEach(function (id) {
       var p = billing.providers[id];
-      if (p && p.detected && p.balance != null) {
+      if (!p || !p.detected) return;
+      if (p.balance != null) {
         ids.push(id);
         total += p.balance;
+      } else if (manualValue(id) != null) {
+        ids.push(id);
+        total += manualValue(id);
       }
     });
     var split = ids.map(function (id) {
       var p = billing.providers[id];
       var name = id.charAt(0).toUpperCase() + id.slice(1);
-      return name + " " + currencySymbol(p) + p.balance.toFixed(2);
+      var value = p.balance != null ? p.balance : manualValue(id);
+      var suffix = p.balance != null ? "" : " (manual)";
+      return name + " " + currencySymbol(p) + value.toFixed(2) + suffix;
     }).join(" + ");
     return { total: total, count: ids.length, split: split };
   }
@@ -1675,10 +1769,17 @@
     var html = "";
     liveIds.forEach(function (id) {
       var chip = formatChip(id, billing.providers[id]);
-      html += '<div class="chip ' + chip.cls + '">'
+      html += '<div class="chip ' + chip.cls + '" data-provider="' + id + '">'
             + '<span class="chip-name">' + id + '</span>'
-            + '<span class="chip-value">' + chip.value + '</span>'
-            + '</div>';
+            + '<span class="chip-value">' + chip.value + '</span>';
+      if (chip.editable) {
+        html += '<button class="chip-edit" type="button">edit</button>'
+              + '<span class="chip-editor" hidden>'
+              + '<input type="number" min="0" step="0.01" placeholder="0.00" aria-label="Remaining ' + id + ' credits in USD">'
+              + '<button type="button" class="chip-save">Save</button>'
+              + '</span>';
+      }
+      html += '</div>';
     });
 
     var ts = new Date(billing.timestamp);
@@ -1739,6 +1840,30 @@
 
   document.getElementById("refresh-btn").addEventListener("click", function () {
     refresh(true);
+  });
+
+  /* ── manual credits editing ─────────────────────────────────── */
+  summaryEl.addEventListener('click', function (e) {
+    var editBtn = e.target.closest('.chip-edit');
+    if (editBtn) {
+      var editor = editBtn.closest('.chip').querySelector('.chip-editor');
+      editor.hidden = !editor.hidden;
+      if (!editor.hidden) editor.querySelector('input').focus();
+      return;
+    }
+    var saveBtn = e.target.closest('.chip-save');
+    if (saveBtn) {
+      var chip = saveBtn.closest('.chip');
+      var id = chip.dataset.provider;
+      var value = parseFloat(chip.querySelector('.chip-editor input').value);
+      if (isNaN(value) || value < 0) {
+        delete manualCredits[id];
+      } else {
+        manualCredits[id] = value;
+      }
+      saveManualCredits(manualCredits);
+      applyBilling(window.BILLING);
+    }
   });
 
   applyBilling(window.BILLING);

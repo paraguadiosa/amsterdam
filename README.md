@@ -98,6 +98,12 @@ all provider balances with real billing APIs (DeepSeek, Moonshot), plus a
 per-provider split. It updates with every 2.5-minute auto-refresh, so the
 number on screen is always how much money is left in the accounts.
 
+Providers without a billing API (Anthropic and the other verified-only
+providers) cannot report a balance — the Anthropic API has no public
+credits endpoint. For those, click **edit** on the chip and type the
+remaining amount once; it is stored in the browser, shown as a USD value,
+and added to the total (marked *manual* in the split).
+
 ### Spend by model
 
 Alongside provider balances, the dashboard shows how much Eve spent per LLM

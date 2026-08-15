@@ -74,6 +74,29 @@ setup() {
     [[ "$HTML_CONTENT" == *"No live balances reported yet"* ]]
 }
 
+# ── manual credits (providers without a billing API) ──
+
+@test "manual credits are stored per browser" {
+    [[ "$HTML_CONTENT" == *"amsterdam.manualCredits"* ]]
+    [[ "$HTML_CONTENT" == *"saveManualCredits"* ]]
+}
+
+@test "verified chips offer a manual credits editor" {
+    [[ "$HTML_CONTENT" == *'class="chip-edit"'* ]]
+    [[ "$HTML_CONTENT" == *'class="chip-editor"'* ]]
+}
+
+@test "manual credits feed the credits total" {
+    [[ "$HTML_CONTENT" == *"manualValue(id)"* ]]
+    [[ "$HTML_CONTENT" == *"(manual)"* ]]
+}
+
+@test "manual value overrides the verified badge" {
+    [[ "$HTML_CONTENT" == *"manualValue(id)"* ]]
+    run grep -F 'value: "$" + manual.toFixed(2)' "$HTML"
+    [ "$status" -eq 0 ]
+}
+
 # ── warning at top ────────────────────────────────
 
 @test "warning appears before billing summary" {
