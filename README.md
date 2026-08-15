@@ -1,21 +1,20 @@
-# LLM Console Launcher
+# Amsterdam — LLM Console Launcher
 
 > **Amster-dam:** the LLM river held by a little HTML dam. Run `amster dump` to open the floodgates.
 
-A static panel to open all LLM billing consoles from one place.
+A static panel to open all LLM billing consoles from one place. No build step, no network calls, no tracking.
 
 ## Open the launcher
 
 ```bash
-xdg-open /home/eve/Coding_Projects/amsterdam/index.html
+./scripts/amster open   # or: xdg-open ./index.html
 ```
 
-Or open `index.html` with your browser (double-click in the file manager).
+Or open `index.html` in your browser.
 
-## Optional CLI helper
+## CLI helper
 
-The repo includes `scripts/amster`, a shell helper. Use it directly from
-the repo:
+`scripts/amster` is a tiny shell helper:
 
 ```bash
 ./scripts/amster link   # Show the file:// URL of the launcher
@@ -26,16 +25,13 @@ the repo:
 
 ### Install to `~/.local/bin`
 
-A symlink is recommended so the helper always points to the repo's
-`index.html`:
+A symlink is recommended so the helper always points to the repo's `index.html`:
 
 ```bash
 ln -s "$PWD/scripts/amster" ~/.local/bin/amster
 ```
 
-A copy also works. If `scripts/amster` cannot find the `index.html`
-relative to itself, it falls back to the absolute path
-`/home/eve/Coding_Projects/amsterdam/index.html`:
+A copy also works:
 
 ```bash
 install -m 755 scripts/amster ~/.local/bin/amster
@@ -47,10 +43,38 @@ install -m 755 scripts/amster ~/.local/bin/amster
 bats tests/
 ```
 
+## Configuration
+
+Providers read their API keys from environment variables — never from the repo.
+Copy `.env.example` to `.env` and fill in your keys:
+
+```bash
+cp .env.example .env
+```
+
+`.env` is git-ignored. If a real key ever lands in a commit, rotate it immediately
+(see Security below).
+
+## Security
+
+This repo is public, so secrets are guarded by several layers:
+
+- API keys are only ever read from environment variables.
+- `.gitignore` blocks `.env`, certs, and key material.
+- [gitleaks](https://github.com/gitleaks/gitleaks) scans the full history and the working tree.
+- Git hooks (`.githooks/`) run gitleaks before every commit and push.
+
+Enable the hooks in a fresh clone with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The pre-push hook fails closed: if gitleaks is not installed, the push is refused.
+
 ## Notes
 
-- Single file, no external assets, no network calls.
-- Contains no secrets or API keys.
+- Static, single-page: no external assets, no network calls.
+- No tracking, no analytics, no secrets.
 - The search box filters cards live.
 - "Open console" buttons open each page in a new tab.
-- The repo is local-only: no remotes, no push.

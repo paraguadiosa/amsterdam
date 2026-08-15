@@ -1,0 +1,10 @@
+#!/bin/sh
+# Pre-commit hook: block commits that would stage secrets.
+# Installed via `git config core.hooksPath .githooks` (see README).
+
+command -v gitleaks >/dev/null 2>&1 || {
+    echo "pre-commit: gitleaks not found — skipping check (install from https://github.com/gitleaks/gitleaks)" >&2
+    exit 0
+}
+
+gitleaks protect --staged --no-banner -v

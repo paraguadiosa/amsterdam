@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pre-push hook: FAIL the push if any outgoing commit contains a secret.
+# Fail-closed on purpose: the push is the last gate before the remote.
+# Installed via `git config core.hooksPath .githooks` (see README).
+
+command -v gitleaks >/dev/null 2>&1 || {
+    echo "pre-push: gitleaks is NOT installed — refusing to push." >&2
+    echo "pre-push: install it first: https://github.com/gitleaks/gitleaks" >&2
+    echo "pre-push:   curl -sL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.30.1_linux_x64.tar.gz" >&2
+    exit 1
+}
+
+gitleaks git --pre-push --no-banner
