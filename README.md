@@ -1,49 +1,56 @@
-# Launcher de consolas LLM
+# LLM Console Launcher
 
-> Amster-dam: the LLM river held by a little HTML dam. Run `amster dump` to open the floodgates.
+> **Amster-dam:** the LLM river held by a little HTML dam. Run `amster dump` to open the floodgates.
 
-Panel estático para abrir todas las consolas de billing de LLM desde un solo lugar.
+A static panel to open all LLM billing consoles from one place.
 
-## Cómo abrirlo
+## Open the launcher
 
 ```bash
 xdg-open /home/eve/Coding_Projects/amsterdam/index.html
 ```
 
-O abrí `index.html` con tu navegador (doble clic en el explorador de archivos).
+Or open `index.html` with your browser (double-click in the file manager).
 
-## Helper CLI opcional
+## Optional CLI helper
 
-El repo incluye `scripts/amster`, un helper de shell. Se puede usar
-directamente desde el repo:
+The repo includes `scripts/amster`, a shell helper. Use it directly from
+the repo:
 
 ```bash
-./scripts/amster link   # Muestra la URL file:// del lanzador
-./scripts/amster path   # Muestra la ruta absoluta del lanzador
-./scripts/amster open   # Abre el lanzador con xdg-open
+./scripts/amster link   # Show the file:// URL of the launcher
+./scripts/amster path   # Show the absolute path of the launcher
+./scripts/amster open   # Open the launcher with xdg-open
+./scripts/amster dump   # Same as open — "open the floodgates"
 ```
 
-Instalación opcional en `~/.local/bin`. Se recomienda el symlink, así
-el helper siempre apunta al `index.html` del repo:
+### Install to `~/.local/bin`
+
+A symlink is recommended so the helper always points to the repo's
+`index.html`:
 
 ```bash
 ln -s "$PWD/scripts/amster" ~/.local/bin/amster
 ```
 
-Copiar también funciona: si `scripts/amster` no encuentra el `index.html`
-relativo, usa como respaldo la ruta absoluta
+A copy also works. If `scripts/amster` cannot find the `index.html`
+relative to itself, it falls back to the absolute path
 `/home/eve/Coding_Projects/amsterdam/index.html`:
 
 ```bash
 install -m 755 scripts/amster ~/.local/bin/amster
 ```
 
-## Notas
+## Tests
 
-- Es un archivo único, sin assets externos ni llamadas de red.
-- No contiene secretos ni API keys.
-- La caja de búsqueda filtra las tarjetas en vivo.
-- Botones "Abrir consola" abren cada página en una pestaña nueva.
-- El repo es local-only: no tiene remotes y no se hace push.
+```bash
+bats tests/
+```
 
-Generado el 2026-08-14.
+## Notes
+
+- Single file, no external assets, no network calls.
+- Contains no secrets or API keys.
+- The search box filters cards live.
+- "Open console" buttons open each page in a new tab.
+- The repo is local-only: no remotes, no push.

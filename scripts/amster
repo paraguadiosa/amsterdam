@@ -10,16 +10,16 @@ fi
 
 usage() {
     cat <<'EOF'
-uso: amster [comando]
+usage: amster [command]
 
-comandos:
-  link   Muestra la URL file:// del lanzador
-  path   Muestra la ruta absoluta del lanzador
-  dump   Abre el lanzador con xdg-open
-  open   Igual que dump
-  help   Muestra esta ayuda
+commands:
+  link   Show the file:// URL of the launcher
+  path   Show the absolute path of the launcher
+  dump   Open the launcher (open the floodgates)
+  open   Same as dump
+  help   Show this help
 
-Sin argumentos, muestra esta ayuda y la URL file://.
+Without arguments, shows this help and the file:// URL.
 EOF
     printf 'URL: file://%s\n' "$HTML"
 }
@@ -36,7 +36,7 @@ case "${1:-}" in
         ;;
     dump|open)
         if [ ! -f "$HTML" ]; then
-            echo "Error: no se encontro el archivo $HTML" >&2
+            echo "Error: file not found: $HTML" >&2
             exit 1
         fi
         xdg-open "$HTML"

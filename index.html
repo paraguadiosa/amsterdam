@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Launcher de consolas LLM</title>
+<title>LLM Console Launcher</title>
 <style>
   :root {
     --bg: #0d0b14;
@@ -158,108 +158,108 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Consolas de billing LLM</h1>
-    <p class="sub">Todas tus consolas de facturación en un solo lugar. Sin claves, sin llamadas a la red, solo links.</p>
-    <p class="meta">Generado el 2026-08-14 · Máquina: Eve</p>
+    <h1>LLM Billing Consoles</h1>
+    <p class="sub">All your billing consoles in one place. No keys, no network calls, just links.</p>
+    <p class="meta">Machine: Eve · Amster-dam — the LLM river held by a little HTML dam</p>
   </header>
 
-  <input id="search" type="text" placeholder="Filtrar proveedores…" autocomplete="off">
+  <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
-  <h2><span class="dot"></span>Detectados en esta máquina</h2>
+  <h2><span class="dot"></span>Detected on this machine</h2>
   <div class="cards" data-group="detected">
     <div class="card" data-name="deepseek deep seek">
       <h3>DeepSeek</h3>
-      <span class="tag">Detectado</span>
-      <p class="note">Consola: Billing/Usage después de login.</p>
+      <span class="tag">Detected</span>
+      <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: DEEPSEEK_API_KEY</p>
-      <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="kimi moonshot moonshot">
       <h3>Kimi / Moonshot</h3>
-      <span class="tag">Detectado</span>
-      <p class="note">Consola: Billing/Usage después de login.</p>
+      <span class="tag">Detected</span>
+      <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: KIMI_API_KEY / MOONSHOT_API_KEY</p>
-      <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="anthropic claude">
       <h3>Anthropic</h3>
-      <span class="tag">Detectado</span>
-      <p class="note">Consola: Settings &gt; Billing.</p>
+      <span class="tag">Detected</span>
+      <p class="note">Console: Settings &gt; Billing.</p>
       <p class="envs">Env: ANTHROPIC_API_KEY</p>
-      <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="local llama llama.cpp qwen gguf local">
       <h3>Local llama.cpp / Qwen GGUF</h3>
-      <span class="tag local">Sin billing</span>
-      <p class="note">Servidor local compatible con OpenAI. No tiene facturación.</p>
+      <span class="tag local">No billing</span>
+      <p class="note">Local server, OpenAI-compatible. No billing applies.</p>
       <p class="envs">URL: http://127.0.0.1:8080/v1</p>
-      <a class="btn ghost" href="http://127.0.0.1:8080/v1" target="_blank" rel="noopener noreferrer">Abrir local</a>
+      <a class="btn ghost" href="http://127.0.0.1:8080/v1" target="_blank" rel="noopener noreferrer">Open local</a>
     </div>
   </div>
 
-  <h2 class="collapsed-group"><span class="dot"></span>Si también usás estos</h2>
+  <h2 class="collapsed-group"><span class="dot"></span>If you also use these</h2>
   <div class="cards" data-group="extra">
     <div class="card" data-name="openai gpt chatgpt">
       <h3>OpenAI</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">Usage y billing.</p>
-      <a class="btn" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">Usage and billing.</p>
+      <a class="btn" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="google ai studio gemini">
       <h3>Google AI Studio</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">Probar modelos y ver uso.</p>
-      <a class="btn" href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">Try models and view usage.</p>
+      <a class="btn" href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="google cloud gcp">
       <h3>Google Cloud Billing</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">Facturación de GCP.</p>
-      <a class="btn" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">GCP billing dashboard.</p>
+      <a class="btn" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="openrouter">
       <h3>OpenRouter</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">Créditos y uso.</p>
-      <a class="btn" href="https://openrouter.ai/credits" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">Credits and usage.</p>
+      <a class="btn" href="https://openrouter.ai/credits" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="groq">
       <h3>Groq</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">Uso y límites.</p>
-      <a class="btn" href="https://console.groq.com/" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">Usage and limits.</p>
+      <a class="btn" href="https://console.groq.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="together">
       <h3>Together</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">API y uso.</p>
-      <a class="btn" href="https://api.together.xyz/" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">API and usage.</p>
+      <a class="btn" href="https://api.together.xyz/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="mistral le chat">
       <h3>Mistral</h3>
-      <span class="tag">Opcional</span>
-      <p class="note">Consola y uso.</p>
-      <a class="btn" href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer">Abrir consola</a>
+      <span class="tag">Optional</span>
+      <p class="note">Console and usage.</p>
+      <a class="btn" href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
   </div>
 
-  <div class="empty" id="empty">No se encontró nada con ese filtro.</div>
+  <div class="empty" id="empty">Nothing matches that filter.</div>
 
   <div class="warning">
     <span class="ico">⚠️</span>
-    <span>Nunca pegues API keys acá; esto es solo un launcher de consolas.</span>
+    <span>Never paste API keys here; this is only a console launcher.</span>
   </div>
 
-  <footer>Launcher offline · Sin tracking · Sin secretos</footer>
+  <footer>Offline launcher · No tracking · No secrets</footer>
 </div>
 
 <script>
@@ -268,10 +268,10 @@
   const cards = Array.from(document.querySelectorAll(".card"));
 
   search.addEventListener("input", function () {
-    const q = this.value.trim().toLowerCase();
+    const query = this.value.trim().toLowerCase();
     let visible = 0;
     cards.forEach(function (card) {
-      const match = card.dataset.name.includes(q);
+      const match = card.dataset.name.includes(query);
       card.classList.toggle("hidden", !match);
       if (match) visible++;
     });
