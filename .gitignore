@@ -1,0 +1,16 @@
+# OS noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor noise
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs and temporary files
+*.log
+*.tmp

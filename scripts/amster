@@ -1,0 +1,46 @@
+#!/bin/sh
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+HTML="$SCRIPT_DIR/../index.html"
+
+usage() {
+    cat <<'EOF'
+uso: amster [comando]
+
+comandos:
+  link   Muestra la URL file:// del lanzador
+  path   Muestra la ruta absoluta del lanzador
+  dump   Abre el lanzador con xdg-open
+  open   Igual que dump
+  help   Muestra esta ayuda
+
+Sin argumentos, muestra esta ayuda y la URL file://.
+EOF
+    printf 'URL: file://%s\n' "$HTML"
+}
+
+case "${1:-}" in
+    '')
+        usage
+        ;;
+    link)
+        printf 'file://%s\n' "$HTML"
+        ;;
+    path)
+        printf '%s\n' "$HTML"
+        ;;
+    dump|open)
+        if [ ! -f "$HTML" ]; then
+            echo "Error: no se encontro el archivo $HTML" >&2
+            exit 1
+        fi
+        xdg-open "$HTML"
+        ;;
+    help|-h|--help)
+        usage
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac
