@@ -255,6 +255,18 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-hi);
     white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  #spend-table th.active { color: var(--text); }
+
+  #spend-table th .sort-indicator {
+    display: inline-block;
+    margin-left: 4px;
+    color: var(--accent-2);
+    font-size: 0.6875rem;
+    line-height: 1;
   }
 
   #spend-table td {
@@ -614,14 +626,14 @@
   <table id="spend-table" aria-label="Spend by model">
     <thead>
       <tr>
-        <th scope="col">Model</th>
-        <th scope="col">Provider</th>
-        <th scope="col">Sessions</th>
-        <th scope="col">Calls</th>
-        <th scope="col">Tokens in</th>
-        <th scope="col">Tokens out</th>
-        <th scope="col">Est. cost</th>
-        <th scope="col">Status</th>
+        <th scope="col" data-sort-key="model">Model<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="provider">Provider<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="sessions">Sessions<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="calls">Calls<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="inputTokens">Tokens in<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="outputTokens">Tokens out<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="estimatedCostUsd">Est. cost<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="costStatus">Status<span class="sort-indicator" aria-hidden="true"></span></th>
       </tr>
     </thead>
     <tbody id="spend-body"></tbody>
@@ -760,6 +772,75 @@
   }
 
   /* ── spend by model ─────────────────────────────────────────── */
+  // Sort state lives at module scope so the 2.5-min auto-refresh
+  // re-renders keep the user's chosen column and direction.
+  var sortState = { key: 'estimatedCostUsd', dir: 'desc' };
+  var TEXT_SORT_KEYS = ['model', 'provider', 'costStatus'];
+
+  function spendSortValue(model, key) {
+    switch (key) {
+      case 'model':        return String(model.model || '').toLowerCase();
+      case 'provider':     return String(model.provider || '').toLowerCase();
+      case 'sessions':     return model.sessions;
+      case 'calls':        return model.calls;
+      case 'inputTokens':  return model.inputTokens;
+      case 'outputTokens': return model.outputTokens;
+      case 'estimatedCostUsd':
+        return model.costStatus === 'estimated' && model.estimatedCostUsd != null
+          ? model.estimatedCostUsd
+          : null;
+      case 'costStatus':   return String(model.costStatus || 'unknown').toLowerCase();
+    }
+    return null;
+  }
+
+  function compareSpendModels(a, b) {
+    var key = sortState.key;
+    var dir = sortState.dir === 'asc' ? 1 : -1;
+    var av  = spendSortValue(a, key);
+    var bv  = spendSortValue(b, key);
+    var aNa = av == null;
+    var bNa = bv == null;
+    if (aNa && bNa) return 0;
+    if (aNa) return 1;  // missing values stay at the bottom, either direction
+    if (bNa) return -1;
+    if (typeof av === 'number' && typeof bv === 'number') {
+      return av < bv ? -dir : av > bv ? dir : 0;
+    }
+    return String(av).localeCompare(String(bv)) * dir;
+  }
+
+  function sortSpendModels(models) {
+    return models.slice().sort(compareSpendModels);
+  }
+
+  function updateSortIndicator() {
+    Array.from(document.querySelectorAll('#spend-table thead th')).forEach(function (th) {
+      var indicator = th.querySelector('.sort-indicator');
+      var active    = th.getAttribute('data-sort-key') === sortState.key;
+      if (indicator) {
+        indicator.textContent = active ? (sortState.dir === 'asc' ? '\u25B2' : '\u25BC') : '';
+      }
+      th.setAttribute('aria-sort', active ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      th.classList.toggle('active', active);
+    });
+  }
+
+  function sortHandler(event) {
+    var th  = event.target.closest('th');
+    var key = th && th.getAttribute('data-sort-key');
+    if (!key) return;
+    if (sortState.key === key) {
+      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.dir = TEXT_SORT_KEYS.indexOf(key) !== -1 ? 'asc' : 'desc';
+    }
+    renderSpend(window.BILLING);
+  }
+
+  document.querySelector('#spend-table thead').addEventListener("click", sortHandler);
+
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -801,7 +882,7 @@
     }
 
     table.style.display = 'table';
-    var rows = spend.models.map(function (m) {
+    var rows = sortSpendModels(spend.models).map(function (m) {
       var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
       var known = m.costStatus === 'estimated' && m.estimatedCostUsd != null;
       return '<tr' + title + '>'
@@ -816,6 +897,7 @@
         + '</tr>';
     }).join('');
     document.getElementById('spend-body').innerHTML = rows;
+    updateSortIndicator();
   }
 
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes

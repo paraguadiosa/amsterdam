@@ -89,8 +89,28 @@ setup() {
 }
 
 @test "spend table has provider and model columns" {
-    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Model</th>"* ]]
-    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Provider</th>"* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort-key="model">Model'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort-key="provider">Provider'* ]]
+}
+
+@test "all 8 spend columns carry a data-sort-key" {
+    local count=$(grep -o 'data-sort-key="' "$HTML" | wc -l)
+    [ "$count" -eq 8 ]
+}
+
+@test "spend sort handler is delegated on the table head" {
+    [[ "$HTML_CONTENT" == *'#spend-table thead'* ]]
+    [[ "$HTML_CONTENT" == *'addEventListener("click", sortHandler)'* ]]
+}
+
+@test "spend sort state survives re-renders" {
+    [[ "$HTML_CONTENT" == *"sortState"* ]]
+    [[ "$HTML_CONTENT" == *"renderSpend(window.BILLING)"* ]]
+}
+
+@test "spend sort indicator markup exists" {
+    [[ "$HTML_CONTENT" == *'class="sort-indicator"'* ]]
+    [[ "$HTML_CONTENT" == *"updateSortIndicator"* ]]
 }
 
 @test "spend shows unavailable hint for missing DB" {

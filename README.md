@@ -103,6 +103,8 @@ Override the database path with `HERMES_STATE_DB` (useful for testing or
 non-standard installs). In Docker there is no state DB, so the section shows
 the unavailable hint — run `amster serve` on the host to see spend data.
 
+The table is sortable by clicking any column header (default: est. cost desc).
+
 ### Install to `~/.local/bin`
 
 ```bash
