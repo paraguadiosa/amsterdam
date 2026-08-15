@@ -1,80 +1,97 @@
-# Amsterdam — LLM Console Launcher
+# Amsterdam Console
 
 > **Amster-dam:** the LLM river held by a little HTML dam. Run `amster dump` to open the floodgates.
 
-A static panel to open all LLM billing consoles from one place. No build step, no network calls, no tracking.
+A static panel to open all LLM billing consoles from one place — with
+live balance and usage numbers fetched straight from provider APIs.
 
-## Open the launcher
+## Quick start
 
 ```bash
-./scripts/amster open   # or: xdg-open ./index.html
+npm install
+./scripts/amster serve   # live dashboard with auto-refresh every 2.5 min
 ```
 
-Or open `index.html` in your browser.
+Then open <http://localhost:3131> (the port is a nod to the Netherlands'
+calling code +31).
+
+For a one-shot snapshot instead:
+
+```bash
+./scripts/amster dump    # fetch billing data once, write data/billing.js
+./scripts/amster open    # open the static dashboard (file://)
+```
 
 ## CLI helper
 
-`scripts/amster` is a tiny shell helper:
-
 ```bash
-./scripts/amster link   # Show the file:// URL of the launcher
-./scripts/amster path   # Show the absolute path of the launcher
-./scripts/amster open   # Open the launcher with xdg-open
-./scripts/amster dump   # Same as open — "open the floodgates"
+./scripts/amster serve   # Live server, auto-refresh every 2.5 min
+./scripts/amster dump    # Fetch billing data once (open the floodgates)
+./scripts/amster open    # Open the launcher with xdg-open
+./scripts/amster link    # Show the file:// URL
+./scripts/amster path    # Show the absolute path
+./scripts/amster help    # Show help
 ```
 
-### Install to `~/.local/bin`
+### Live mode vs static mode
 
-A symlink is recommended so the helper always points to the repo's `index.html`:
+| Mode | Command | Data | Refresh |
+|------|---------|------|---------|
+| Live | `amster serve` | `/api/billing` endpoint | Every 2.5 min, plus manual Refresh button |
+| Static | `amster dump` + `amster open` | `data/billing.js` | None (snapshot) |
+
+The dashboard detects how it is served. Over HTTP it polls `/api/billing`
+and shows a live status; over `file://` it renders the static snapshot and
+suggests `amster serve`.
+
+### Install to `~/.local/bin`
 
 ```bash
 ln -s "$PWD/scripts/amster" ~/.local/bin/amster
 ```
 
-A copy also works:
+## Architecture
 
-```bash
-install -m 755 scripts/amster ~/.local/bin/amster
 ```
+src/
+  providers/
+    deepseek.js      # Balance endpoint (has real billing API)
+    openrouter.js    # Auth/key endpoint (has real billing API)
+    huggingface.js   # Whoami endpoint (account info)
+    verify.js        # Factory for key-verification-only providers
+    index.js         # Provider registry
+  dam.js             # Orchestrator — fetches all, writes data/billing.js
+  server.js          # Local HTTP server for live mode
+  env.js             # Minimal .env file loader
+  format.js          # Output formatters (JS file + console)
+data/
+  billing.js         # Auto-generated (gitignored)
+index.html           # Dashboard — reads data/billing.js and /api/billing
+scripts/
+  amster             # CLI entry point
+```
+
+### Provider types
+
+| Type | Providers | What it returns |
+|------|-----------|-----------------|
+| Balance API | DeepSeek, OpenRouter | Actual balance / usage numbers |
+| Account info | Hugging Face | Username + verified status |
+| Key verification | Anthropic, OpenAI, Moonshot, Groq, Together, Mistral, Google, Fireworks | `verified: true` on HTTP 200 |
 
 ## Tests
 
 ```bash
-bats tests/
+npm test              # Node.js tests with coverage
+npm run test:shell    # Shell + HTML tests (bats)
+npm run test:all      # Both
 ```
-
-## Configuration
-
-Providers read their API keys from environment variables — never from the repo.
-Copy `.env.example` to `.env` and fill in your keys:
-
-```bash
-cp .env.example .env
-```
-
-`.env` is git-ignored. If a real key ever lands in a commit, rotate it immediately
-(see Security below).
-
-## Security
-
-This repo is public, so secrets are guarded by several layers:
-
-- API keys are only ever read from environment variables.
-- `.gitignore` blocks `.env`, certs, and key material.
-- [gitleaks](https://github.com/gitleaks/gitleaks) scans the full history and the working tree.
-- Git hooks (`.githooks/`) run gitleaks before every commit and push.
-
-Enable the hooks in a fresh clone with:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-The pre-push hook fails closed: if gitleaks is not installed, the push is refused.
 
 ## Notes
 
-- Static, single-page: no external assets, no network calls.
-- No tracking, no analytics, no secrets.
+- Single HTML file, no build step, no bundler.
+- No secrets stored — keys come from environment variables.
 - The search box filters cards live.
+- "If you also use these" is a collapsible dropdown (click to expand).
 - "Open console" buttons open each page in a new tab.
+- The repo is local-only: no remotes, no push.

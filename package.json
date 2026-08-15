@@ -1,0 +1,15 @@
+{
+  "name": "amsterdam",
+  "version": "1.0.0",
+  "description": "Amster-dam: the LLM river held by a little HTML dam",
+  "type": "module",
+  "scripts": {
+    "dump": "node src/dam.js",
+    "test": "c8 --lines 80 --reporter text node --test 'tests/*.test.js'",
+    "test:shell": "bats tests/*.bats",
+    "test:all": "npm test && npm run test:shell"
+  },
+  "devDependencies": {
+    "c8": "^10.0.0"
+  }
+}

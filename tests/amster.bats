@@ -1,12 +1,13 @@
 #!/usr/bin/env bats
 
+
 setup() {
     REPO_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
     AMSTER="$REPO_DIR/scripts/amster"
     HTML="$REPO_DIR/index.html"
 }
 
-# ── help / usage ──────────────────────────────────────────────
+# ── help / usage ──────────────────────────────────
 
 @test "no arguments prints usage and exits 0" {
     run "$AMSTER"
@@ -34,10 +35,11 @@ setup() {
 
 @test "usage lists all commands" {
     run "$AMSTER" help
+    [[ "$output" == *"dump"* ]]
+    [[ "$output" == *"serve"* ]]
+    [[ "$output" == *"open"* ]]
     [[ "$output" == *"link"* ]]
     [[ "$output" == *"path"* ]]
-    [[ "$output" == *"dump"* ]]
-    [[ "$output" == *"open"* ]]
     [[ "$output" == *"help"* ]]
 }
 
@@ -46,7 +48,7 @@ setup() {
     [[ "$output" == *"URL: file://"* ]]
 }
 
-# ── link ──────────────────────────────────────────────────────
+# ── link ──────────────────────────────────────────
 
 @test "link prints file:// URL" {
     run "$AMSTER" link
@@ -61,7 +63,7 @@ setup() {
     [ -f "$file_path" ]
 }
 
-# ── path ──────────────────────────────────────────────────────
+# ── path ──────────────────────────────────────────
 
 @test "path prints absolute path" {
     run "$AMSTER" path
@@ -75,18 +77,7 @@ setup() {
     [ -f "$output" ]
 }
 
-# ── dump / open ───────────────────────────────────────────────
-
-@test "dump with missing HTML exits 1 with error" {
-    # Temporarily rename the HTML to simulate a missing file
-    local tmp="$HTML.bak"
-    mv "$HTML" "$tmp"
-    run "$AMSTER" dump
-    mv "$tmp" "$HTML"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"Error"* ]]
-    [[ "$output" == *"file not found"* ]]
-}
+# ── open (missing HTML) ──────────────────────────
 
 @test "open with missing HTML exits 1 with error" {
     local tmp="$HTML.bak"
@@ -95,9 +86,10 @@ setup() {
     mv "$tmp" "$HTML"
     [ "$status" -eq 1 ]
     [[ "$output" == *"Error"* ]]
+    [[ "$output" == *"file not found"* ]]
 }
 
-# ── unknown command ───────────────────────────────────────────
+# ── unknown command ───────────────────────────────
 
 @test "unknown command prints usage to stderr and exits 2" {
     run "$AMSTER" floodgate
@@ -110,16 +102,15 @@ setup() {
     [ "$status" -eq 2 ]
 }
 
-# ── relative path resolution ─────────────────────────────────
+# ── relative path resolution ─────────────────────
 
 @test "script resolves index.html relative to itself" {
-    # Run from a different directory
     run bash -c "cd /tmp && '$AMSTER' path"
     [ "$status" -eq 0 ]
     [ -f "$output" ]
 }
 
-# ── no Spanish remnants ──────────────────────────────────────
+# ── no Spanish remnants ──────────────────────────
 
 @test "script contains no Spanish text" {
     run grep -iE "uso:|comando|muestra|lanzador|argumento|encontro" "$AMSTER"

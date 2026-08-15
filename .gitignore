@@ -15,6 +15,13 @@ Desktop.ini
 *.log
 *.tmp
 
+# Generated billing data
+data/billing.js
+
+# Node
+node_modules/
+package-lock.json
+
 # ── Secrets — never, ever commit these ────────────────────
 .env
 .env.*

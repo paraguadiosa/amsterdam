@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LLM Console Launcher</title>
+<title>Amsterdam Console</title>
 <style>
   :root {
     --bg: #0d0b14;
@@ -15,7 +15,9 @@
     --muted: #9a8fb5;
     --accent: #c9a2ff;
     --accent-2: #ff7eb3;
+    --green: #7dffb3;
     --warning: #ffb86b;
+    --danger: #ff6b6b;
     --warning-bg: #2a1f12;
     --warning-border: #6b4a1f;
     --radius: 14px;
@@ -42,6 +44,70 @@
   .sub { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
   .meta { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
 
+  /* ── billing summary (top of page) ────────────── */
+  #billing-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  #billing-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  #billing-status {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  #billing-status.live { color: var(--green); }
+  #billing-status.error { color: var(--danger); }
+  #refresh-btn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .chip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .chip .chip-name { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
+  .chip .chip-value { font-weight: 600; font-size: 0.95rem; }
+  .chip.balance .chip-value { color: var(--green); }
+  .chip.usage .chip-value { color: var(--warning); }
+  .chip.verified .chip-value { color: var(--accent); }
+  .chip.error .chip-value { color: var(--danger); }
+  .chip.off .chip-value { color: var(--muted); font-style: italic; font-weight: 400; }
+  #billing-prompt {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+    padding: 14px 0;
+  }
+  #billing-prompt code {
+    background: var(--bg-soft);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.85em;
+  }
+  #billing-time {
+    grid-column: 1 / -1;
+    text-align: right;
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+
+  /* ── search ───────────────────────────────────── */
   #search {
     width: 100%;
     padding: 13px 16px;
@@ -57,6 +123,7 @@
   #search:focus { border-color: var(--accent); }
   #search::placeholder { color: var(--muted); }
 
+  /* ── sections ─────────────────────────────────── */
   h2 {
     font-size: 1.05rem;
     text-transform: uppercase;
@@ -68,14 +135,21 @@
     gap: 10px;
   }
   h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  h2.collapsed-group .dot { background: var(--muted); }
+  h2.toggle { cursor: pointer; user-select: none; }
+  h2.toggle:hover { color: var(--text); }
+  h2.toggle .dot { background: var(--muted); }
+  h2.toggle.expanded .dot { background: var(--accent); }
+  h2 .count { font-size: 0.8rem; text-transform: none; letter-spacing: 0; }
+  h2 .chevron { margin-left: auto; font-size: 0.9rem; transition: transform 0.15s; }
+  h2.toggle.expanded .chevron { transform: rotate(90deg); }
+  .cards.collapsed { display: none; }
 
+  /* ── cards ─────────────────────────────────────── */
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
   }
-
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -88,7 +162,6 @@
   }
   .card:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--card-hover); }
   .card.hidden { display: none; }
-
   .card h3 { font-size: 1.05rem; font-weight: 600; }
   .card .tag {
     align-self: flex-start;
@@ -105,6 +178,7 @@
   .card .note { font-size: 0.85rem; color: var(--muted); flex: 1; }
   .card .envs { font-size: 0.8rem; color: var(--muted); font-family: "Cascadia Code", Consolas, monospace; word-break: break-word; }
 
+  /* ── buttons ──────────────────────────────────── */
   .btn {
     display: inline-block;
     text-align: center;
@@ -125,6 +199,7 @@
   }
   .btn.ghost:hover { border-color: var(--accent); filter: brightness(1.3); }
 
+  /* ── warning / footer ─────────────────────────── */
   .warning {
     margin-top: 28px;
     background: var(--warning-bg);
@@ -138,19 +213,13 @@
     align-items: flex-start;
   }
   .warning .ico { font-size: 1.3rem; line-height: 1.2; }
-
-  .empty {
-    color: var(--muted);
-    text-align: center;
-    padding: 40px 0;
-    display: none;
-  }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; display: none; }
   .empty.show { display: block; }
-
   footer { margin-top: 32px; color: var(--muted); font-size: 0.75rem; text-align: center; }
 
   @media (max-width: 480px) {
     .cards { grid-template-columns: 1fr; }
+    #billing-summary { grid-template-columns: repeat(2, 1fr); }
     h1 { font-size: 1.5rem; }
   }
 </style>
@@ -158,16 +227,28 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>LLM Billing Consoles</h1>
-    <p class="sub">All your billing consoles in one place. No keys, no network calls, just links.</p>
-    <p class="meta">Machine: Eve · Amster-dam — the LLM river held by a little HTML dam</p>
+    <h1>Amsterdam Console</h1>
+    <p class="sub">The LLM river held by a little HTML dam. All your billing in one place.</p>
+    <p class="meta">Machine: Eve</p>
   </header>
+
+  <div class="warning">
+    <span class="ico">⚠️</span>
+    <span>Never paste API keys here; this is only a console launcher.</span>
+  </div>
+
+  <!-- billing summary — populated by data/billing.js and /api/billing -->
+  <div id="billing-toolbar">
+    <span id="billing-status"></span>
+    <button id="refresh-btn" class="btn ghost" type="button">Refresh</button>
+  </div>
+  <div id="billing-summary"></div>
 
   <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
   <h2><span class="dot"></span>Detected on this machine</h2>
   <div class="cards" data-group="detected">
-    <div class="card" data-name="deepseek deep seek">
+    <div class="card" data-name="deepseek deep seek" data-provider="deepseek">
       <h3>DeepSeek</h3>
       <span class="tag">Detected</span>
       <p class="note">Console: Billing / Usage after login.</p>
@@ -175,7 +256,7 @@
       <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="kimi moonshot moonshot">
+    <div class="card" data-name="kimi moonshot moonshot" data-provider="moonshot">
       <h3>Kimi / Moonshot</h3>
       <span class="tag">Detected</span>
       <p class="note">Console: Billing / Usage after login.</p>
@@ -183,12 +264,20 @@
       <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="anthropic claude">
+    <div class="card" data-name="anthropic claude" data-provider="anthropic">
       <h3>Anthropic</h3>
       <span class="tag">Detected</span>
       <p class="note">Console: Settings &gt; Billing.</p>
       <p class="envs">Env: ANTHROPIC_API_KEY</p>
       <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Open console</a>
+    </div>
+
+    <div class="card" data-name="huggingface hf hugging face" data-provider="huggingface">
+      <h3>Hugging Face</h3>
+      <span class="tag">Detected</span>
+      <p class="note">Inference providers, free tier included.</p>
+      <p class="envs">Env: HF_TOKEN</p>
+      <a class="btn" href="https://huggingface.co/settings/billing" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="local llama llama.cpp qwen gguf local">
@@ -200,16 +289,19 @@
     </div>
   </div>
 
-  <h2 class="collapsed-group"><span class="dot"></span>If you also use these</h2>
-  <div class="cards" data-group="extra">
-    <div class="card" data-name="openai gpt chatgpt">
+  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false">
+    <span class="dot"></span>If you also use these <span class="count" id="extra-count"></span>
+    <span class="chevron">▸</span>
+  </h2>
+  <div class="cards collapsed" data-group="extra" id="extra-cards">
+    <div class="card" data-name="openai gpt chatgpt" data-provider="openai">
       <h3>OpenAI</h3>
       <span class="tag">Optional</span>
       <p class="note">Usage and billing.</p>
       <a class="btn" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="google ai studio gemini">
+    <div class="card" data-name="google ai studio gemini" data-provider="google">
       <h3>Google AI Studio</h3>
       <span class="tag">Optional</span>
       <p class="note">Try models and view usage.</p>
@@ -223,57 +315,170 @@
       <a class="btn" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="openrouter">
+    <div class="card" data-name="openrouter" data-provider="openrouter">
       <h3>OpenRouter</h3>
       <span class="tag">Optional</span>
       <p class="note">Credits and usage.</p>
       <a class="btn" href="https://openrouter.ai/credits" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="groq">
+    <div class="card" data-name="groq" data-provider="groq">
       <h3>Groq</h3>
       <span class="tag">Optional</span>
       <p class="note">Usage and limits.</p>
       <a class="btn" href="https://console.groq.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="together">
+    <div class="card" data-name="together" data-provider="together">
       <h3>Together</h3>
       <span class="tag">Optional</span>
       <p class="note">API and usage.</p>
       <a class="btn" href="https://api.together.xyz/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="mistral le chat">
+    <div class="card" data-name="mistral le chat" data-provider="mistral">
       <h3>Mistral</h3>
       <span class="tag">Optional</span>
       <p class="note">Console and usage.</p>
       <a class="btn" href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
+
+    <div class="card" data-name="fireworks" data-provider="fireworks">
+      <h3>Fireworks</h3>
+      <span class="tag">Optional</span>
+      <p class="note">Models and usage.</p>
+      <a class="btn" href="https://app.fireworks.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
+    </div>
   </div>
 
   <div class="empty" id="empty">Nothing matches that filter.</div>
 
-  <div class="warning">
-    <span class="ico">⚠️</span>
-    <span>Never paste API keys here; this is only a console launcher.</span>
-  </div>
-
-  <footer>Offline launcher · No tracking · No secrets</footer>
+  <footer>Amsterdam Console · Offline · No tracking · No secrets</footer>
 </div>
 
+<script src="data/billing.js"></script>
 <script>
-  const search = document.getElementById("search");
-  const empty = document.getElementById("empty");
-  const cards = Array.from(document.querySelectorAll(".card"));
+  /* ── billing summary ──────────────────────────── */
+  function formatChip(id, data) {
+    if (!data || !data.detected) return { cls: "off", value: "—" };
+    if (data.error)              return { cls: "error", value: "✗ " + data.error };
+    if (data.balance != null) {
+      var sym = data.currency === "CNY" ? "¥" : data.currency === "EUR" ? "€" : "$";
+      return { cls: "balance", value: sym + data.balance.toFixed(2) };
+    }
+    if (data.usage != null) {
+      var limit = data.limit != null ? " / $" + data.limit.toFixed(2) : "";
+      return { cls: "usage", value: "$" + data.usage.toFixed(2) + " used" + limit };
+    }
+    if (data.username)  return { cls: "verified", value: "✓ " + data.username };
+    if (data.verified)  return { cls: "verified", value: "✓ verified" };
+    return { cls: "off", value: "?" };
+  }
+
+  var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
+  var live = location.protocol === "http:" || location.protocol === "https:";
+  var summaryEl = document.getElementById("billing-summary");
+  var statusEl = document.getElementById("billing-status");
+
+  function renderSummary(billing) {
+    if (!billing) {
+      summaryEl.innerHTML = '<div id="billing-prompt">Run <code>amster serve</code> to open the floodgates</div>';
+      return;
+    }
+
+    var html = "";
+    var ids = Object.keys(billing.providers);
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      var chip = formatChip(id, billing.providers[id]);
+      html += '<div class="chip ' + chip.cls + '">'
+            + '<span class="chip-name">' + id + '</span>'
+            + '<span class="chip-value">' + chip.value + '</span>'
+            + '</div>';
+    }
+
+    var ts = new Date(billing.timestamp);
+    html += '<div id="billing-time">Fetched ' + ts.toLocaleTimeString()
+          + ' · auto-refresh every 2.5 min</div>';
+    summaryEl.innerHTML = html;
+  }
+
+  function setStatus(text, cls) {
+    statusEl.innerHTML = text;
+    statusEl.className = cls || "";
+  }
+
+  function refresh(manual) {
+    if (!live) {
+      renderSummary(window.BILLING);
+      setStatus('Static snapshot — run <code>amster serve</code> for live updates');
+      return;
+    }
+    if (manual) setStatus('Refreshing…');
+    fetch('/api/billing')
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        window.BILLING = data;
+        renderSummary(data);
+        setStatus('Live · auto-refresh every 2.5 min', 'live');
+      })
+      .catch(function (err) {
+        setStatus('Refresh failed (' + err.message + ') — retrying in 2.5 min', 'error');
+      });
+  }
+
+  document.getElementById("refresh-btn").addEventListener("click", function () {
+    refresh(true);
+  });
+
+  renderSummary(window.BILLING);
+  if (live) {
+    setStatus('Live · auto-refresh every 2.5 min', 'live');
+    setInterval(function () { refresh(false); }, REFRESH_INTERVAL_MS);
+  } else {
+    setStatus('Static snapshot — run <code>amster serve</code> for live updates');
+  }
+
+  /* ── collapsible extra group ─────────────────── */
+  var extraToggle = document.getElementById("extra-toggle");
+  var extraCards = document.getElementById("extra-cards");
+  var extraOpen = false;
+
+  document.getElementById("extra-count").textContent =
+    "(" + extraCards.querySelectorAll(".card").length + ")";
+
+  function setExtra(open) {
+    extraOpen = open;
+    extraCards.classList.toggle("collapsed", !open);
+    extraToggle.classList.toggle("expanded", open);
+    extraToggle.setAttribute("aria-expanded", String(open));
+  }
+
+  extraToggle.addEventListener("click", function () { setExtra(!extraOpen); });
+  extraToggle.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setExtra(!extraOpen);
+    }
+  });
+
+  /* ── card filter ──────────────────────────────── */
+  var search = document.getElementById("search");
+  var empty = document.getElementById("empty");
+  var cards = Array.from(document.querySelectorAll(".card"));
+
+  function groupCollapsed(card) {
+    var group = card.closest(".cards");
+    return group && group.classList.contains("collapsed");
+  }
 
   search.addEventListener("input", function () {
-    const query = this.value.trim().toLowerCase();
-    let visible = 0;
+    var query = this.value.trim().toLowerCase();
+    var visible = 0;
     cards.forEach(function (card) {
-      const match = card.dataset.name.includes(query);
-      card.classList.toggle("hidden", !match);
-      if (match) visible++;
+      var show = card.dataset.name.includes(query) && !groupCollapsed(card);
+      card.classList.toggle("hidden", !show);
+      if (show) visible++;
     });
     empty.classList.toggle("show", visible === 0);
   });

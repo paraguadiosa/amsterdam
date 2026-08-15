@@ -2,6 +2,7 @@
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 HTML=/home/eve/Coding_Projects/amsterdam/index.html
+REPO_DIR=
 
 if [ -f "$SCRIPT_DIR/../index.html" ]; then
     REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
@@ -13,10 +14,11 @@ usage() {
 usage: amster [command]
 
 commands:
+  dump   Fetch billing data once (open the floodgates)
+  serve  Start a local server with live auto-refresh (every 2.5 min)
+  open   Open the launcher in a browser
   link   Show the file:// URL of the launcher
   path   Show the absolute path of the launcher
-  dump   Open the launcher (open the floodgates)
-  open   Same as dump
   help   Show this help
 
 Without arguments, shows this help and the file:// URL.
@@ -28,18 +30,40 @@ case "${1:-}" in
     '')
         usage
         ;;
-    link)
-        printf 'file://%s\n' "$HTML"
+    dump|fetch)
+        if ! command -v node >/dev/null 2>&1; then
+            echo "Error: node is required for dump" >&2
+            exit 1
+        fi
+        if [ -z "$REPO_DIR" ]; then
+            echo "Error: cannot find repo root" >&2
+            exit 1
+        fi
+        node "$REPO_DIR/src/dam.js"
         ;;
-    path)
-        printf '%s\n' "$HTML"
+    serve)
+        if ! command -v node >/dev/null 2>&1; then
+            echo "Error: node is required for serve" >&2
+            exit 1
+        fi
+        if [ -z "$REPO_DIR" ]; then
+            echo "Error: cannot find repo root" >&2
+            exit 1
+        fi
+        node "$REPO_DIR/src/server.js" "${2:-}"
         ;;
-    dump|open)
+    open)
         if [ ! -f "$HTML" ]; then
             echo "Error: file not found: $HTML" >&2
             exit 1
         fi
         xdg-open "$HTML"
+        ;;
+    link)
+        printf 'file://%s\n' "$HTML"
+        ;;
+    path)
+        printf '%s\n' "$HTML"
         ;;
     help|-h|--help)
         usage
