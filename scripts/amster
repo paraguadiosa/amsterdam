@@ -186,16 +186,8 @@ case "${1:-}" in
     link)
         printf 'file://%s\n' "$HTML"
         ;;
-    serve)
-        if ! command -v node >/dev/null 2>&1; then
-            echo "Error: node is required for serve" >&2
-            exit 1
-        fi
-        if [ -z "$REPO_DIR" ]; then
-            echo "Error: cannot find repo root" >&2
-            exit 1
-        fi
-        node "$REPO_DIR/src/server.js" "${2:-}"
+    path)
+        printf '%s\n' "$HTML"
         ;;
     help|-h|--help)
         usage
