@@ -35,6 +35,9 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Secrets safe by default** — keys live in environment variables or the
   Hermes credential pool, never in git. Gitleaks hooks block accidental
   commits and pushes of secrets.
+- **Five themes** — night, day, dusk, aurora, and retro palettes, all
+  meeting WCAG AA on their surfaces. The picker in the hero remembers
+  your choice; `auto` follows the clock (day 07:00-19:59).
 
 ## Requirements
 
@@ -249,6 +252,7 @@ src/
   env.js             # Credential loader (.env files + hermes pool)
   spend.js           # Read-only per-model spend from the Hermes state DB
   pi-spend.js        # Read-only spend from Pi session logs
+  themes.js          # Palette registry — one entry per theme, no CSS per theme
   format.js          # Output formatters (JS file + console)
 data/
   billing.js         # Auto-generated (gitignored)
@@ -285,7 +289,8 @@ npm run test:all       # Both
 ```
 
 The suite covers the providers, the credential loader, the spend
-aggregators, the HTTP server, the CLI scripts, and the dashboard HTML.
+aggregators, the HTTP server, the theme registry, the CLI scripts, and
+the dashboard HTML.
 
 ## CI
 

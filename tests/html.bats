@@ -431,6 +431,35 @@ setup() {
     [ "${#lines[@]}" -ge 4 ]
 }
 
+# ── themes ─────────────────────────────────────
+
+@test "theme registry script loads in head" {
+    [[ "$HTML_CONTENT" == *'src="src/themes.js"'* ]]
+}
+
+@test "theme picker has a listbox menu" {
+    [[ "$HTML_CONTENT" == *'id="theme-menu"'* ]]
+    [[ "$HTML_CONTENT" == *'role="listbox"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-haspopup="listbox"'* ]]
+}
+
+@test "theme choice persists in localStorage" {
+    [[ "$HTML_CONTENT" == *'amsterdam.theme'* ]]
+}
+
+@test "auto mode follows the clock" {
+    [[ "$HTML_CONTENT" == *'effectiveTheme'* ]]
+    [[ "$HTML_CONTENT" == *'setInterval'* ]]
+}
+
+@test "palettes live in the registry, not in index.html" {
+    local registry="$REPO_DIR/src/themes.js"
+    local count=$(grep -c 'label:' "$registry")
+    [ "$count" -eq 5 ]
+    run grep -F '[data-theme="day"]' "$HTML"
+    [ "$status" -eq 1 ]
+}
+
 # ── footer ────────────────────────────────────────
 
 @test "footer says Amsterdam Console" {
