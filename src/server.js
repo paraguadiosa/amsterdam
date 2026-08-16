@@ -49,8 +49,15 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
       return;
     }
 
-    if (pathname === '/src/themes.js') {
-      await sendFile(res, resolve(ROOT, 'src', 'themes.js'), 'application/javascript');
+    if (pathname.startsWith('/src/')) {
+      const rel = pathname.slice('/src/'.length);
+      const safe = /^[\w./-]+\.js$/.test(rel) && !rel.includes('..');
+      if (!safe) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
+      await sendFile(res, resolve(ROOT, 'src', rel), 'application/javascript');
       return;
     }
 

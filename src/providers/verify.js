@@ -1,6 +1,7 @@
 /**
  * Factory for providers that only verify the API key.
- * These providers lack a billing endpoint, so we call /v1/models instead.
+ * These providers lack a billing endpoint, so we call the models
+ * endpoint instead. Provider definitions come from catalog.js.
  */
 export function createVerifyProvider(config) {
   const {
@@ -9,8 +10,13 @@ export function createVerifyProvider(config) {
     envKey,
     baseUrlEnv,
     defaultBaseUrl,
-    buildRequest = bearerModels,
+    auth = 'bearer',
+    modelsPath = '/v1/models',
+    buildRequest,
   } = config;
+
+  const request = buildRequest
+    || (auth === 'query' ? queryModels(modelsPath) : bearerModels(modelsPath));
 
   return {
     id,
@@ -19,7 +25,7 @@ export function createVerifyProvider(config) {
     baseUrlEnv,
     defaultBaseUrl,
     async fetchBalance({ apiKey, baseUrl }, fetchFn = globalThis.fetch) {
-      const { url, options } = buildRequest(apiKey, baseUrl);
+      const { url, options } = request(apiKey, baseUrl);
       const res = await fetchFn(url, options);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json().catch(() => ({}));
@@ -32,56 +38,20 @@ export function createVerifyProvider(config) {
   };
 }
 
-function bearerModels(apiKey, baseUrl) {
-  return {
-    url: `${baseUrl}/v1/models`,
+function bearerModels(modelsPath) {
+  return (apiKey, baseUrl) => ({
+    url: `${trim(baseUrl)}${modelsPath}`,
     options: { headers: { Authorization: `Bearer ${apiKey}` } },
-  };
+  });
 }
 
-export const openai = createVerifyProvider({
-  id: 'openai',
-  name: 'OpenAI',
-  envKey: 'OPENAI_API_KEY',
-  defaultBaseUrl: 'https://api.openai.com',
-});
-
-export const groq = createVerifyProvider({
-  id: 'groq',
-  name: 'Groq',
-  envKey: 'GROQ_API_KEY',
-  baseUrlEnv: 'GROQ_BASE_URL',
-  defaultBaseUrl: 'https://api.groq.com/openai',
-});
-
-export const together = createVerifyProvider({
-  id: 'together',
-  name: 'Together',
-  envKey: 'TOGETHER_API_KEY',
-  defaultBaseUrl: 'https://api.together.xyz',
-});
-
-export const mistral = createVerifyProvider({
-  id: 'mistral',
-  name: 'Mistral',
-  envKey: 'MISTRAL_API_KEY',
-  defaultBaseUrl: 'https://api.mistral.ai',
-});
-
-export const google = createVerifyProvider({
-  id: 'google',
-  name: 'Google AI Studio',
-  envKey: 'GOOGLE_API_KEY',
-  defaultBaseUrl: 'https://generativelanguage.googleapis.com',
-  buildRequest: (key, base) => ({
-    url: `${base}/v1beta/models?key=${key}`,
+function queryModels(modelsPath) {
+  return (apiKey, baseUrl) => ({
+    url: `${trim(baseUrl)}${modelsPath}?key=${apiKey}`,
     options: {},
-  }),
-});
+  });
+}
 
-export const fireworks = createVerifyProvider({
-  id: 'fireworks',
-  name: 'Fireworks',
-  envKey: 'FIREWORKS_API_KEY',
-  defaultBaseUrl: 'https://api.fireworks.ai',
-});
+function trim(url) {
+  return String(url).replace(/\/+$/, '');
+}
