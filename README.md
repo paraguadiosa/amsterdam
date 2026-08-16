@@ -226,8 +226,10 @@ In Docker there is no Hermes state DB and no Pi sessions, so the spend
 sections stay empty — run `amster serve` on the host to see spend data.
 
 The table is sortable by clicking any column header (default: est. cost
-desc). Click **Columns** to choose which columns are visible — the choice
-is saved per browser. Local GGUF files in `~/models` appear in the table
+desc). A **model dropdown** next to the Columns button filters the
+table to one model — the choice is saved per browser and re-applied on
+the next load. Click **Columns** to choose which columns are visible —
+the choice is saved per browser too. Local GGUF files in `~/models` appear in the table
 even without recorded usage, marked with status `no usage`. Groups with
 usage but no recorded cost get a token-based estimate when the model has
 an authoritative rate (deepseek-v4-flash, deepseek-v4-pro); local GGUF

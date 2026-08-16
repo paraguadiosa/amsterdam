@@ -557,7 +557,35 @@
   }
 
   /* ── column picker ─────────────────────────────────────────── */
-  .table-tools { margin: -4px 0 14px; }
+  .table-tools { margin: -4px 0 14px; display: flex; gap: 8px; align-items: flex-start; }
+
+  .model-filter {
+    padding: 8px 12px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-2);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    max-width: 260px;
+  }
+
+  .model-filter:hover:not(:disabled) {
+    border-color: var(--border-hi);
+    color: var(--text);
+  }
+
+  .model-filter:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .model-filter:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 
   .columns-wrap { position: relative; display: inline-block; }
 
@@ -1514,6 +1542,10 @@
   <!-- spend by model — populated from data/billing.js and /api/billing -->
   <h2><span class="dot" aria-hidden="true"></span>Spend by model</h2>
   <div class="table-tools">
+    <label class="sr-only" for="model-filter">Filter spend by model</label>
+    <select id="model-filter" class="model-filter" aria-label="Filter spend by model">
+      <option value="">All models</option>
+    </select>
     <div class="columns-wrap">
       <button id="columns-btn" class="btn ghost" type="button" aria-expanded="false" aria-controls="columns-panel">Columns</button>
       <div id="columns-panel" class="columns-panel" hidden>
@@ -1937,6 +1969,40 @@
     });
   }
 
+  /* ── model filter ───────────────────────────────────────────── */
+  var MODEL_FILTER_STORAGE = 'amsterdam.modelFilter';
+  var modelFilter = '';
+  try { modelFilter = localStorage.getItem(MODEL_FILTER_STORAGE) || ''; } catch (e) { modelFilter = ''; }
+
+  // Rebuild the dropdown from the current snapshot so the option list
+  // stays in sync with live data. The choice survives refreshes and
+  // resets to "All models" when the model disappears from the data.
+  function syncModelFilter(models) {
+    var filterEl = document.getElementById('model-filter');
+    if (!filterEl) return;
+    var names = [];
+    models.forEach(function (m) {
+      var n = String(m.model || '');
+      if (n && names.indexOf(n) === -1) names.push(n);
+    });
+    names.sort(function (a, b) { return a.localeCompare(b); });
+    if (names.indexOf(modelFilter) === -1) modelFilter = '';
+    var options = '<option value="">All models</option>' + names.map(function (n) {
+      return '<option value="' + escapeHtml(n) + '"' + (n === modelFilter ? ' selected' : '') + '>' + escapeHtml(n) + '</option>';
+    }).join('');
+    filterEl.innerHTML = options;
+    filterEl.disabled = names.length < 2;
+  }
+
+  var modelFilterEl = document.getElementById('model-filter');
+  if (modelFilterEl) {
+    modelFilterEl.addEventListener('change', function () {
+      modelFilter = modelFilterEl.value;
+      try { localStorage.setItem(MODEL_FILTER_STORAGE, modelFilter); } catch (err) {}
+      renderSpend(window.BILLING);
+    });
+  }
+
   function renderSpend(billing) {
     var spend      = billing && billing.spend;
     var table      = document.getElementById('spend-table');
@@ -1948,6 +2014,7 @@
     if (!spend) {
       table.style.display = 'none';
       unavailable.classList.add('show');
+      syncModelFilter([]);
       return;
     }
     // Anthropic was purged from the console: its usage history is
@@ -1958,8 +2025,13 @@
       var name = String(m.model || '').toLowerCase();
       return name.indexOf('claude') !== 0 && (m.provider || '') !== 'anthropic';
     });
-    if (!models || models.length === 0) {
+    syncModelFilter(models);
+    if (modelFilter) {
+      models = models.filter(function (m) { return String(m.model || '') === modelFilter; });
+    }
+    if (models.length === 0) {
       table.style.display = 'none';
+      empty.textContent = modelFilter ? 'No models match the filter.' : 'No usage recorded yet.';
       empty.classList.add('show');
       return;
     }

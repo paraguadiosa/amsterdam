@@ -316,6 +316,55 @@ setup() {
     [[ "$HTML_CONTENT" == *'Show columns'* ]]
 }
 
+# ── model filter dropdown ────────────────────────
+
+@test "model filter select exists with a label" {
+    [[ "$HTML_CONTENT" == *'id="model-filter"'* ]]
+    [[ "$HTML_CONTENT" == *'<label class="sr-only" for="model-filter">'* ]]
+}
+
+@test "model filter defaults to all models" {
+    [[ "$HTML_CONTENT" == *'<option value="">All models</option>'* ]]
+}
+
+@test "model filter sits in the spend toolbar before the columns picker" {
+    local tools_line=$(grep -n 'class="table-tools"' "$HTML" | head -1 | cut -d: -f1)
+    local filter_line=$(grep -n 'id="model-filter"' "$HTML" | head -1 | cut -d: -f1)
+    local columns_line=$(grep -n 'id="columns-btn"' "$HTML" | head -1 | cut -d: -f1)
+    [ "$filter_line" -gt "$tools_line" ]
+    [ "$filter_line" -lt "$columns_line" ]
+}
+
+@test "model filter options are rebuilt from live data" {
+    [[ "$HTML_CONTENT" == *'syncModelFilter'* ]]
+    [[ "$HTML_CONTENT" == *'filterEl.innerHTML'* ]]
+}
+
+@test "model filter choice persists in localStorage" {
+    [[ "$HTML_CONTENT" == *'amsterdam.modelFilter'* ]]
+}
+
+@test "model filter resets when the model disappears" {
+    [[ "$HTML_CONTENT" == *'names.indexOf(modelFilter) === -1'* ]]
+}
+
+@test "model filter rows are filtered before rendering" {
+    [[ "$HTML_CONTENT" == *"String(m.model || '') === modelFilter"* ]]
+}
+
+@test "model filter shows a hint when nothing matches" {
+    [[ "$HTML_CONTENT" == *'No models match the filter.'* ]]
+}
+
+@test "model filter empties are disabled" {
+    [[ "$HTML_CONTENT" == *'filterEl.disabled'* ]]
+}
+
+@test "model filter re-renders on change" {
+    [[ "$HTML_CONTENT" == *'modelFilterEl.addEventListener'* ]]
+    [[ "$HTML_CONTENT" == *'renderSpend(window.BILLING)'* ]]
+}
+
 # ── structure ─────────────────────────────────────
 
 @test "has search input" {
