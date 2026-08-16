@@ -54,11 +54,11 @@ describe('openFloodgates', () => {
   });
 
   it('records error on network exception', async () => {
-    const env = { OPENROUTER_API_KEY: 'sk-or-test' };
+    const env = { KIMI_API_KEY: 'sk-kimi-test' };
     const throwFetch = async () => { throw new Error('ECONNREFUSED'); };
     const result = await openFloodgates(env, throwFetch);
-    assert.equal(result.providers.openrouter.detected, true);
-    assert.equal(result.providers.openrouter.error, 'ECONNREFUSED');
+    assert.equal(result.providers.moonshot.detected, true);
+    assert.equal(result.providers.moonshot.error, 'ECONNREFUSED');
   });
 
   it('includes timestamp', async () => {
@@ -87,13 +87,13 @@ describe('openFloodgates', () => {
   it('fetches multiple providers in parallel', async () => {
     const env = {
       DEEPSEEK_API_KEY: 'sk-ds',
-      OPENROUTER_API_KEY: 'sk-or',
-      ANTHROPIC_API_KEY: 'sk-ant',
+      KIMI_API_KEY: 'sk-kimi',
+      GROQ_API_KEY: 'sk-gq',
     };
     const result = await openFloodgates(env, mockFetch({ balance_infos: [], data: {} }));
     assert.equal(result.providers.deepseek.detected, true);
-    assert.equal(result.providers.openrouter.detected, true);
-    assert.equal(result.providers.anthropic.detected, true);
+    assert.equal(result.providers.moonshot.detected, true);
+    assert.equal(result.providers.groq.detected, true);
     assert.equal(result.providers.openai.detected, false);
   });
 });

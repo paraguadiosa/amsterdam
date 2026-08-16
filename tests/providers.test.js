@@ -1,9 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import deepseek from '../src/providers/deepseek.js';
-import openrouter from '../src/providers/openrouter.js';
 import huggingface from '../src/providers/huggingface.js';
-import { createVerifyProvider, anthropic, openai, moonshot, groq, together, mistral, google, fireworks } from '../src/providers/verify.js';
+import moonshot from '../src/providers/moonshot.js';
+import { createVerifyProvider, openai, groq, together, mistral, google, fireworks } from '../src/providers/verify.js';
 import providers from '../src/providers/index.js';
 
 function mockFetch(body, status = 200) {
@@ -47,38 +47,6 @@ describe('deepseek', () => {
   });
 });
 
-// ── openrouter ───────────────────────────────────
-
-describe('openrouter', () => {
-  it('parses auth/key response', async () => {
-    const body = { data: { usage: 3.14, limit: 50, is_free_tier: false } };
-    const result = await openrouter.fetchBalance({ apiKey: 'sk-or-test', baseUrl: 'https://openrouter.ai' }, mockFetch(body));
-    assert.equal(result.usage, 3.14);
-    assert.equal(result.limit, 50);
-    assert.equal(result.freeTier, false);
-  });
-
-  it('handles null limit', async () => {
-    const body = { data: { usage: 0.5, limit: null, is_free_tier: true } };
-    const result = await openrouter.fetchBalance({ apiKey: 'k', baseUrl: 'https://x' }, mockFetch(body));
-    assert.equal(result.limit, null);
-    assert.equal(result.freeTier, true);
-  });
-
-  it('handles missing data field', async () => {
-    const result = await openrouter.fetchBalance({ apiKey: 'k', baseUrl: 'https://x' }, mockFetch({}));
-    assert.equal(result.usage, null);
-    assert.equal(result.limit, null);
-  });
-
-  it('throws on non-200', async () => {
-    await assert.rejects(
-      () => openrouter.fetchBalance({ apiKey: 'bad', baseUrl: 'https://x' }, mockFetchFail()),
-      { message: 'HTTP 401' },
-    );
-  });
-});
-
 // ── huggingface ──────────────────────────────────
 
 describe('huggingface', () => {
@@ -102,6 +70,48 @@ describe('huggingface', () => {
   });
 });
 
+// ── moonshot ─────────────────────────────────────
+
+describe('moonshot', () => {
+  it('parses balance response', async () => {
+    const body = {
+      code: 0,
+      data: { available_balance: 22.13, voucher_balance: 2.13, cash_balance: 20 },
+      status: true,
+    };
+    const result = await moonshot.fetchBalance({ apiKey: 'sk-kimi-test', baseUrl: 'https://api.moonshot.ai' }, mockFetch(body));
+    assert.equal(result.balance, 22.13);
+    assert.equal(result.currency, 'USD');
+    assert.equal(result.cash, 20);
+    assert.equal(result.voucher, 2.13);
+  });
+
+  it('uses CNY for the .cn region', async () => {
+    const body = { data: { available_balance: '10.00' } };
+    const result = await moonshot.fetchBalance({ apiKey: 'k', baseUrl: 'https://api.moonshot.cn' }, mockFetch(body));
+    assert.equal(result.balance, 10);
+    assert.equal(result.currency, 'CNY');
+  });
+
+  it('defaults to 0 when data is missing', async () => {
+    const result = await moonshot.fetchBalance({ apiKey: 'k', baseUrl: 'https://x' }, mockFetch({}));
+    assert.equal(result.balance, 0);
+    assert.equal(result.cash, null);
+  });
+
+  it('throws on non-200', async () => {
+    await assert.rejects(
+      () => moonshot.fetchBalance({ apiKey: 'bad', baseUrl: 'https://x' }, mockFetchFail(401)),
+      { message: 'HTTP 401' },
+    );
+  });
+
+  it('has correct metadata', () => {
+    assert.equal(moonshot.id, 'moonshot');
+    assert.equal(moonshot.envKey, 'KIMI_API_KEY');
+  });
+});
+
 // ── verify factory ───────────────────────────────
 
 describe('createVerifyProvider', () => {
@@ -113,7 +123,41 @@ describe('createVerifyProvider', () => {
       defaultBaseUrl: 'https://example.com',
     });
     const result = await provider.fetchBalance({ apiKey: 'k', baseUrl: 'https://example.com' }, mockFetch({}));
-    assert.deepEqual(result, { verified: true });
+    assert.deepEqual(result, { verified: true, models: 0 });
+  });
+
+  it('counts models from body data', async () => {
+    const provider = createVerifyProvider({
+      id: 'test',
+      name: 'Test',
+      envKey: 'TEST_KEY',
+      defaultBaseUrl: 'https://example.com',
+    });
+    const result = await provider.fetchBalance({ apiKey: 'k', baseUrl: 'https://example.com' }, mockFetch({ data: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }));
+    assert.equal(result.models, 3);
+  });
+
+  it('counts models from body models array (google)', async () => {
+    const provider = createVerifyProvider({
+      id: 'test',
+      name: 'Test',
+      envKey: 'TEST_KEY',
+      defaultBaseUrl: 'https://example.com',
+    });
+    const result = await provider.fetchBalance({ apiKey: 'k', baseUrl: 'https://example.com' }, mockFetch({ models: [{ name: 'a' }] }));
+    assert.equal(result.models, 1);
+  });
+
+  it('survives a non-JSON body', async () => {
+    const provider = createVerifyProvider({
+      id: 'test',
+      name: 'Test',
+      envKey: 'TEST_KEY',
+      defaultBaseUrl: 'https://example.com',
+    });
+    const res = async () => ({ ok: true, json: async () => { throw new Error('bad json'); } });
+    const result = await provider.fetchBalance({ apiKey: 'k', baseUrl: 'https://example.com' }, res);
+    assert.deepEqual(result, { verified: true, models: 0 });
   });
 
   it('uses custom buildRequest', async () => {
@@ -156,7 +200,7 @@ describe('createVerifyProvider', () => {
 // ── verify-only providers metadata ───────────────
 
 describe('verify-only providers', () => {
-  const verifyProviders = [anthropic, openai, moonshot, groq, together, mistral, google, fireworks];
+  const verifyProviders = [openai, groq, together, mistral, google, fireworks];
 
   for (const p of verifyProviders) {
     it(`${p.id} has id and envKey`, () => {
@@ -165,26 +209,12 @@ describe('verify-only providers', () => {
       assert.ok(p.defaultBaseUrl);
     });
 
-    it(`${p.id} returns verified on 200`, async () => {
-      const result = await p.fetchBalance({ apiKey: 'k', baseUrl: p.defaultBaseUrl }, mockFetch({}));
-      assert.deepEqual(result, { verified: true });
+    it(`${p.id} returns verified with model count on 200`, async () => {
+      const result = await p.fetchBalance({ apiKey: 'k', baseUrl: p.defaultBaseUrl }, mockFetch({ data: [{ id: 'm' }] }));
+      assert.equal(result.verified, true);
+      assert.equal(result.models, 1);
     });
   }
-});
-
-// ── anthropic uses custom auth header ────────────
-
-describe('anthropic auth', () => {
-  it('sends x-api-key header', async () => {
-    let headers = {};
-    const spy = async (url, opts) => {
-      headers = opts.headers;
-      return { ok: true, json: async () => ({}) };
-    };
-    await anthropic.fetchBalance({ apiKey: 'sk-ant-test', baseUrl: 'https://api.anthropic.com' }, spy);
-    assert.equal(headers['x-api-key'], 'sk-ant-test');
-    assert.equal(headers['anthropic-version'], '2023-06-01');
-  });
 });
 
 // ── google uses query param auth ─────────────────
@@ -205,7 +235,7 @@ describe('google auth', () => {
 
 describe('provider registry', () => {
   it('exports all providers', () => {
-    assert.equal(providers.length, 11);
+    assert.equal(providers.length, 9);
   });
 
   it('has unique ids', () => {

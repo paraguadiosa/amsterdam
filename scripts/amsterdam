@@ -1,24 +1,29 @@
 #!/bin/sh
-# amsterdam - run the Amsterdam Console as a background Docker container.
+# amsterdam - run the Amsterdam Console with the host daemon (default),
+# or as an opt-in Docker container.
 
 SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SELF")" && pwd)
 AMSTER="$SCRIPT_DIR/amster"
 AMSTER_DOCKER="$SCRIPT_DIR/amster-docker"
+PORT="${PORT:-3131}"
 
 usage() {
     cat <<'EOF'
 usage: amsterdam [command]
 
 commands:
-  (none)  Run the dashboard as a background Docker container and print the URL
-  up      Same as no arguments
-  stop    Stop the background container
-  run     Run in the foreground (Ctrl+C to stop)
+  (none)  Start the host daemon in the background, or open the live dashboard
+  serve   Run the host daemon in the foreground (Ctrl+C to stop)
+  start   Start the host daemon in the background (same as no arguments)
+  status  Show whether the host daemon is running
+  open    Open the dashboard in a browser
+  docker  Run the dashboard as a background Docker container
+  up      Same as docker
+  stop    Stop the background Docker container
+  run     Run Docker in the foreground (Ctrl+C to stop)
   build   Build the Docker image
-  serve   Run the local (non-Docker) live server
   dump    Fetch billing data once
-  open    Open the launcher in a browser
   link    Show the file:// URL of the launcher
   path    Show the absolute path of the launcher
   help    Show this help
@@ -26,7 +31,26 @@ EOF
 }
 
 case "${1:-}" in
-    ''|up)
+    '')
+        out="$("$AMSTER" start)"
+        status=$?
+        printf '%s\n' "$out"
+        if [ "$status" -ne 0 ]; then
+            exit "$status"
+        fi
+        case "$out" in
+            *"already running"*)
+                "${AMSTERDAM_OPEN:-xdg-open}" "http://localhost:$PORT"
+                ;;
+        esac
+        ;;
+    serve|daemon)
+        exec "$AMSTER" serve
+        ;;
+    start|status|dump|fetch|open|link|path)
+        exec "$AMSTER" "$@"
+        ;;
+    docker|up)
         exec "$AMSTER_DOCKER" up
         ;;
     stop|build|run)
@@ -34,9 +58,6 @@ case "${1:-}" in
         ;;
     help|-h|--help)
         usage
-        ;;
-    serve|dump|fetch|open|link|path)
-        exec "$AMSTER" "$@"
         ;;
     *)
         usage >&2

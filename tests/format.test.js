@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatBillingJs, formatConsoleLine } from '../src/format.js';
+import { formatBillingJs, formatConsoleLine, formatSpendLine, formatPiSpendLine } from '../src/format.js';
 
 // ── formatBillingJs ──────────────────────────────
 
@@ -42,43 +42,69 @@ describe('formatConsoleLine', () => {
 
   it('shows balance with currency', () => {
     const line = formatConsoleLine('deepseek', { detected: true, balance: 42.5, currency: 'CNY' });
-    assert.ok(line.includes('✓'));
+    assert.ok(line.includes('*'));
     assert.ok(line.includes('CNY 42.50'));
     assert.ok(line.includes('remaining'));
   });
 
   it('shows usage with limit', () => {
-    const line = formatConsoleLine('openrouter', { detected: true, usage: 3.14, limit: 50 });
+    const line = formatConsoleLine('usagetest', { detected: true, usage: 3.14, limit: 50 });
     assert.ok(line.includes('$3.14 used'));
     assert.ok(line.includes('50.00 limit'));
   });
 
   it('shows usage without limit', () => {
-    const line = formatConsoleLine('openrouter', { detected: true, usage: 1.0, limit: null });
+    const line = formatConsoleLine('usagetest', { detected: true, usage: 1.0, limit: null });
     assert.ok(line.includes('$1.00 used'));
     assert.ok(line.includes('no limit'));
   });
 
   it('shows username', () => {
     const line = formatConsoleLine('huggingface', { detected: true, username: 'eve' });
-    assert.ok(line.includes('✓'));
+    assert.ok(line.includes('*'));
     assert.ok(line.includes('eve'));
   });
 
+  it('shows model count', () => {
+    const line = formatConsoleLine('openai', { detected: true, models: 10, verified: true });
+    assert.ok(line.includes('10 models'));
+  });
+
   it('shows key verified', () => {
-    const line = formatConsoleLine('anthropic', { detected: true, verified: true });
-    assert.ok(line.includes('✓'));
+    const line = formatConsoleLine('openai', { detected: true, verified: true });
+    assert.ok(line.includes('*'));
     assert.ok(line.includes('key verified'));
   });
 
   it('shows error', () => {
     const line = formatConsoleLine('groq', { detected: true, error: 'HTTP 401' });
-    assert.ok(line.includes('✗'));
+    assert.ok(line.includes('!'));
     assert.ok(line.includes('HTTP 401'));
   });
 
   it('shows unknown for unrecognized data', () => {
     const line = formatConsoleLine('weird', { detected: true });
     assert.ok(line.includes('unknown'));
+  });
+});
+
+// ── formatPiSpendLine ────────────────────────────
+
+describe('formatPiSpendLine', () => {
+  it('shows real pi cost with two decimals', () => {
+    const line = formatPiSpendLine({
+      model: 'deepseek-v4-flash',
+      sessions: 12,
+      costUsd: 0.4321,
+    });
+    assert.ok(line.includes('deepseek-v4-flash'));
+    assert.ok(line.includes('$0.43'));
+    assert.ok(line.includes('(12 sessions)'));
+  });
+
+  it('shows zero cost as $0.00', () => {
+    const line = formatPiSpendLine({ model: 'gpt-5', sessions: 1, costUsd: 0 });
+    assert.ok(line.includes('$0.00'));
+    assert.ok(!line.includes('n/a'));
   });
 });

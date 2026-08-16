@@ -5,238 +5,1289 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Amsterdam Console</title>
 <style>
+  /* ── design tokens ──────────────────────────────────────────── */
   :root {
-    --bg: #0d0b14;
-    --bg-soft: #14101f;
-    --card: #1a1526;
-    --card-hover: #211a30;
-    --border: #2c2340;
-    --text: #ece6f7;
-    --muted: #9a8fb5;
-    --accent: #c9a2ff;
-    --accent-2: #ff7eb3;
-    --green: #7dffb3;
-    --warning: #ffb86b;
-    --danger: #ff6b6b;
-    --warning-bg: #2a1f12;
-    --warning-border: #6b4a1f;
-    --radius: 14px;
+    /* surfaces — canal-night palette */
+    --bg:          #070b12;
+    --bg-soft:     #0e1522;
+    --card:        #101828;
+    --card-hover:  #16213a;
+
+    /* borders */
+    --border:      #1a2740;
+    --border-hi:   #2d4068;
+
+    /* text — all pass WCAG AA on --bg (#070b12) */
+    --text:        #dde6f5;
+    --muted:       #8b9cc0;
+    --faint:       #5f7398;
+
+    /* accent: canal blue */
+    --accent:      #5b8def;
+    --accent-2:    #a9c4ff;
+
+    /* Amsterdam flag red */
+    --ams-red:     #c8102e;
+
+    /* semantic */
+    --green:       #34d399;
+    --amber:       #fbbf24;
+    --red:         #f87171;
+
+    /* warning strip */
+    --warn-bg:     #181205;
+    --warn-border: #3d2c10;
+    --warn-text:   #d4a04a;
+
+    /* button gradient */
+    --btn-from:    #3f6fd8;
+    --btn-to:      #2b4fa8;
+
+    /* shape */
+    --radius-sm:   6px;
+    --radius-md:   10px;
+    --radius-lg:   16px;
+    --radius-pill: 999px;
+
+    /* elevation */
+    --shadow-sm:    0 1px 3px rgba(0,0,0,.55);
+    --shadow-hover: 0 6px 20px rgba(0,0,0,.65);
+
+    /* motion */
+    --t-fast: 120ms ease;
+    --t-base: 180ms ease;
+
+    /* type */
+    --font:      "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── reset ──────────────────────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── base ────────────────────────────────────────────────────── */
   body {
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-    background: radial-gradient(1200px 600px at 20% -10%, #241a3a 0%, var(--bg) 55%);
+    font-family: var(--font);
+    background-color: var(--bg);
+    background-image: radial-gradient(ellipse 1000px 480px at 25% -8%, #101c3d 0%, transparent 60%);
     color: var(--text);
     min-height: 100vh;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
 
-  header { margin-bottom: 24px; }
-  h1 {
-    font-size: 1.9rem;
-    letter-spacing: 0.5px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  /* ── focus ring ──────────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
   }
-  .sub { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
-  .meta { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
 
-  /* ── billing summary (top of page) ────────────── */
-  #billing-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  /* ── screen-reader only ──────────────────────────────────────── */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ── Amsterdam flag stripe ───────────────────────────────────── */
+  .ams-stripe {
+    height: 4px;
+    background: linear-gradient(to bottom,
+      var(--ams-red) 0 33.4%,
+      #0b0b12 33.4% 66.7%,
+      var(--ams-red) 66.7% 100%);
+  }
+
+  /* ── layout ──────────────────────────────────────────────────── */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  /* ── hero banner ─────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    height: clamp(320px, 44vw, 470px);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-hover);
+    margin-bottom: 22px;
+    isolation: isolate;
+  }
+
+  .hero-scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hero::after {
+    /* soft vignette so the copy stays readable over the scene */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+      rgba(7,11,18,.55) 0%,
+      rgba(7,11,18,.15) 34%,
+      rgba(7,11,18,0) 55%,
+      rgba(7,11,18,.42) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .hero-copy {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: clamp(22px, 4vw, 42px);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    pointer-events: none;
+  }
+
+  .kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2.4px;
+    color: var(--accent-2);
+    margin-bottom: 12px;
+    text-shadow: 0 1px 4px rgba(0,0,0,.7);
+  }
+
+  .hero h1 {
+    font-size: clamp(1.75rem, 4.6vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+    color: #eef3ff;
+    text-shadow: 0 2px 14px rgba(0,0,0,.6);
+  }
+
+  .hero .sub {
+    margin-top: 6px;
+    color: #c3d2ef;
+    font-size: 0.9375rem;
+    max-width: 38em;
+    text-shadow: 0 1px 6px rgba(0,0,0,.7);
+  }
+
+  .hero .meta {
+    margin-top: 2px;
+    color: var(--faint);
+    font-size: 0.8125rem;
+    text-shadow: 0 1px 4px rgba(0,0,0,.7);
+  }
+
+  .verse {
+    margin-top: auto;
+    max-width: 36em;
+    font-size: 0.8125rem;
+    font-style: italic;
+    line-height: 1.55;
+    color: #b9c8e4;
+    border-left: 2px solid var(--accent);
+    padding-left: 12px;
+    text-shadow: 0 1px 5px rgba(0,0,0,.75);
+  }
+
+  .flag-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    background: #0b0b12;
+    line-height: 0;
+  }
+
+  /* ── credits panel ───────────────────────────────────────────── */
+  .credits {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 22px;
+    background:
+      linear-gradient(120deg, rgba(91,141,239,.16), rgba(43,79,168,.1) 55%, rgba(16,24,40,0)),
+      var(--card);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .credits::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--accent), #2b4fa8);
+  }
+
+  .credits-body {
+    flex: 1;
+    padding: 20px 24px 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .credits-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(52,211,153,.8);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .35; }
+  }
+
+  .credits-value {
+    font-family: var(--font-mono);
+    font-size: clamp(2.1rem, 6vw, 3.2rem);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.15;
+    color: var(--green);
+    text-shadow: 0 0 22px rgba(52,211,153,.25);
+  }
+
+  .credits-split {
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  .credits-note {
+    align-self: center;
+    padding: 0 24px 0 8px;
+    font-size: 0.75rem;
+    color: var(--faint);
+    text-align: right;
+    max-width: 240px;
+    border-left: 1px solid var(--border);
+  }
+
+  .credits-note code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    color: var(--accent-2);
+    background: var(--bg-soft);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── warning banner ──────────────────────────────────────────── */
+  .warning {
+    display: flex;
+    align-items: center;
     gap: 10px;
-    margin-bottom: 24px;
+    padding: 11px 16px;
+    margin-bottom: 28px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: var(--radius-md);
+    color: var(--warn-text);
+    font-size: 0.875rem;
   }
+
+  .warning::before {
+    content: "!";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ── billing toolbar ─────────────────────────────────────────── */
   #billing-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
+
   #billing-status {
+    font-size: 0.8125rem;
     color: var(--muted);
-    font-size: 0.8rem;
   }
-  #billing-status.live { color: var(--green); }
-  #billing-status.error { color: var(--danger); }
-  #refresh-btn {
-    font-size: 0.8rem;
-    padding: 6px 12px;
-    cursor: pointer;
+
+  #billing-status.live  { color: var(--green); }
+  #billing-status.error { color: var(--red); }
+
+  /* ── billing summary ─────────────────────────────────────────── */
+  #billing-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    gap: 10px;
+    margin-bottom: 32px;
   }
+
+  /* ── chips ───────────────────────────────────────────────────── */
   .chip {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 10px 14px;
-    border-radius: 10px;
+    gap: 4px;
+    padding: 12px 14px;
     background: var(--card);
     border: 1px solid var(--border);
-    font-size: 0.82rem;
+    border-left-width: 3px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    font-size: 0.8125rem;
+    transition: transform var(--t-fast), border-color var(--t-fast);
   }
-  .chip .chip-name { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
-  .chip .chip-value { font-weight: 600; font-size: 0.95rem; }
-  .chip.balance .chip-value { color: var(--green); }
-  .chip.usage .chip-value { color: var(--warning); }
-  .chip.verified .chip-value { color: var(--accent); }
-  .chip.error .chip-value { color: var(--danger); }
-  .chip.off .chip-value { color: var(--muted); font-style: italic; font-weight: 400; }
+
+  .chip:hover { transform: translateY(-1px); border-color: var(--border-hi); }
+
+  .chip .chip-edit {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 1px 7px;
+    font-family: var(--font);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--faint);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .chip .chip-edit:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
+  }
+
+  .chip-editor {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .chip-editor[hidden] { display: none; }
+
+  .chip-editor input {
+    width: 96px;
+    padding: 4px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    outline: none;
+  }
+
+  .chip-editor input:focus { border-color: var(--accent); }
+
+  .chip-editor button {
+    padding: 4px 10px;
+    font-family: var(--font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--btn-from), var(--btn-to));
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .chip .chip-name {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  .chip .chip-value {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .chip.balance  { border-left-color: var(--green); }
+  .chip.usage    { border-left-color: var(--amber); }
+  .chip.verified { border-left-color: var(--accent); }
+  .chip.error    { border-left-color: var(--red); }
+  .chip.off      { border-left-color: var(--border-hi); }
+
+  .chip.balance  .chip-value { color: var(--green); }
+  .chip.usage    .chip-value { color: var(--amber); }
+  .chip.verified .chip-value { color: var(--accent-2); }
+  .chip.error    .chip-value { color: var(--red); }
+  .chip.off      .chip-value { color: var(--faint); font-style: italic; font-weight: 400; }
+
   #billing-prompt {
     grid-column: 1 / -1;
-    text-align: center;
+    padding: 20px 0;
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     font-style: italic;
-    padding: 14px 0;
+    text-align: center;
   }
+
   #billing-prompt code {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 0.875em;
+    color: var(--accent-2);
     background: var(--bg-soft);
     padding: 2px 7px;
-    border-radius: 5px;
-    font-size: 0.85em;
+    border-radius: var(--radius-sm);
   }
+
   #billing-time {
     grid-column: 1 / -1;
     text-align: right;
-    color: var(--muted);
-    font-size: 0.7rem;
+    color: var(--faint);
+    font-size: 0.6875rem;
+    letter-spacing: 0.2px;
   }
 
-  /* ── search ───────────────────────────────────── */
-  #search {
+  /* ── spend by model ─────────────────────────────────────────── */
+  #spend-table,
+  #pi-spend-table {
     width: 100%;
-    padding: 13px 16px;
-    font-size: 1rem;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-bottom: 28px;
+  }
+
+  #spend-table th,
+  #pi-spend-table th {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-hi);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  #pi-spend-table th { cursor: default; }
+
+  #spend-table th.active { color: var(--text); }
+
+  #spend-table th .sort-indicator {
+    display: inline-block;
+    margin-left: 4px;
+    color: var(--accent-2);
+    font-size: 0.6875rem;
+    line-height: 1;
+  }
+
+  #spend-table td,
+  #pi-spend-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+    word-break: break-word;
+  }
+
+  #spend-table tbody tr:hover,
+  #pi-spend-table tbody tr:hover { background: var(--bg-soft); }
+
+  #spend-table .num,
+  #pi-spend-table .num {
+    text-align: right;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+
+  #spend-table .model,
+  #pi-spend-table .model { font-family: var(--font-mono); }
+  #spend-table .cost,
+  #pi-spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
+  #spend-table .cost.na { color: var(--faint); }
+
+  #pi-summary {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
+
+  /* ── column picker ─────────────────────────────────────────── */
+  .table-tools { margin: -4px 0 14px; }
+
+  .columns-wrap { position: relative; display: inline-block; }
+
+  .columns-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 10;
+    min-width: 220px;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .columns-panel[hidden] { display: none; }
+
+  .columns-panel fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .columns-panel legend {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .columns-panel label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .columns-panel label:hover { background: var(--bg-soft); }
+
+  .columns-panel input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
+  }
+
+  /* ── section headings ────────────────────────────────────────── */
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 32px 0 14px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: var(--muted);
+  }
+
+  h2 .dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  h2 .count {
+    font-size: 0.75rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--faint);
+  }
+
+  h2 .chevron {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--faint);
+    transition: transform var(--t-fast);
+  }
+
+  h2.toggle {
+    cursor: pointer;
+    user-select: none;
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+    margin-left: -4px;
+  }
+
+  h2.toggle:hover { color: var(--text); }
+  h2.toggle:hover .dot { background: var(--accent-2); }
+
+  h2.toggle.expanded .dot { background: var(--accent-2); }
+  h2.toggle.expanded .chevron { transform: rotate(90deg); }
+
+  /* ── search ──────────────────────────────────────────────────── */
+  #search {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    font-family: var(--font);
+    font-size: 0.9375rem;
     color: var(--text);
     background: var(--bg-soft);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     outline: none;
-    margin-bottom: 28px;
-    transition: border-color 0.2s;
+    margin-bottom: 36px;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
   }
-  #search:focus { border-color: var(--accent); }
-  #search::placeholder { color: var(--muted); }
 
-  /* ── sections ─────────────────────────────────── */
-  h2 {
-    font-size: 1.05rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    margin: 28px 0 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  #search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(91,141,239,.15);
   }
-  h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  h2.toggle { cursor: pointer; user-select: none; }
-  h2.toggle:hover { color: var(--text); }
-  h2.toggle .dot { background: var(--muted); }
-  h2.toggle.expanded .dot { background: var(--accent); }
-  h2 .count { font-size: 0.8rem; text-transform: none; letter-spacing: 0; }
-  h2 .chevron { margin-left: auto; font-size: 0.9rem; transition: transform 0.15s; }
-  h2.toggle.expanded .chevron { transform: rotate(90deg); }
-  .cards.collapsed { display: none; }
 
-  /* ── cards ─────────────────────────────────────── */
+  #search::placeholder { color: var(--faint); }
+
+  /* ── cards grid ──────────────────────────────────────────────── */
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
   }
+
+  #extra-cards.collapsed { display: none; }
+  .card.hidden     { display: none; }
+
+  /* ── provider card ───────────────────────────────────────────── */
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition:
+      transform var(--t-fast),
+      border-color var(--t-fast),
+      background var(--t-fast),
+      box-shadow var(--t-fast);
   }
-  .card:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--card-hover); }
-  .card.hidden { display: none; }
-  .card h3 { font-size: 1.05rem; font-weight: 600; }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-hi);
+    background: var(--card-hover);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    color: var(--text);
+  }
+
   .card .tag {
     align-self: flex-start;
-    font-size: 0.7rem;
-    letter-spacing: 0.8px;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(201, 162, 255, 0.12);
-    color: var(--accent);
-    border: 1px solid rgba(201, 162, 255, 0.3);
+    color: var(--accent-2);
+    background: rgba(91,141,239,.1);
+    border: 1px solid rgba(91,141,239,.25);
   }
-  .card .tag.local { background: rgba(255, 126, 179, 0.1); color: var(--accent-2); border-color: rgba(255, 126, 179, 0.3); }
-  .card .note { font-size: 0.85rem; color: var(--muted); flex: 1; }
-  .card .envs { font-size: 0.8rem; color: var(--muted); font-family: "Cascadia Code", Consolas, monospace; word-break: break-word; }
 
-  /* ── buttons ──────────────────────────────────── */
+  .card .tag.local {
+    color: var(--green);
+    background: rgba(52,211,153,.08);
+    border-color: rgba(52,211,153,.25);
+  }
+
+  .card .note {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .card .envs {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--muted);
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  /* ── list rows: detected + extra ─────────────────────────────── */
+  .cards[data-group="detected"],
+  .cards[data-group="extra"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+
+  .cards[data-group="detected"] .card,
+  .cards[data-group="extra"] .card {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 4px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .cards[data-group="detected"] .card:hover,
+  .cards[data-group="extra"] .card:hover {
+    transform: none;
+    background: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+
+  .cards[data-group="detected"] .card h3,
+  .cards[data-group="extra"] .card h3 {
+    font-size: 0.9375rem;
+    min-width: 130px;
+  }
+
+  .cards[data-group="detected"] .card .note,
+  .cards[data-group="extra"] .card .note { display: none; }
+
+  .cards[data-group="detected"] .card .tag,
+  .cards[data-group="extra"] .card .tag {
+    font-size: 0.625rem;
+    padding: 2px 7px;
+    background: rgba(91,141,239,.07);
+    border-color: rgba(91,141,239,.2);
+  }
+
+  .cards[data-group="detected"] .card .tag.local,
+  .cards[data-group="extra"] .card .tag.local {
+    background: rgba(52,211,153,.07);
+    border-color: rgba(52,211,153,.2);
+  }
+
+  .cards[data-group="detected"] .card .envs,
+  .cards[data-group="extra"] .card .envs {
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
+
+  .cards[data-group="detected"] .card .btn,
+  .cards[data-group="extra"] .card .btn {
+    margin-left: auto;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: var(--accent-2);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .cards[data-group="detected"] .card .btn:hover,
+  .cards[data-group="extra"] .card .btn:hover {
+    filter: none;
+    box-shadow: none;
+    text-decoration: underline;
+  }
+
+  /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
     display: inline-block;
+    padding: 9px 16px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 600;
     text-align: center;
     text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 10px 14px;
-    border-radius: 9px;
-    color: var(--bg);
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    transition: filter 0.15s;
+    color: #fff;
+    background: linear-gradient(135deg, var(--btn-from) 0%, var(--btn-to) 100%);
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: 0 2px 8px rgba(43,79,168,.35);
+    cursor: pointer;
+    transition: filter var(--t-fast), box-shadow var(--t-fast);
   }
-  .btn:hover { filter: brightness(1.15); }
+
+  .btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 14px rgba(43,79,168,.5);
+  }
+
   .btn.ghost {
-    background: transparent;
-    color: var(--accent);
+    background: var(--bg-soft);
+    color: var(--accent-2);
     border: 1px solid var(--border);
+    box-shadow: none;
   }
-  .btn.ghost:hover { border-color: var(--accent); filter: brightness(1.3); }
 
-  /* ── warning / footer ─────────────────────────── */
-  .warning {
-    margin-top: 28px;
-    background: var(--warning-bg);
-    border: 1px solid var(--warning-border);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    color: var(--warning);
-    font-size: 0.95rem;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
+  .btn.ghost:hover {
+    filter: none;
+    border-color: var(--border-hi);
+    color: var(--text);
+    box-shadow: none;
   }
-  .warning .ico { font-size: 1.3rem; line-height: 1.2; }
-  .empty { color: var(--muted); text-align: center; padding: 40px 0; display: none; }
+
+  /* ── empty states ────────────────────────────────────────────── */
+  .empty {
+    display: none;
+    padding: 48px 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.9375rem;
+  }
+
   .empty.show { display: block; }
-  .hint { display: none; color: var(--muted); font-size: 0.85rem; padding: 12px 0; }
-  .hint.show { display: block; }
-  footer { margin-top: 32px; color: var(--muted); font-size: 0.75rem; text-align: center; }
 
-  @media (max-width: 480px) {
+  .hint {
+    display: none;
+    padding: 10px 0 4px;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .hint.show { display: block; }
+
+  .hint code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    color: var(--accent-2);
+    background: var(--bg-soft);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── footer ──────────────────────────────────────────────────── */
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--faint);
+    font-size: 0.75rem;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+
+  footer .sonnet {
+    margin: 18px auto 0;
+    max-width: 34em;
+    text-align: left;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  footer .sonnet summary {
+    cursor: pointer;
+    display: inline-block;
+    color: var(--accent-2);
+    letter-spacing: 0.5px;
+    font-style: italic;
+  }
+
+  footer .sonnet summary:hover { color: var(--text); }
+
+  footer .sonnet p {
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  /* ── responsive ──────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .wrap { padding: 20px 16px 64px; }
+    .hero { height: 300px; }
+    .verse { display: none; }
+    .flag-badge { top: 10px; right: 10px; transform: scale(.85); }
     .cards { grid-template-columns: 1fr; }
     #billing-summary { grid-template-columns: repeat(2, 1fr); }
-    h1 { font-size: 1.5rem; }
+    .credits-note { display: none; }
   }
 </style>
 </head>
 <body>
+<div class="ams-stripe" aria-hidden="true"></div>
 <div class="wrap">
-  <header>
-    <h1>Amsterdam Console</h1>
-    <p class="sub">The LLM river held by a little HTML dam. All your billing in one place.</p>
-    <p class="meta">Machine: Eve</p>
+
+  <!-- ── hero banner: Amsterdam by night ─────────────────────── -->
+  <header class="hero">
+    <svg class="hero-scene" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1128"/>
+      <stop offset="0.72" stop-color="#101b3a"/>
+      <stop offset="1" stop-color="#152448"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1830"/>
+      <stop offset="1" stop-color="#060b18"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#e8f0ff" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#c9d8f5" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#c9d8f5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="winLit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd98a" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffb45e" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="refl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd98a" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#ffd98a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="440" fill="url(#sky)"/>
+
+  <g fill="#cdd8f0">
+    <circle cx="70" cy="58" r="1.2" opacity="0.7"/>
+    <circle cx="150" cy="96" r="1" opacity="0.5"/>
+    <circle cx="240" cy="40" r="1.3" opacity="0.8"/>
+    <circle cx="330" cy="110" r="1" opacity="0.5"/>
+    <circle cx="430" cy="62" r="1.2" opacity="0.65"/>
+    <circle cx="520" cy="34" r="1" opacity="0.45"/>
+    <circle cx="610" cy="90" r="1.3" opacity="0.7"/>
+    <circle cx="700" cy="48" r="1" opacity="0.55"/>
+    <circle cx="790" cy="120" r="1.1" opacity="0.5"/>
+    <circle cx="880" cy="66" r="1.2" opacity="0.7"/>
+    <circle cx="940" cy="30" r="1" opacity="0.45"/>
+    <circle cx="1120" cy="120" r="1.1" opacity="0.6"/>
+    <circle cx="1130" cy="52" r="1.2" opacity="0.65"/>
+    <circle cx="60" cy="140" r="1" opacity="0.5"/>
+    <circle cx="380" cy="140" r="1.1" opacity="0.5"/>
+    <circle cx="660" cy="140" r="1" opacity="0.45"/>
+  </g>
+
+  <circle cx="1020" cy="86" r="46" fill="url(#moonGlow)"/>
+  <circle cx="1020" cy="86" r="20" fill="#e9f1ff"/>
+  <circle cx="1012" cy="80" r="4" fill="#d7e2f8" opacity="0.8"/>
+  <circle cx="1026" cy="92" r="3" fill="#d7e2f8" opacity="0.6"/>
+
+  <g>
+<g transform="translate(2 150)">
+  <rect width="38" height="158" fill="#0e1830"/>
+  <rect width="2" height="158" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L38 0 L38 -47 L0 -47 Z" fill="#0e1830"/><line x1="19" y1="-50" x2="19" y2="-62" stroke="#223457" stroke-width="2.5"/><line x1="14" y1="-62" x2="24" y2="-62" stroke="#223457" stroke-width="2.5"/>
+  <rect x="8" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="30" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="8" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="30" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="14" y="126" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(45 138)">
+  <rect width="43" height="170" fill="#0e1830"/>
+  <rect width="2" height="170" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L43 0 L43 -17 L32.68 -17 L32.68 -34 L22.36 -34 L22.36 -51 L20.64 -51 L20.64 -34 L10.32 -34 L10.32 -17 L0 -17 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="16.5" y="138" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(94 117)">
+  <rect width="37" height="191" fill="#0e1830"/>
+  <rect width="2" height="191" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L37 0 L37 -19 L28.12 -19 L28.12 -38 L19.240000000000002 -38 L19.240000000000002 -57 L17.759999999999998 -57 L17.759999999999998 -38 L8.879999999999999 -38 L8.879999999999999 -19 L0 -19 Z" fill="#0e1830"/>
+  <rect x="7" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="29" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="7" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="29" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="7" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="29" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="13.5" y="159" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(134 144)">
+  <rect width="44" height="164" fill="#0e1830"/>
+  <rect width="2" height="164" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L44 0 L44 -49 L0 -49 Z" fill="#0e1830"/><line x1="22" y1="-52" x2="22" y2="-64" stroke="#223457" stroke-width="2.5"/><line x1="17" y1="-64" x2="27" y2="-64" stroke="#223457" stroke-width="2.5"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="17" y="132" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(183 144)">
+  <rect width="41" height="164" fill="#0e1830"/>
+  <rect width="2" height="164" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L41 0 C41 -49 32.800000000000004 -66 20.5 -66 C8.200000000000001 -66 0 -49 0 0 Z" fill="#0e1830"/>
+  <rect x="8" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="32" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="8" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="32" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="15.5" y="132" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(226 145)">
+  <rect width="43" height="163" fill="#0e1830"/>
+  <rect width="2" height="163" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L43 0 L43 -16 L32.68 -16 L32.68 -32 L22.36 -32 L22.36 -49 L20.64 -49 L20.64 -32 L10.32 -32 L10.32 -16 L0 -16 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="16.5" y="131" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(273 178)">
+  <rect width="45" height="130" fill="#0e1830"/>
+  <rect width="2" height="130" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L45 0 L45 -39 L0 -39 Z" fill="#0e1830"/><line x1="22.5" y1="-42" x2="22.5" y2="-54" stroke="#223457" stroke-width="2.5"/><line x1="17.5" y1="-54" x2="27.5" y2="-54" stroke="#223457" stroke-width="2.5"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="35" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="35" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="17.5" y="98" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(324 131)">
+  <rect width="43" height="177" fill="#0e1830"/>
+  <rect width="2" height="177" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L43 0 C43 -53 34.4 -72 21.5 -72 C8.6 -72 0 -53 0 0 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="16.5" y="145" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(369 143)">
+  <rect width="45" height="165" fill="#0e1830"/>
+  <rect width="2" height="165" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L45 0 L45 -17 L34.2 -17 L34.2 -33 L23.400000000000002 -33 L23.400000000000002 -50 L21.599999999999998 -50 L21.599999999999998 -33 L10.799999999999999 -33 L10.799999999999999 -17 L0 -17 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="35" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="35" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="17.5" y="133" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(419 131)">
+  <rect width="48" height="177" fill="#0e1830"/>
+  <rect width="2" height="177" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L48 0 C48 -53 38.400000000000006 -72 24 -72 C9.600000000000001 -72 0 -53 0 0 Z" fill="#0e1830"/>
+  <rect x="10" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="37" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="10" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="10" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="37" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="19" y="145" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(471 150)">
+  <rect width="32" height="158" fill="#0e1830"/>
+  <rect width="2" height="158" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L32 0 L32 -16 L24.32 -16 L24.32 -31 L16.64 -31 L16.64 -47 L15.36 -47 L15.36 -31 L7.68 -31 L7.68 -16 L0 -16 Z" fill="#0e1830"/>
+  <rect x="6" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="25" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="6" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="25" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="11" y="126" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(506 127)">
+  <rect width="35" height="181" fill="#0e1830"/>
+  <rect width="2" height="181" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L35 0 C35 -54 28 -73 17.5 -73 C7 -73 0 -54 0 0 Z" fill="#0e1830"/>
+  <rect x="7" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="27" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="7" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="27" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="7" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="27" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="12.5" y="149" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(546 121)">
+  <rect width="32" height="187" fill="#0e1830"/>
+  <rect width="2" height="187" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L32 0 C32 -56 25.6 -76 16 -76 C6.4 -76 0 -56 0 0 Z" fill="#0e1830"/>
+  <rect x="6" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="25" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="6" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="25" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="6" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="25" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="11" y="155" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(583 117)">
+  <rect width="44" height="191" fill="#0e1830"/>
+  <rect width="2" height="191" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L44 0 C44 -57 35.2 -77 22 -77 C8.8 -77 0 -57 0 0 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="17" y="159" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(630 169)">
+  <rect width="37" height="139" fill="#0e1830"/>
+  <rect width="2" height="139" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L37 0 L37 -14 L28.12 -14 L28.12 -28 L19.240000000000002 -28 L19.240000000000002 -42 L17.759999999999998 -42 L17.759999999999998 -28 L8.879999999999999 -28 L8.879999999999999 -14 L0 -14 Z" fill="#0e1830"/>
+  <rect x="7" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="29" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="7" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="29" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="13.5" y="107" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(670 121)">
+  <rect width="44" height="187" fill="#0e1830"/>
+  <rect width="2" height="187" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L44 0 L44 -18 L33.44 -18 L33.44 -37 L22.880000000000003 -37 L22.880000000000003 -56 L21.119999999999997 -56 L21.119999999999997 -37 L10.559999999999999 -37 L10.559999999999999 -18 L0 -18 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="34" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="34" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="17" y="155" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(720 159)">
+  <rect width="36" height="149" fill="#0e1830"/>
+  <rect width="2" height="149" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L36 0 L36 -45 L0 -45 Z" fill="#0e1830"/><line x1="18" y1="-48" x2="18" y2="-60" stroke="#223457" stroke-width="2.5"/><line x1="13" y1="-60" x2="23" y2="-60" stroke="#223457" stroke-width="2.5"/>
+  <rect x="7" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="28" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="7" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="28" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="13" y="117" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(759 131)">
+  <rect width="47" height="177" fill="#0e1830"/>
+  <rect width="2" height="177" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L47 0 L47 -53 L0 -53 Z" fill="#0e1830"/><line x1="23.5" y1="-56" x2="23.5" y2="-68" stroke="#223457" stroke-width="2.5"/><line x1="18.5" y1="-68" x2="28.5" y2="-68" stroke="#223457" stroke-width="2.5"/>
+  <rect x="9" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="37" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="18.5" y="145" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(810 145)">
+  <rect width="51" height="163" fill="#0e1830"/>
+  <rect width="2" height="163" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L51 0 C51 -49 40.800000000000004 -66 25.5 -66 C10.200000000000001 -66 0 -49 0 0 Z" fill="#0e1830"/>
+  <rect x="10" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="40" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="10" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="40" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="20.5" y="131" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(866 135)">
+  <rect width="45" height="173" fill="#0e1830"/>
+  <rect width="2" height="173" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L45 0 L45 -52 L0 -52 Z" fill="#0e1830"/><line x1="22.5" y1="-55" x2="22.5" y2="-67" stroke="#223457" stroke-width="2.5"/><line x1="17.5" y1="-67" x2="27.5" y2="-67" stroke="#223457" stroke-width="2.5"/>
+  <rect x="9" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="35" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="35" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="35" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="17.5" y="141" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(913 150)">
+  <rect width="31" height="158" fill="#0e1830"/>
+  <rect width="2" height="158" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L31 0 L31 -16 L23.56 -16 L23.56 -31 L16.12 -31 L16.12 -47 L14.879999999999999 -47 L14.879999999999999 -31 L7.4399999999999995 -31 L7.4399999999999995 -16 L0 -16 Z" fill="#0e1830"/>
+  <rect x="6" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="24" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="6" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="24" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="10.5" y="126" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(948 174)">
+  <rect width="48" height="134" fill="#0e1830"/>
+  <rect width="2" height="134" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L48 0 C48 -40 38.400000000000006 -54 24 -54 C9.600000000000001 -54 0 -40 0 0 Z" fill="#0e1830"/>
+  <rect x="10" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="37" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="10" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="19" y="102" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(1002 150)">
+  <rect width="48" height="158" fill="#0e1830"/>
+  <rect width="2" height="158" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L48 0 L48 -16 L36.480000000000004 -16 L36.480000000000004 -31 L24.96 -31 L24.96 -47 L23.04 -47 L23.04 -31 L11.52 -31 L11.52 -16 L0 -16 Z" fill="#0e1830"/>
+  <rect x="10" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="10" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="19" y="126" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(1055 115)">
+  <rect width="47" height="193" fill="#0e1830"/>
+  <rect width="2" height="193" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L47 0 L47 -19 L35.72 -19 L35.72 -38 L24.44 -38 L24.44 -58 L22.56 -58 L22.56 -38 L11.28 -38 L11.28 -19 L0 -19 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="37" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="80" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="18.5" y="161" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(1107 122)">
+  <rect width="47" height="186" fill="#0e1830"/>
+  <rect width="2" height="186" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L47 0 L47 -18 L35.72 -18 L35.72 -37 L24.44 -37 L24.44 -56 L22.56 -56 L22.56 -37 L11.28 -37 L11.28 -18 L0 -18 Z" fill="#0e1830"/>
+  <rect x="9" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="20" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="9" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="37" y="50" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="9" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="37" y="80" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="18.5" y="154" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+<g transform="translate(1157 143)">
+  <rect width="37" height="165" fill="#0e1830"/>
+  <rect width="2" height="165" fill="#1a2c52" opacity="0.55"/>
+  <path d="M0 0 L37 0 L37 -17 L28.12 -17 L28.12 -33 L19.240000000000002 -33 L19.240000000000002 -50 L17.759999999999998 -50 L17.759999999999998 -33 L8.879999999999999 -33 L8.879999999999999 -17 L0 -17 Z" fill="#0e1830"/>
+  <rect x="7" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="29" y="20" width="7" height="9" fill="#131f3d" stroke="#223457" stroke-width="0.8"/><rect x="7" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="29" y="50" width="7" height="9" fill="url(#winLit)" opacity="0.95"/><rect x="13.5" y="133" width="10" height="24" fill="#0a1326" stroke="#1b2a4d" stroke-width="0.8"/>
+</g>
+  </g>
+
+  <rect y="308" width="1200" height="132" fill="url(#water)"/>
+  <g>
+    <line x1="0" y1="322" x2="1200" y2="322" stroke="#5b7bb0" stroke-width="1" opacity="0.16"/>
+    <line x1="60" y1="336" x2="1180" y2="336" stroke="#5b7bb0" stroke-width="1" opacity="0.12"/>
+    <line x1="0" y1="350" x2="1200" y2="350" stroke="#5b7bb0" stroke-width="1" opacity="0.18"/>
+    <line x1="90" y1="364" x2="1170" y2="364" stroke="#5b7bb0" stroke-width="1" opacity="0.12"/>
+    <line x1="0" y1="378" x2="1200" y2="378" stroke="#5b7bb0" stroke-width="1" opacity="0.14"/>
+    <line x1="140" y1="392" x2="1140" y2="392" stroke="#5b7bb0" stroke-width="1" opacity="0.1"/>
+  </g>
+  <g>
+<rect x="10" y="310" width="7" height="19" fill="url(#refl)" opacity="0.20"/>
+<rect x="10" y="310" width="7" height="25" fill="url(#refl)" opacity="0.35"/>
+<rect x="32" y="310" width="7" height="22" fill="url(#refl)" opacity="0.26"/>
+<rect x="54" y="310" width="7" height="19" fill="url(#refl)" opacity="0.36"/>
+<rect x="79" y="310" width="7" height="16" fill="url(#refl)" opacity="0.38"/>
+<rect x="101" y="310" width="7" height="16" fill="url(#refl)" opacity="0.26"/>
+<rect x="123" y="310" width="7" height="17" fill="url(#refl)" opacity="0.31"/>
+<rect x="101" y="310" width="7" height="25" fill="url(#refl)" opacity="0.31"/>
+<rect x="123" y="310" width="7" height="25" fill="url(#refl)" opacity="0.28"/>
+<rect x="143" y="310" width="7" height="20" fill="url(#refl)" opacity="0.35"/>
+<rect x="191" y="310" width="7" height="12" fill="url(#refl)" opacity="0.30"/>
+<rect x="215" y="310" width="7" height="12" fill="url(#refl)" opacity="0.28"/>
+<rect x="235" y="310" width="7" height="20" fill="url(#refl)" opacity="0.33"/>
+<rect x="308" y="310" width="7" height="14" fill="url(#refl)" opacity="0.20"/>
+<rect x="358" y="310" width="7" height="19" fill="url(#refl)" opacity="0.36"/>
+<rect x="333" y="310" width="7" height="20" fill="url(#refl)" opacity="0.36"/>
+<rect x="358" y="310" width="7" height="27" fill="url(#refl)" opacity="0.30"/>
+<rect x="378" y="310" width="7" height="16" fill="url(#refl)" opacity="0.31"/>
+<rect x="378" y="310" width="7" height="25" fill="url(#refl)" opacity="0.35"/>
+<rect x="429" y="310" width="7" height="13" fill="url(#refl)" opacity="0.16"/>
+<rect x="429" y="310" width="7" height="33" fill="url(#refl)" opacity="0.20"/>
+<rect x="477" y="310" width="7" height="20" fill="url(#refl)" opacity="0.28"/>
+<rect x="496" y="310" width="7" height="23" fill="url(#refl)" opacity="0.35"/>
+<rect x="513" y="310" width="7" height="16" fill="url(#refl)" opacity="0.29"/>
+<rect x="513" y="310" width="7" height="22" fill="url(#refl)" opacity="0.20"/>
+<rect x="533" y="310" width="7" height="26" fill="url(#refl)" opacity="0.21"/>
+<rect x="513" y="310" width="7" height="28" fill="url(#refl)" opacity="0.26"/>
+<rect x="533" y="310" width="7" height="26" fill="url(#refl)" opacity="0.35"/>
+<rect x="552" y="310" width="7" height="15" fill="url(#refl)" opacity="0.18"/>
+<rect x="571" y="310" width="7" height="18" fill="url(#refl)" opacity="0.19"/>
+<rect x="552" y="310" width="7" height="30" fill="url(#refl)" opacity="0.33"/>
+<rect x="592" y="310" width="7" height="22" fill="url(#refl)" opacity="0.32"/>
+<rect x="637" y="310" width="7" height="19" fill="url(#refl)" opacity="0.32"/>
+<rect x="637" y="310" width="7" height="24" fill="url(#refl)" opacity="0.31"/>
+<rect x="659" y="310" width="7" height="21" fill="url(#refl)" opacity="0.36"/>
+<rect x="704" y="310" width="7" height="15" fill="url(#refl)" opacity="0.35"/>
+<rect x="679" y="310" width="7" height="24" fill="url(#refl)" opacity="0.22"/>
+<rect x="679" y="310" width="7" height="29" fill="url(#refl)" opacity="0.28"/>
+<rect x="704" y="310" width="7" height="27" fill="url(#refl)" opacity="0.36"/>
+<rect x="748" y="310" width="7" height="13" fill="url(#refl)" opacity="0.23"/>
+<rect x="748" y="310" width="7" height="19" fill="url(#refl)" opacity="0.19"/>
+<rect x="768" y="310" width="7" height="14" fill="url(#refl)" opacity="0.25"/>
+<rect x="796" y="310" width="7" height="16" fill="url(#refl)" opacity="0.37"/>
+<rect x="796" y="310" width="7" height="22" fill="url(#refl)" opacity="0.20"/>
+<rect x="820" y="310" width="7" height="21" fill="url(#refl)" opacity="0.24"/>
+<rect x="850" y="310" width="7" height="25" fill="url(#refl)" opacity="0.34"/>
+<rect x="875" y="310" width="7" height="17" fill="url(#refl)" opacity="0.24"/>
+<rect x="901" y="310" width="7" height="32" fill="url(#refl)" opacity="0.31"/>
+<rect x="937" y="310" width="7" height="19" fill="url(#refl)" opacity="0.29"/>
+<rect x="958" y="310" width="7" height="16" fill="url(#refl)" opacity="0.20"/>
+<rect x="985" y="310" width="7" height="17" fill="url(#refl)" opacity="0.25"/>
+<rect x="1039" y="310" width="7" height="17" fill="url(#refl)" opacity="0.33"/>
+<rect x="1064" y="310" width="7" height="17" fill="url(#refl)" opacity="0.24"/>
+<rect x="1092" y="310" width="7" height="31" fill="url(#refl)" opacity="0.20"/>
+<rect x="1144" y="310" width="7" height="20" fill="url(#refl)" opacity="0.19"/>
+<rect x="1116" y="310" width="7" height="27" fill="url(#refl)" opacity="0.22"/>
+<rect x="1164" y="310" width="7" height="23" fill="url(#refl)" opacity="0.33"/>
+<rect x="1186" y="310" width="7" height="26" fill="url(#refl)" opacity="0.34"/>
+  </g>
+
+  <g transform="translate(560 332)">
+    <path d="M0 4 C0 1 10 -1 26 -1 C42 -1 52 1 52 4 C46 8 6 8 0 4 Z" fill="#152238"/>
+    <rect x="8" y="-8" width="13" height="9" fill="#1c2f54"/>
+    <rect x="10" y="-6" width="3.5" height="4" fill="#ffd98a" opacity="0.85"/>
+    <line x1="27" y1="-8" x2="27" y2="-21" stroke="#2a3d63" stroke-width="2"/>
+    <circle cx="27" cy="-22" r="2.2" fill="#ffd98a" opacity="0.9"/>
+  </g>
+  <ellipse cx="586" cy="342" rx="30" ry="4" fill="#0d1830" opacity="0.7"/>
+
+  <g fill="#223457">
+    <ellipse cx="180" cy="370" rx="6" ry="3.4"/>
+    <circle cx="186" cy="367" r="2.4"/>
+    <ellipse cx="1000" cy="380" rx="5" ry="2.9"/>
+    <circle cx="1005" cy="377" r="2.1"/>
+  </g>
+</svg>
+
+    <div class="hero-copy">
+      <p class="kicker">Est. 1275 &middot; a dam on the Amstel</p>
+      <h1>Amsterdam Console</h1>
+      <p class="sub">The LLM river held by a little HTML dam. All your billing in one place.</p>
+      <p class="meta">Machine: Eve</p>
+      <p class="verse">The Amstel's dam once made this town &mdash; the river still flows through.<br>A hundred models, one console: the dam now holds them, too.</p>
+    </div>
+
+    <div class="flag-badge" aria-hidden="true">
+      <svg viewBox="0 0 64 44" width="56" height="38">
+        <rect width="64" height="44" rx="4" fill="#0b0b12"/>
+        <rect x="2" y="2" width="60" height="13.3" fill="#c8102e"/>
+        <rect x="2" y="15.3" width="60" height="13.3" fill="#0b0b12"/>
+        <rect x="2" y="28.6" width="60" height="13.3" fill="#c8102e"/>
+        <g stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+          <path d="M12 19 L20 27 M20 19 L12 27"/>
+          <path d="M30 19 L38 27 M38 19 L30 27"/>
+          <path d="M48 19 L56 27 M56 19 L48 27"/>
+        </g>
+      </svg>
+    </div>
   </header>
 
+  <!-- ── credits remaining ─────────────────────────────────────── -->
+  <section class="credits" id="credits" aria-label="Total remaining credits">
+    <div class="credits-body">
+      <p class="credits-label">Credits remaining <span class="live-dot" aria-hidden="true"></span></p>
+      <p class="credits-value" id="credits-total">&mdash;</p>
+      <p class="credits-split" id="credits-split">&mdash;</p>
+    </div>
+    <p class="credits-note">Live totals from the provider APIs, plus manually-tracked credits for providers without a billing API (e.g. OpenAI). Click <b>edit</b> on a verified chip to type the remaining amount. Run <code>amster serve</code> for live mode.</p>
+  </section>
+
   <div class="warning">
-    <span class="ico">⚠️</span>
-    <span>Never paste API keys here; this is only a console launcher.</span>
+    <span>Never paste API keys here — this is a console launcher only.</span>
   </div>
 
   <!-- billing summary — populated by data/billing.js and /api/billing -->
@@ -246,20 +1297,82 @@
   </div>
   <div id="billing-summary"></div>
 
+  <!-- spend by model — populated from data/billing.js and /api/billing -->
+  <h2><span class="dot" aria-hidden="true"></span>Spend by model</h2>
+  <div class="table-tools">
+    <div class="columns-wrap">
+      <button id="columns-btn" class="btn ghost" type="button" aria-expanded="false" aria-controls="columns-panel">Columns</button>
+      <div id="columns-panel" class="columns-panel" hidden>
+        <fieldset>
+          <legend>Show columns</legend>
+          <label><input type="checkbox" data-col="model" checked> Model</label>
+          <label><input type="checkbox" data-col="provider" checked> Provider</label>
+          <label><input type="checkbox" data-col="sessions" checked> Sessions</label>
+          <label><input type="checkbox" data-col="calls" checked> Calls</label>
+          <label><input type="checkbox" data-col="inputTokens" checked> Tokens in</label>
+          <label><input type="checkbox" data-col="outputTokens" checked> Tokens out</label>
+          <label><input type="checkbox" data-col="estimatedCostUsd" checked> Est. cost</label>
+          <label><input type="checkbox" data-col="costStatus" checked> Status</label>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+  <table id="spend-table" aria-label="Spend by model">
+    <thead>
+      <tr>
+        <th scope="col" data-sort-key="model">Model<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="provider">Provider<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="sessions">Sessions<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="calls">Calls<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="inputTokens">Tokens in<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="outputTokens">Tokens out<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="estimatedCostUsd">Est. cost<span class="sort-indicator" aria-hidden="true"></span></th>
+        <th scope="col" data-sort-key="costStatus">Status<span class="sort-indicator" aria-hidden="true"></span></th>
+      </tr>
+    </thead>
+    <tbody id="spend-body"></tbody>
+  </table>
+  <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
+  <div class="hint" id="spend-empty">No usage recorded yet.</div>
+
+  <!-- spend by Pi — populated from data/billing.js and /api/billing -->
+  <div id="pi-spend-section">
+    <h2><span class="dot" aria-hidden="true"></span>Spend by Pi</h2>
+    <div id="pi-summary"></div>
+    <table id="pi-spend-table" aria-label="Spend by Pi">
+      <thead>
+        <tr>
+          <th scope="col">Model</th>
+          <th scope="col">Provider</th>
+          <th scope="col">Sessions</th>
+          <th scope="col">Calls</th>
+          <th scope="col">Tokens</th>
+          <th scope="col">Cost</th>
+          <th scope="col">Last seen</th>
+        </tr>
+      </thead>
+      <tbody id="pi-spend-body"></tbody>
+    </table>
+    <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+  </div>
+
+  <label class="sr-only" for="search">Filter providers</label>
   <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
-  <h2><span class="dot"></span>Detected on this machine</h2>
+  <h2><span class="dot" aria-hidden="true"></span>Detected on this machine</h2>
   <div class="cards" data-group="detected" id="detected-cards"></div>
   <div class="hint" id="detected-empty">No providers detected — add API keys to <code>.env</code>, then run <code>amster serve</code>.</div>
 
-  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false">
-    <span class="dot"></span>If you also use these <span class="count" id="extra-count"></span>
-    <span class="chevron">▸</span>
+  <h2 class="toggle" id="extra-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="extra-cards">
+    <span class="dot" aria-hidden="true"></span>Available platforms
+    <span class="count" id="extra-count"></span>
+    <span class="chevron" aria-hidden="true">&#9658;</span>
   </h2>
   <div class="cards collapsed" data-group="extra" id="extra-cards">
+
     <div class="card" data-name="deepseek deep seek" data-provider="deepseek">
       <h3>DeepSeek</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: DEEPSEEK_API_KEY</p>
       <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -267,23 +1380,15 @@
 
     <div class="card" data-name="kimi moonshot moonshot" data-provider="moonshot">
       <h3>Kimi / Moonshot</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console: Billing / Usage after login.</p>
       <p class="envs">Env: KIMI_API_KEY / MOONSHOT_API_KEY</p>
       <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="anthropic claude" data-provider="anthropic">
-      <h3>Anthropic</h3>
-      <span class="tag">Optional</span>
-      <p class="note">Console: Settings &gt; Billing.</p>
-      <p class="envs">Env: ANTHROPIC_API_KEY</p>
-      <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
     <div class="card" data-name="huggingface hf hugging face" data-provider="huggingface">
       <h3>Hugging Face</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Inference providers, free tier included.</p>
       <p class="envs">Env: HF_TOKEN</p>
       <a class="btn" href="https://huggingface.co/settings/billing" target="_blank" rel="noopener noreferrer">Open console</a>
@@ -299,89 +1404,445 @@
 
     <div class="card" data-name="openai gpt chatgpt" data-provider="openai">
       <h3>OpenAI</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Usage and billing.</p>
       <a class="btn" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="google ai studio gemini" data-provider="google">
       <h3>Google AI Studio</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Try models and view usage.</p>
       <a class="btn" href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="google cloud gcp">
       <h3>Google Cloud Billing</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">GCP billing dashboard.</p>
       <a class="btn" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
-    <div class="card" data-name="openrouter" data-provider="openrouter">
-      <h3>OpenRouter</h3>
-      <span class="tag">Optional</span>
-      <p class="note">Credits and usage.</p>
-      <a class="btn" href="https://openrouter.ai/credits" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
     <div class="card" data-name="groq" data-provider="groq">
       <h3>Groq</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Usage and limits.</p>
       <a class="btn" href="https://console.groq.com/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="together" data-provider="together">
       <h3>Together</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">API and usage.</p>
       <a class="btn" href="https://api.together.xyz/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="mistral le chat" data-provider="mistral">
       <h3>Mistral</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Console and usage.</p>
       <a class="btn" href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
 
     <div class="card" data-name="fireworks" data-provider="fireworks">
       <h3>Fireworks</h3>
-      <span class="tag">Optional</span>
+      <span class="tag">Billing</span>
       <p class="note">Models and usage.</p>
       <a class="btn" href="https://app.fireworks.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
     </div>
+
   </div>
 
   <div class="empty" id="empty">Nothing matches that filter.</div>
 
-  <footer>Amsterdam Console · Offline · No tracking · No secrets</footer>
+  <footer>
+    <p>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets</p>
+    <details class="sonnet">
+      <summary>Read the Amsterdam sonnet</summary>
+      <p>Upon the Amstel's bank they raised a dam,<br>
+      and round it grew a city, stone on stone,<br>
+      whose gabled houses lean above the stream<br>
+      and hold a thousand bridges of their own.</p>
+      <p>So here we build a dam of a newer kind &mdash;<br>
+      a little page that holds a river wide;<br>
+      the tokens of a hundred models wind<br>
+      through its canals, and none may slip the tide.</p>
+      <p>No coin is minted here, no key is kept;<br>
+      the consoles open like the morning light.<br>
+      The balance in the water, softly swept,<br>
+      is yours to read by day, to guard by night.</p>
+      <p>So let the river run, and let it flow &mdash;<br>
+      the dam holds fast what you most need to know.</p>
+    </details>
+  </footer>
 </div>
 
 <script src="data/billing.js"></script>
 <script>
-  /* ── billing summary ──────────────────────────── */
+  /* ── helpers ────────────────────────────────────────────────── */
+  function currencySymbol(provider) {
+    if (provider.currency === "CNY") return "¥";
+    if (provider.currency === "EUR") return "€";
+    return "$";
+  }
+
+  /* ── manual credits ─────────────────────────────────────────── */
+  // Verified-only providers have no billing API, so the user can
+  // type a balance in. It is stored per browser and feeds the
+  // credits total like a live balance.
+  var MANUAL_STORAGE = 'amsterdam.manualCredits';
+
+  function loadManualCredits() {
+    var manual = {};
+    try { manual = JSON.parse(localStorage.getItem(MANUAL_STORAGE)) || {}; } catch (e) { manual = {}; }
+    return manual;
+  }
+
+  function saveManualCredits(manual) {
+    try { localStorage.setItem(MANUAL_STORAGE, JSON.stringify(manual)); } catch (e) {}
+  }
+
+  var manualCredits = loadManualCredits();
+
+  function manualValue(id) {
+    var v = manualCredits[id];
+    return v != null && v >= 0 ? Number(v) : null;
+  }
+
+  /* ── billing summary ────────────────────────────────────────── */
   function formatChip(id, data) {
     if (!data || !data.detected) return { cls: "off", value: "—" };
-    if (data.error)              return { cls: "error", value: "✗ " + data.error };
+    if (data.error)              return { cls: "error", value: data.error };
     if (data.balance != null) {
-      var sym = data.currency === "CNY" ? "¥" : data.currency === "EUR" ? "€" : "$";
-      return { cls: "balance", value: sym + data.balance.toFixed(2) };
+      return { cls: "balance", value: currencySymbol(data) + data.balance.toFixed(2) };
     }
     if (data.usage != null) {
       var limit = data.limit != null ? " / $" + data.limit.toFixed(2) : "";
       return { cls: "usage", value: "$" + data.usage.toFixed(2) + " used" + limit };
     }
-    if (data.username)  return { cls: "verified", value: "✓ " + data.username };
-    if (data.verified)  return { cls: "verified", value: "✓ verified" };
+    if (data.username)       return { cls: "verified", value: data.username };
+    // Verified-only providers (no billing API): a manually tracked
+    // balance overrides the badge; the chip stays editable.
+    if (data.verified) {
+      var manual = manualValue(id);
+      if (manual != null) {
+        return { cls: "balance", value: "$" + manual.toFixed(2), editable: true };
+      }
+      return { cls: "verified", value: "verified", editable: true };
+    }
     return { cls: "off", value: "?" };
+  }
+
+  /* ── credits remaining ──────────────────────────────────────── */
+  function totalCredits(billing) {
+    var ids = [];
+    var total = 0;
+    Object.keys(billing.providers).forEach(function (id) {
+      var p = billing.providers[id];
+      if (!p || !p.detected) return;
+      if (p.balance != null) {
+        ids.push(id);
+        total += p.balance;
+      } else if (manualValue(id) != null) {
+        ids.push(id);
+        total += manualValue(id);
+      }
+    });
+    var split = ids.map(function (id) {
+      var p = billing.providers[id];
+      var name = id.charAt(0).toUpperCase() + id.slice(1);
+      var value = p.balance != null ? p.balance : manualValue(id);
+      var suffix = p.balance != null ? "" : " (manual)";
+      return name + " " + currencySymbol(p) + value.toFixed(2) + suffix;
+    }).join(" + ");
+    return { total: total, count: ids.length, split: split };
+  }
+
+  function renderCredits(billing) {
+    var valueEl = document.getElementById("credits-total");
+    var splitEl = document.getElementById("credits-split");
+    if (!billing) {
+      valueEl.textContent = "—";
+      splitEl.textContent = "Run amster serve to open the floodgates";
+      return;
+    }
+    var credits = totalCredits(billing);
+    if (credits.count === 0) {
+      valueEl.textContent = "—";
+      splitEl.textContent = "No live balances reported yet";
+      return;
+    }
+    valueEl.textContent = "$" + credits.total.toFixed(2);
+    splitEl.textContent = credits.split;
+  }
+
+  /* ── spend by model ─────────────────────────────────────────── */
+  // Sort state lives at module scope so the 2.5-min auto-refresh
+  // re-renders keep the user's chosen column and direction.
+  var sortState = { key: 'estimatedCostUsd', dir: 'desc' };
+  var TEXT_SORT_KEYS = ['model', 'provider', 'costStatus'];
+
+  function spendSortValue(model, key) {
+    switch (key) {
+      case 'model':        return String(model.model || '').toLowerCase();
+      case 'provider':     return String(model.provider || '').toLowerCase();
+      case 'sessions':     return model.sessions;
+      case 'calls':        return model.calls;
+      case 'inputTokens':  return model.inputTokens;
+      case 'outputTokens': return model.outputTokens;
+      case 'estimatedCostUsd':
+        if (model.costStatus === 'local') return 0;
+        return model.costStatus === 'estimated' && model.estimatedCostUsd != null
+          ? model.estimatedCostUsd
+          : null;
+      case 'costStatus':   return String(model.costStatus || 'unknown').toLowerCase();
+    }
+    return null;
+  }
+
+  function compareSpendModels(a, b) {
+    var key = sortState.key;
+    var dir = sortState.dir === 'asc' ? 1 : -1;
+    var av  = spendSortValue(a, key);
+    var bv  = spendSortValue(b, key);
+    var aNa = av == null;
+    var bNa = bv == null;
+    if (aNa && bNa) return 0;
+    if (aNa) return 1;  // missing values stay at the bottom, either direction
+    if (bNa) return -1;
+    if (typeof av === 'number' && typeof bv === 'number') {
+      return av < bv ? -dir : av > bv ? dir : 0;
+    }
+    return String(av).localeCompare(String(bv)) * dir;
+  }
+
+  function sortSpendModels(models) {
+    return models.slice().sort(compareSpendModels);
+  }
+
+  function updateSortIndicator() {
+    Array.from(document.querySelectorAll('#spend-table thead th')).forEach(function (th) {
+      var indicator = th.querySelector('.sort-indicator');
+      var active    = th.getAttribute('data-sort-key') === sortState.key;
+      if (indicator) {
+        indicator.textContent = active ? (sortState.dir === 'asc' ? '\u25B2' : '\u25BC') : '';
+      }
+      th.setAttribute('aria-sort', active ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      th.classList.toggle('active', active);
+    });
+  }
+
+  function sortHandler(event) {
+    var th  = event.target.closest('th');
+    var key = th && th.getAttribute('data-sort-key');
+    if (!key) return;
+    if (sortState.key === key) {
+      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.dir = TEXT_SORT_KEYS.indexOf(key) !== -1 ? 'asc' : 'desc';
+    }
+    renderSpend(window.BILLING);
+  }
+
+  document.querySelector('#spend-table thead').addEventListener("click", sortHandler);
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatTokens(n) {
+    if (n == null) return '—';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return String(n);
+  }
+
+  function formatSpendCost(model) {
+    if (model.costStatus === 'local') return 'free';
+    if (model.costStatus !== 'estimated' || model.estimatedCostUsd == null) return 'n/a';
+    return '$' + model.estimatedCostUsd.toFixed(2);
+  }
+
+  /* ── column visibility ─────────────────────────────────────── */
+  var COLUMN_KEYS = ['model', 'provider', 'sessions', 'calls', 'inputTokens', 'outputTokens', 'estimatedCostUsd', 'costStatus'];
+  var COLUMNS_STORAGE = 'amsterdam.columns';
+
+  function loadColumnState() {
+    var state = {};
+    try { state = JSON.parse(localStorage.getItem(COLUMNS_STORAGE)) || {}; } catch (e) { state = {}; }
+    COLUMN_KEYS.forEach(function (key) { state[key] = state[key] !== false; });
+    if (!COLUMN_KEYS.some(function (key) { return state[key]; })) state.model = true;
+    return state;
+  }
+
+  var columnState = loadColumnState();
+
+  function syncColumnCheckboxes() {
+    Array.from(document.querySelectorAll('#columns-panel input')).forEach(function (box) {
+      box.checked = columnState[box.getAttribute('data-col')] !== false;
+    });
+  }
+
+  function spendCell(m, key, known) {
+    switch (key) {
+      case 'model':        return '<td class="model">' + escapeHtml(m.model) + '</td>';
+      case 'provider':     return '<td>' + escapeHtml(m.provider || '—') + '</td>';
+      case 'sessions':     return '<td class="num">' + (m.sessions == null ? '—' : m.sessions) + '</td>';
+      case 'calls':        return '<td class="num">' + (m.calls == null ? '—' : m.calls) + '</td>';
+      case 'inputTokens':  return '<td class="num">' + formatTokens(m.inputTokens) + '</td>';
+      case 'outputTokens': return '<td class="num">' + formatTokens(m.outputTokens) + '</td>';
+      case 'estimatedCostUsd':
+        return '<td class="cost' + (known ? '' : ' na') + '">' + formatSpendCost(m) + '</td>';
+      case 'costStatus':   return '<td>' + escapeHtml(m.costStatus || 'unknown') + '</td>';
+    }
+    return '';
+  }
+
+  var columnsBtn   = document.getElementById('columns-btn');
+  var columnsPanel = document.getElementById('columns-panel');
+  var columnsWrap  = columnsBtn ? columnsBtn.closest('.columns-wrap') : null;
+  var columnsOpen  = false;
+
+  function setColumnsPanel(open) {
+    columnsOpen = open;
+    columnsPanel.hidden = !open;
+    columnsBtn.setAttribute('aria-expanded', String(open));
+  }
+
+  if (columnsBtn) {
+    columnsBtn.addEventListener('click', function () { setColumnsPanel(!columnsOpen); });
+
+    columnsPanel.addEventListener('change', function (e) {
+      var box = e.target;
+      if (!box || !box.hasAttribute('data-col')) return;
+      var next = columnState[box.dataset.col] === false;
+      var keepsOne = COLUMN_KEYS.some(function (key) {
+        return key === box.dataset.col ? next : columnState[key];
+      });
+      if (!keepsOne) { box.checked = true; return; } // at least one column stays
+      columnState[box.dataset.col] = next;
+      try { localStorage.setItem(COLUMNS_STORAGE, JSON.stringify(columnState)); } catch (err) {}
+      renderSpend(window.BILLING);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (columnsOpen && columnsWrap && !columnsWrap.contains(e.target)) setColumnsPanel(false);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && columnsOpen) setColumnsPanel(false);
+    });
+  }
+
+  function renderSpend(billing) {
+    var spend      = billing && billing.spend;
+    var table      = document.getElementById('spend-table');
+    var unavailable = document.getElementById('spend-unavailable');
+    var empty      = document.getElementById('spend-empty');
+    unavailable.classList.remove('show');
+    empty.classList.remove('show');
+
+    if (!spend) {
+      table.style.display = 'none';
+      unavailable.classList.add('show');
+      return;
+    }
+    // Anthropic was purged from the console: its usage history is
+    // filtered out of the spend table entirely. Anthropic models are
+    // all named claude-*, whatever billing provider labels them.
+    // (The data layer already purges; this guards old snapshots.)
+    var models = spend.models.filter(function (m) {
+      var name = String(m.model || '').toLowerCase();
+      return name.indexOf('claude') !== 0 && (m.provider || '') !== 'anthropic';
+    });
+    if (!models || models.length === 0) {
+      table.style.display = 'none';
+      empty.classList.add('show');
+      return;
+    }
+
+    table.style.display = 'table';
+    Array.from(document.querySelectorAll('#spend-table th')).forEach(function (th) {
+      th.hidden = !columnState[th.getAttribute('data-sort-key')];
+    });
+    syncColumnCheckboxes();
+    var visible = COLUMN_KEYS.filter(function (key) { return columnState[key]; });
+    var rows = sortSpendModels(models).map(function (m) {
+      var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
+      var known = (m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null;
+      var cells = visible.map(function (key) { return spendCell(m, key, known); }).join('');
+      return '<tr' + title + '>' + cells + '</tr>';
+    }).join('');
+    document.getElementById('spend-body').innerHTML = rows;
+    updateSortIndicator();
+  }
+
+  /* ── spend by Pi ────────────────────────────────────────────── */
+  function formatPiCost(model) {
+    if (model.costUsd == null) return 'n/a';
+    return '$' + model.costUsd.toFixed(2);
+  }
+
+  function renderPiSpend(billing) {
+    var pi      = billing && billing.piSpend;
+    var section = document.getElementById('pi-spend-section');
+    if (!pi) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    var table = document.getElementById('pi-spend-table');
+    var empty = document.getElementById('pi-spend-empty');
+    empty.classList.remove('show');
+
+    var hermes = billing && billing.spend;
+    var hermesTotal = hermes && hermes.totalEstimatedUsd != null
+      ? '$' + hermes.totalEstimatedUsd.toFixed(2)
+      : 'n/a';
+    var piTotal = pi.totalUsd == null ? 'n/a' : '$' + pi.totalUsd.toFixed(2);
+    document.getElementById('pi-summary').textContent =
+      'Pi total: ' + piTotal + ' (actual) · ' + pi.sessionCount
+      + ' sessions · ' + pi.modelCount + ' models — Hermes total: '
+      + hermesTotal + ' (estimated)';
+
+    var models = (pi.models || []).slice().sort(function (a, b) {
+      return (b.costUsd || 0) - (a.costUsd || 0)
+        || String(a.model).localeCompare(String(b.model));
+    });
+    if (models.length === 0) {
+      table.style.display = 'none';
+      empty.classList.add('show');
+      return;
+    }
+
+    table.style.display = 'table';
+    var rows = models.map(function (m) {
+      var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
+      var tokens = m.totalTokens == null ? '—' : formatTokens(m.totalTokens);
+      return '<tr' + title + '>'
+        + '<td class="model">' + escapeHtml(m.model) + '</td>'
+        + '<td>' + escapeHtml(m.provider || '—') + '</td>'
+        + '<td class="num">' + m.sessions + '</td>'
+        + '<td class="num">' + m.calls + '</td>'
+        + '<td class="num">' + tokens + '</td>'
+        + '<td class="cost">' + formatPiCost(m) + '</td>'
+        + '<td>' + (m.lastSeen ? escapeHtml(m.lastSeen) : '—') + '</td>'
+        + '</tr>';
+    }).join('');
+    document.getElementById('pi-spend-body').innerHTML = rows;
   }
 
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
   var live = location.protocol === "http:" || location.protocol === "https:";
   var summaryEl = document.getElementById("billing-summary");
-  var statusEl = document.getElementById("billing-status");
+  var statusEl  = document.getElementById("billing-status");
 
   function renderSummary(billing) {
     if (!billing) {
@@ -401,10 +1862,17 @@
     var html = "";
     liveIds.forEach(function (id) {
       var chip = formatChip(id, billing.providers[id]);
-      html += '<div class="chip ' + chip.cls + '">'
+      html += '<div class="chip ' + chip.cls + '" data-provider="' + id + '">'
             + '<span class="chip-name">' + id + '</span>'
-            + '<span class="chip-value">' + chip.value + '</span>'
-            + '</div>';
+            + '<span class="chip-value">' + chip.value + '</span>';
+      if (chip.editable) {
+        html += '<button class="chip-edit" type="button">edit</button>'
+              + '<span class="chip-editor" hidden>'
+              + '<input type="number" min="0" step="0.01" placeholder="0.00" aria-label="Remaining ' + id + ' credits in USD">'
+              + '<button type="button" class="chip-save">Save</button>'
+              + '</span>';
+      }
+      html += '</div>';
     });
 
     var ts = new Date(billing.timestamp);
@@ -415,18 +1883,13 @@
 
   function organizeCards(billing) {
     var detected = document.getElementById("detected-cards");
-    var extra = document.getElementById("extra-cards");
+    var extra    = document.getElementById("extra-cards");
 
     Array.from(document.querySelectorAll(".card[data-provider]")).forEach(function (card) {
-      var id = card.dataset.provider;
+      var id         = card.dataset.provider;
       var isDetected = !!(billing && billing.providers[id] && billing.providers[id].detected);
-      var target = isDetected ? detected : extra;
+      var target     = isDetected ? detected : extra;
       if (card.parentElement !== target) target.appendChild(card);
-
-      var tag = card.querySelector(".tag");
-      if (tag && !tag.classList.contains("local")) {
-        tag.textContent = isDetected ? "Detected" : "Optional";
-      }
     });
 
     document.getElementById("detected-empty").classList.toggle(
@@ -438,7 +1901,10 @@
   }
 
   function applyBilling(billing) {
+    renderCredits(billing);
     renderSummary(billing);
+    renderSpend(billing);
+    renderPiSpend(billing);
     organizeCards(billing);
   }
 
@@ -470,6 +1936,30 @@
     refresh(true);
   });
 
+  /* ── manual credits editing ─────────────────────────────────── */
+  summaryEl.addEventListener('click', function (e) {
+    var editBtn = e.target.closest('.chip-edit');
+    if (editBtn) {
+      var editor = editBtn.closest('.chip').querySelector('.chip-editor');
+      editor.hidden = !editor.hidden;
+      if (!editor.hidden) editor.querySelector('input').focus();
+      return;
+    }
+    var saveBtn = e.target.closest('.chip-save');
+    if (saveBtn) {
+      var chip = saveBtn.closest('.chip');
+      var id = chip.dataset.provider;
+      var value = parseFloat(chip.querySelector('.chip-editor input').value);
+      if (isNaN(value) || value < 0) {
+        delete manualCredits[id];
+      } else {
+        manualCredits[id] = value;
+      }
+      saveManualCredits(manualCredits);
+      applyBilling(window.BILLING);
+    }
+  });
+
   applyBilling(window.BILLING);
   if (live) {
     setStatus('Live · auto-refresh every 2.5 min', 'live');
@@ -478,10 +1968,10 @@
     setStatus('Static snapshot — run <code>amster serve</code> for live updates');
   }
 
-  /* ── collapsible extra group ─────────────────── */
+  /* ── collapsible extra group ────────────────────────────────── */
   var extraToggle = document.getElementById("extra-toggle");
-  var extraCards = document.getElementById("extra-cards");
-  var extraOpen = false;
+  var extraCards  = document.getElementById("extra-cards");
+  var extraOpen   = false;
 
   document.getElementById("extra-count").textContent =
     "(" + extraCards.querySelectorAll(".card").length + ")";
@@ -501,10 +1991,10 @@
     }
   });
 
-  /* ── card filter ──────────────────────────────── */
+  /* ── card filter ────────────────────────────────────────────── */
   var search = document.getElementById("search");
-  var empty = document.getElementById("empty");
-  var cards = Array.from(document.querySelectorAll(".card"));
+  var empty  = document.getElementById("empty");
+  var cards  = Array.from(document.querySelectorAll(".card"));
 
   function groupCollapsed(card) {
     var group = card.closest(".cards");
@@ -512,7 +2002,7 @@
   }
 
   search.addEventListener("input", function () {
-    var query = this.value.trim().toLowerCase();
+    var query   = this.value.trim().toLowerCase();
     var visible = 0;
     cards.forEach(function (card) {
       var show = card.dataset.name.includes(query) && !groupCollapsed(card);

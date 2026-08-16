@@ -1,10 +1,8 @@
 import deepseek from './deepseek.js';
-import openrouter from './openrouter.js';
 import huggingface from './huggingface.js';
+import moonshot from './moonshot.js';
 import {
-  anthropic,
   openai,
-  moonshot,
   groq,
   together,
   mistral,
@@ -14,8 +12,6 @@ import {
 
 const providers = [
   deepseek,
-  openrouter,
-  anthropic,
   openai,
   moonshot,
   groq,
