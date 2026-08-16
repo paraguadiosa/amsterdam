@@ -307,6 +307,13 @@
     border-radius: var(--radius-sm);
   }
 
+  /* Collapsed spend summary: same panel, amber value to mark spend. */
+  .spend-blob { cursor: pointer; }
+  .spend-blob .credits-value {
+    color: var(--amber);
+    text-shadow: 0 0 22px var(--warn-bg);
+  }
+
   /* ── warning banner ──────────────────────────────────────────── */
   .warning {
     display: flex;
@@ -719,6 +726,8 @@
   }
 
   #extra-cards.collapsed { display: none; }
+  #spend-section.collapsed,
+  #pi-spend-content.collapsed { display: none; }
   .card.hidden     { display: none; }
 
   /* ── provider card ───────────────────────────────────────────── */
@@ -970,11 +979,11 @@
     z-index: 3;
   }
 
-  .theme-toggle {
+  .theme-picker {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 7px 13px;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
     font-family: var(--font);
     font-size: 0.75rem;
     font-weight: 600;
@@ -984,65 +993,29 @@
     border: 1px solid var(--toggle-border);
     border-radius: var(--radius-pill);
     box-shadow: var(--toggle-shadow);
-    cursor: pointer;
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
-    transition: border-color var(--t-fast), transform var(--t-fast);
   }
 
-  .theme-toggle:hover {
-    border-color: var(--accent);
-    transform: translateY(-1px);
-  }
+  .theme-picker-label { text-transform: uppercase; }
 
-  .theme-toggle .theme-icon { display: block; }
-  .theme-toggle .theme-label { min-width: 34px; text-align: left; }
-
-  .theme-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    z-index: 10;
-    min-width: 200px;
-    padding: 6px;
-    background: var(--toggle-bg);
-    border: 1px solid var(--toggle-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--toggle-shadow);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-  }
-
-  .theme-menu[hidden] { display: none; }
-
-  .theme-option {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 7px 9px;
-    border-radius: var(--radius-sm);
+  .theme-select {
+    font-family: var(--font);
     font-size: 0.8125rem;
+    font-weight: 600;
     color: var(--text);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
     cursor: pointer;
   }
 
-  .theme-option:hover { background: var(--bg-soft); }
-  .theme-option.selected { color: var(--accent-2); background: var(--card-hover); }
+  .theme-select:hover { border-color: var(--accent); }
 
-  .theme-swatch { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
-
-  .swatch-dot {
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    border: 1px solid var(--border-hi);
-  }
-
-  .swatch-half {
-    width: 10px;
-    height: 13px;
-    border-radius: 2px;
-    border: 1px solid var(--border-hi);
+  .theme-select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   @media (max-width: 640px) {
@@ -1505,16 +1478,12 @@
     </div>
 
     <div class="theme-wrap">
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-menu" aria-label="Choose theme" title="Choose theme">
-        <svg class="theme-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
-          <path d="M12 2a10 10 0 1 0 10 10c0-1.2-.2-2.4-.7-3.5a7 7 0 0 1-8.8-8.8A10 10 0 0 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="17.5" cy="6.5" r="1.6" fill="currentColor"/>
-          <circle cx="14.5" cy="17.5" r="1.6" fill="currentColor"/>
-          <circle cx="6.5" cy="10" r="1.6" fill="currentColor"/>
-        </svg>
-        <span class="theme-label">Auto</span>
-      </button>
-      <div id="theme-menu" class="theme-menu" role="listbox" aria-label="Theme" hidden></div>
+      <label class="theme-picker" for="theme-select">
+        <span class="theme-picker-label">Theme</span>
+        <select id="theme-select" class="theme-select" aria-label="Choose theme">
+          <option value="auto">Auto</option>
+        </select>
+      </label>
     </div>
   </header>
 
@@ -1540,8 +1509,20 @@
   <div id="billing-summary"></div>
 
   <!-- spend by model — populated from data/billing.js and /api/billing -->
-  <h2><span class="dot" aria-hidden="true"></span>Spend by model</h2>
-  <div class="table-tools">
+  <h2 class="toggle" id="spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="spend-section">
+    <span class="dot" aria-hidden="true"></span>Spend by model
+    <span class="chevron" aria-hidden="true">&#9658;</span>
+  </h2>
+  <section class="credits spend-blob" id="spend-blob" aria-label="Total estimated spend" hidden>
+    <div class="credits-body">
+      <p class="credits-label">Total spend (est.) <span class="live-dot" aria-hidden="true"></span></p>
+      <p class="credits-value" id="spend-blob-total">&mdash;</p>
+      <p class="credits-split" id="spend-blob-split">&mdash;</p>
+    </div>
+    <p class="credits-note">Estimated spend from the Hermes state DB. Click <b>Spend by model</b> to expand the full table.</p>
+  </section>
+  <div id="spend-section">
+    <div class="table-tools">
     <label class="sr-only" for="model-filter">Filter spend by model</label>
     <select id="model-filter" class="model-filter" aria-label="Filter spend by model">
       <option value="">All models</option>
@@ -1580,26 +1561,40 @@
   </table>
   <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
   <div class="hint" id="spend-empty">No usage recorded yet.</div>
+  </div>
 
   <!-- spend by Pi — populated from data/billing.js and /api/billing -->
   <div id="pi-spend-section">
-    <h2><span class="dot" aria-hidden="true"></span>Spend by Pi</h2>
-    <div id="pi-summary"></div>
-    <table id="pi-spend-table" aria-label="Spend by Pi">
-      <thead>
-        <tr>
-          <th scope="col">Model</th>
-          <th scope="col">Provider</th>
-          <th scope="col">Sessions</th>
-          <th scope="col">Calls</th>
-          <th scope="col">Tokens</th>
-          <th scope="col">Cost</th>
-          <th scope="col">Last seen</th>
-        </tr>
-      </thead>
-      <tbody id="pi-spend-body"></tbody>
-    </table>
-    <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+    <h2 class="toggle" id="pi-spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="pi-spend-content">
+      <span class="dot" aria-hidden="true"></span>Spend by Pi
+      <span class="chevron" aria-hidden="true">&#9658;</span>
+    </h2>
+    <section class="credits spend-blob" id="pi-spend-blob" aria-label="Total Pi spend" hidden>
+      <div class="credits-body">
+        <p class="credits-label">Total spend (actual) <span class="live-dot" aria-hidden="true"></span></p>
+        <p class="credits-value" id="pi-spend-blob-total">&mdash;</p>
+        <p class="credits-split" id="pi-spend-blob-split">&mdash;</p>
+      </div>
+      <p class="credits-note">Actual billed spend from Pi session logs. Click <b>Spend by Pi</b> to expand the full table.</p>
+    </section>
+    <div id="pi-spend-content">
+      <div id="pi-summary"></div>
+      <table id="pi-spend-table" aria-label="Spend by Pi">
+        <thead>
+          <tr>
+            <th scope="col">Model</th>
+            <th scope="col">Provider</th>
+            <th scope="col">Sessions</th>
+            <th scope="col">Calls</th>
+            <th scope="col">Tokens</th>
+            <th scope="col">Cost</th>
+            <th scope="col">Last seen</th>
+          </tr>
+        </thead>
+        <tbody id="pi-spend-body"></tbody>
+      </table>
+      <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+    </div>
   </div>
 
   <label class="sr-only" for="search">Filter providers</label>
@@ -2011,6 +2006,38 @@
     unavailable.classList.remove('show');
     empty.classList.remove('show');
 
+    /* Collapsed-state summary: total + per-provider split, computed
+       from the same rows the table shows (claude/anthropic purged). */
+    var blobTotal = document.getElementById('spend-blob-total');
+    var blobSplit = document.getElementById('spend-blob-split');
+    var total = 0;
+    var byProvider = {};
+    var counted = 0;
+    if (spend && spend.models) {
+      spend.models.forEach(function (m) {
+        var name = String(m.model || '').toLowerCase();
+        if (name.indexOf('claude') === 0 || (m.provider || '') === 'anthropic') return;
+        if (m.estimatedCostUsd == null) return;
+        var key = m.provider || 'unknown';
+        total += m.estimatedCostUsd;
+        byProvider[key] = (byProvider[key] || 0) + m.estimatedCostUsd;
+        counted++;
+      });
+    }
+    var providerKeys = Object.keys(byProvider);
+    if (providerKeys.length) {
+      blobTotal.textContent = '$' + total.toFixed(2);
+      blobSplit.textContent = providerKeys.map(function (k) {
+        return k + ' $' + byProvider[k].toFixed(2);
+      }).join(' + ');
+    } else if (spend && spend.models && spend.models.length) {
+      blobTotal.textContent = '$0.00';
+      blobSplit.textContent = spend.models.length + ' models \u00b7 no estimated costs';
+    } else {
+      blobTotal.textContent = 'n/a';
+      blobSplit.textContent = 'No Hermes spend data';
+    }
+
     if (!spend) {
       table.style.display = 'none';
       unavailable.classList.add('show');
@@ -2080,6 +2107,33 @@
       'Pi total: ' + piTotal + ' (actual) · ' + pi.sessionCount
       + ' sessions · ' + pi.modelCount + ' models — Hermes total: '
       + hermesTotal + ' (estimated)';
+
+    /* Collapsed-state summary: total + per-provider split from the
+       same rows the table shows. */
+    var piModels = pi.models || [];
+    var blobTotal = document.getElementById('pi-spend-blob-total');
+    var blobSplit = document.getElementById('pi-spend-blob-split');
+    var total = 0;
+    var byProvider = {};
+    piModels.forEach(function (m) {
+      if (m.costUsd == null) return;
+      total += m.costUsd;
+      var key = m.provider || 'unknown';
+      byProvider[key] = (byProvider[key] || 0) + m.costUsd;
+    });
+    var providerKeys = Object.keys(byProvider);
+    if (providerKeys.length) {
+      blobTotal.textContent = '$' + total.toFixed(2);
+      blobSplit.textContent = providerKeys.map(function (k) {
+        return k + ' $' + byProvider[k].toFixed(2);
+      }).join(' + ');
+    } else if (piModels.length) {
+      blobTotal.textContent = '$0.00';
+      blobSplit.textContent = piModels.length + ' models \u00b7 no costs';
+    } else {
+      blobTotal.textContent = 'n/a';
+      blobSplit.textContent = 'No Pi session logs';
+    }
 
     var models = (pi.models || []).slice().sort(function (a, b) {
       return (b.costUsd || 0) - (a.costUsd || 0)
@@ -2260,6 +2314,35 @@
     }
   });
 
+  /* ── collapsible spend sections (like Available platforms) ── */
+  function makeSectionToggle(toggleId, contentId, blobId) {
+    var toggle  = document.getElementById(toggleId);
+    var content = document.getElementById(contentId);
+    var blob    = blobId ? document.getElementById(blobId) : null;
+    var open    = true;
+
+    function setOpen(state) {
+      open = state;
+      content.classList.toggle("collapsed", !open);
+      toggle.classList.toggle("expanded", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      if (blob) blob.hidden = open;
+    }
+
+    toggle.addEventListener("click", function () { setOpen(!open); });
+    toggle.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setOpen(!open);
+      }
+    });
+    if (blob) blob.addEventListener("click", function () { setOpen(true); });
+    setOpen(true);
+  }
+
+  makeSectionToggle("spend-toggle", "spend-section", "spend-blob");
+  makeSectionToggle("pi-spend-toggle", "pi-spend-content", "pi-spend-blob");
+
   /* ── card filter ────────────────────────────────────────────── */
   var search = document.getElementById("search");
   var empty  = document.getElementById("empty");
@@ -2299,14 +2382,8 @@
   }
 
   function renderThemeUI(pref) {
-    var label = document.querySelector('.theme-label');
-    if (label) label.textContent = pref === 'auto' ? 'Auto' : T.THEMES[pref].label;
-    var options = document.querySelectorAll('#theme-menu [role="option"]');
-    for (var i = 0; i < options.length; i++) {
-      var selected = options[i].dataset.themeId === pref;
-      options[i].setAttribute('aria-selected', String(selected));
-      options[i].classList.toggle('selected', selected);
-    }
+    var select = document.getElementById('theme-select');
+    if (select) select.value = pref;
   }
 
   function applyThemePref(pref) {
@@ -2315,97 +2392,21 @@
     renderThemeUI(pref);
   }
 
-  function setThemeMenu(open) {
-    var btn = document.getElementById('theme-toggle');
-    var menu = document.getElementById('theme-menu');
-    btn.setAttribute('aria-expanded', String(open));
-    menu.hidden = !open;
-    if (open) {
-      var selected = menu.querySelector('[aria-selected="true"]');
-      if (selected) selected.focus();
-    }
-  }
-
-  function buildThemeMenu() {
-    var menu = document.getElementById('theme-menu');
+  function buildThemeSelect() {
+    var select = document.getElementById('theme-select');
     ['auto'].concat(T.listThemes()).forEach(function (id) {
-      var opt = document.createElement('div');
-      opt.className = 'theme-option';
-      opt.setAttribute('role', 'option');
-      opt.setAttribute('tabindex', '-1');
-      opt.dataset.themeId = id;
-
-      var swatch = document.createElement('span');
-      swatch.className = 'theme-swatch';
-      swatch.setAttribute('aria-hidden', 'true');
-      if (id === 'auto') {
-        swatch.innerHTML = '<span class="swatch-half" style="background:#0e1522"></span>' +
-                           '<span class="swatch-half" style="background:#f6f3ea"></span>';
-      } else {
-        var v = T.THEMES[id].vars;
-        swatch.innerHTML = '<span class="swatch-dot" style="background:' + v.bg + '"></span>' +
-                           '<span class="swatch-dot" style="background:' + v.accent + '"></span>' +
-                           '<span class="swatch-dot" style="background:' + v.text + '"></span>';
-      }
-      opt.appendChild(swatch);
-
-      var name = document.createElement('span');
-      name.className = 'theme-name';
-      name.textContent = id === 'auto' ? 'Auto' : T.THEMES[id].label;
-      opt.appendChild(name);
-
-      opt.addEventListener('click', function () {
-        applyThemePref(id);
-        setThemeMenu(false);
-        document.getElementById('theme-toggle').focus();
-      });
-      menu.appendChild(opt);
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = id === 'auto' ? 'Auto' : T.THEMES[id].label;
+      select.appendChild(opt);
     });
   }
 
-  function moveThemeFocus(delta) {
-    var options = Array.prototype.slice.call(
-      document.querySelectorAll('#theme-menu [role="option"]'));
-    if (!options.length) return;
-    var idx = options.indexOf(document.activeElement);
-    if (idx < 0) {
-      idx = 0;
-      for (var i = 0; i < options.length; i++) {
-        if (options[i].getAttribute('aria-selected') === 'true') { idx = i; break; }
-      }
-    }
-    idx = Math.max(0, Math.min(options.length - 1, idx + delta));
-    options[idx].focus();
-  }
-
-  buildThemeMenu();
+  buildThemeSelect();
   renderThemeUI(loadThemePref());
 
-  document.getElementById('theme-toggle').addEventListener('click', function () {
-    setThemeMenu(document.getElementById('theme-menu').hidden);
-  });
-
-  document.getElementById('theme-menu').addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowDown') { e.preventDefault(); moveThemeFocus(1); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); moveThemeFocus(-1); }
-    else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      var active = document.activeElement;
-      if (active && active.dataset.themeId) {
-        applyThemePref(active.dataset.themeId);
-        setThemeMenu(false);
-        document.getElementById('theme-toggle').focus();
-      }
-    }
-    else if (e.key === 'Escape') {
-      setThemeMenu(false);
-      document.getElementById('theme-toggle').focus();
-    }
-  });
-
-  document.addEventListener('click', function (e) {
-    var wrap = document.querySelector('.theme-wrap');
-    if (wrap && !wrap.contains(e.target)) setThemeMenu(false);
+  document.getElementById('theme-select').addEventListener("change", function () {
+    applyThemePref(this.value);
   });
 
   // In auto mode, keep following the clock while the page stays open.

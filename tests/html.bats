@@ -218,6 +218,20 @@ setup() {
     [[ "$HTML_CONTENT" == *"renderSpend"* ]]
 }
 
+@test "collapsed spend summary blob exists" {
+    [[ "$HTML_CONTENT" == *'id="spend-blob"'* ]]
+    [[ "$HTML_CONTENT" == *'id="spend-blob-total"'* ]]
+    [[ "$HTML_CONTENT" == *'id="spend-blob-split"'* ]]
+    [[ "$HTML_CONTENT" == *'makeSectionToggle("spend-toggle", "spend-section", "spend-blob")'* ]]
+}
+
+@test "collapsed Pi spend summary blob exists" {
+    [[ "$HTML_CONTENT" == *'id="pi-spend-blob"'* ]]
+    [[ "$HTML_CONTENT" == *'id="pi-spend-blob-total"'* ]]
+    [[ "$HTML_CONTENT" == *'id="pi-spend-blob-split"'* ]]
+    [[ "$HTML_CONTENT" == *'makeSectionToggle("pi-spend-toggle", "pi-spend-content", "pi-spend-blob")'* ]]
+}
+
 @test "has formatSpendCost function" {
     [[ "$HTML_CONTENT" == *"formatSpendCost"* ]]
 }
@@ -486,10 +500,10 @@ setup() {
     [[ "$HTML_CONTENT" == *'src="src/themes.js"'* ]]
 }
 
-@test "theme picker has a listbox menu" {
-    [[ "$HTML_CONTENT" == *'id="theme-menu"'* ]]
-    [[ "$HTML_CONTENT" == *'role="listbox"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-haspopup="listbox"'* ]]
+@test "theme picker is a native select dropdown" {
+    [[ "$HTML_CONTENT" == *'id="theme-select"'* ]]
+    [[ "$HTML_CONTENT" == *'<select'* ]]
+    [[ "$HTML_CONTENT" == *'addEventListener("change"'* ]]
 }
 
 @test "theme choice persists in localStorage" {
