@@ -238,7 +238,6 @@ account or org):
 - Single HTML file, no build step, no bundler.
 - The hero banner is an Amsterdam canal scene: gabled houses, a moon over
   the water, a canal boat, and the city flag (red-black-red with the XXX).
-  A short verse sits in the banner, and a full sonnet hides in the footer.
 - No secrets stored — keys come from environment variables or the
   hermes credential pool (`~/.hermes/auth.json`), never from git.
 - Spend by model reads `~/.hermes/state.db` (the Hermes agent's state DB)

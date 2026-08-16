@@ -437,12 +437,6 @@ setup() {
     [[ "$HTML_CONTENT" == *"Amsterdam Console"* ]]
 }
 
-@test "footer contains the amsterdam sonnet" {
-    [[ "$HTML_CONTENT" == *'<details class="sonnet">'* ]]
-    [[ "$HTML_CONTENT" == *"Read the Amsterdam sonnet"* ]]
-    [[ "$HTML_CONTENT" == *"the dam holds fast what you most need to know"* ]]
-}
-
 # ── script ────────────────────────────────────────
 
 @test "JavaScript search handler exists" {
