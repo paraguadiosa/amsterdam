@@ -12,6 +12,10 @@ export function formatSpendLine(model) {
   return `  * ${model.model.padEnd(44)} ${cost}  (${model.sessions} sessions)`;
 }
 
+export function formatPiSpendLine(model) {
+  return `  * ${model.model.padEnd(44)} $${model.costUsd.toFixed(2)}  (${model.sessions} sessions)`;
+}
+
 export function formatConsoleLine(id, result) {
   if (!result.detected) return `  · ${pad(id)} not configured`;
   if (result.error) return `  ! ${pad(id)} ${result.error}`;

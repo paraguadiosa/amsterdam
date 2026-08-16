@@ -52,6 +52,7 @@ describe('server', () => {
     assert.ok(data.timestamp);
     assert.ok(data.providers);
     assert.ok('spend' in data);
+    assert.ok('piSpend' in data);
     for (const p of Object.values(data.providers)) {
       assert.equal(p.detected, false);
     }

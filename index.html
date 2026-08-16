@@ -488,14 +488,16 @@
   }
 
   /* ── spend by model ─────────────────────────────────────────── */
-  #spend-table {
+  #spend-table,
+  #pi-spend-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.8125rem;
     margin-bottom: 28px;
   }
 
-  #spend-table th {
+  #spend-table th,
+  #pi-spend-table th {
     text-align: left;
     font-size: 0.6875rem;
     font-weight: 600;
@@ -509,6 +511,8 @@
     user-select: none;
   }
 
+  #pi-spend-table th { cursor: default; }
+
   #spend-table th.active { color: var(--text); }
 
   #spend-table th .sort-indicator {
@@ -519,7 +523,8 @@
     line-height: 1;
   }
 
-  #spend-table td {
+  #spend-table td,
+  #pi-spend-table td {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text);
@@ -527,17 +532,28 @@
     word-break: break-word;
   }
 
-  #spend-table tbody tr:hover { background: var(--bg-soft); }
+  #spend-table tbody tr:hover,
+  #pi-spend-table tbody tr:hover { background: var(--bg-soft); }
 
-  #spend-table .num {
+  #spend-table .num,
+  #pi-spend-table .num {
     text-align: right;
     font-family: var(--font-mono);
     white-space: nowrap;
   }
 
-  #spend-table .model { font-family: var(--font-mono); }
-  #spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
+  #spend-table .model,
+  #pi-spend-table .model { font-family: var(--font-mono); }
+  #spend-table .cost,
+  #pi-spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
   #spend-table .cost.na { color: var(--faint); }
+
+  #pi-summary {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
 
   /* ── column picker ─────────────────────────────────────────── */
   .table-tools { margin: -4px 0 14px; }
@@ -1319,6 +1335,27 @@
   <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
   <div class="hint" id="spend-empty">No usage recorded yet.</div>
 
+  <!-- spend by Pi — populated from data/billing.js and /api/billing -->
+  <div id="pi-spend-section">
+    <h2><span class="dot" aria-hidden="true"></span>Spend by Pi</h2>
+    <div id="pi-summary"></div>
+    <table id="pi-spend-table" aria-label="Spend by Pi">
+      <thead>
+        <tr>
+          <th scope="col">Model</th>
+          <th scope="col">Provider</th>
+          <th scope="col">Sessions</th>
+          <th scope="col">Calls</th>
+          <th scope="col">Tokens</th>
+          <th scope="col">Cost</th>
+          <th scope="col">Last seen</th>
+        </tr>
+      </thead>
+      <tbody id="pi-spend-body"></tbody>
+    </table>
+    <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+  </div>
+
   <label class="sr-only" for="search">Filter providers</label>
   <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
@@ -1746,6 +1783,62 @@
     updateSortIndicator();
   }
 
+  /* ── spend by Pi ────────────────────────────────────────────── */
+  function formatPiCost(model) {
+    if (model.costUsd == null) return 'n/a';
+    return '$' + model.costUsd.toFixed(2);
+  }
+
+  function renderPiSpend(billing) {
+    var pi      = billing && billing.piSpend;
+    var section = document.getElementById('pi-spend-section');
+    if (!pi) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    var table = document.getElementById('pi-spend-table');
+    var empty = document.getElementById('pi-spend-empty');
+    empty.classList.remove('show');
+
+    var hermes = billing && billing.spend;
+    var hermesTotal = hermes && hermes.totalEstimatedUsd != null
+      ? '$' + hermes.totalEstimatedUsd.toFixed(2)
+      : 'n/a';
+    var piTotal = pi.totalUsd == null ? 'n/a' : '$' + pi.totalUsd.toFixed(2);
+    document.getElementById('pi-summary').textContent =
+      'Pi total: ' + piTotal + ' (actual) · ' + pi.sessionCount
+      + ' sessions · ' + pi.modelCount + ' models — Hermes total: '
+      + hermesTotal + ' (estimated)';
+
+    var models = (pi.models || []).slice().sort(function (a, b) {
+      return (b.costUsd || 0) - (a.costUsd || 0)
+        || String(a.model).localeCompare(String(b.model));
+    });
+    if (models.length === 0) {
+      table.style.display = 'none';
+      empty.classList.add('show');
+      return;
+    }
+
+    table.style.display = 'table';
+    var rows = models.map(function (m) {
+      var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
+      var tokens = m.totalTokens == null ? '—' : formatTokens(m.totalTokens);
+      return '<tr' + title + '>'
+        + '<td class="model">' + escapeHtml(m.model) + '</td>'
+        + '<td>' + escapeHtml(m.provider || '—') + '</td>'
+        + '<td class="num">' + m.sessions + '</td>'
+        + '<td class="num">' + m.calls + '</td>'
+        + '<td class="num">' + tokens + '</td>'
+        + '<td class="cost">' + formatPiCost(m) + '</td>'
+        + '<td>' + (m.lastSeen ? escapeHtml(m.lastSeen) : '—') + '</td>'
+        + '</tr>';
+    }).join('');
+    document.getElementById('pi-spend-body').innerHTML = rows;
+  }
+
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
   var live = location.protocol === "http:" || location.protocol === "https:";
   var summaryEl = document.getElementById("billing-summary");
@@ -1811,6 +1904,7 @@
     renderCredits(billing);
     renderSummary(billing);
     renderSpend(billing);
+    renderPiSpend(billing);
     organizeCards(billing);
   }
 

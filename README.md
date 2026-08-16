@@ -107,15 +107,26 @@ split).
 
 ### Spend by model
 
-Alongside provider balances, the dashboard shows how much Eve spent per LLM
-model. The numbers come from the local Hermes agent state database at
-`~/.hermes/state.db` — read-only, host daemon only. Amsterdam never writes to
-that database. The data is aggregated per `(model, billing_provider)`:
-sessions, calls, tokens, and estimated/actual cost.
+The dashboard shows spend from two sources, side by side:
 
-Override the database path with `HERMES_STATE_DB` (useful for testing or
-non-standard installs). In Docker there is no state DB, so the section shows
-the unavailable hint — run `amster serve` on the host to see spend data.
+**Hermes — estimated.** The local Hermes agent state database at
+`~/.hermes/state.db` (read-only, host daemon only). Amsterdam never writes
+to that database. The data is aggregated per `(model, billing_provider)`:
+sessions, calls, tokens, and estimated/actual cost. Only rows whose cost
+status is `estimated` count toward the Hermes total; untrusted snapshots
+(for example a bad pricing row marked `unknown`) are excluded from the
+total and shown as `n/a`. Override the database path with `HERMES_STATE_DB`.
+
+**Pi sessions — actual.** Pi (pi.dev CLI) writes one JSONL file per session
+under `~/.pi/agent/sessions`. Every assistant message carries the provider,
+model, tokens, and real USD cost. Amsterdam aggregates per `(model,
+provider)` and per project (the basename of the session working directory;
+home-directory sessions count as `home`). Override the sessions directory
+with `PI_SESSIONS_DIR`. Pi costs are billed amounts, so they always show as
+USD — never `n/a`. When the directory is missing, the section is hidden.
+
+In Docker there is no Hermes state DB and no Pi sessions, so the spend
+sections stay empty — run `amster serve` on the host to see spend data.
 
 The table is sortable by clicking any column header (default: est. cost desc).
 Click **Columns** to choose which columns are visible — the choice is saved
@@ -153,6 +164,7 @@ src/
   server.js          # Local HTTP server for live mode
   env.js             # Credential loader (.env files + hermes pool)
   spend.js           # Read-only per-model spend from the Hermes state DB
+  pi-spend.js        # Read-only spend from Pi session logs
   format.js          # Output formatters (JS file + console)
 data/
   billing.js         # Auto-generated (gitignored)
@@ -228,8 +240,9 @@ account or org):
 - No secrets stored — keys come from environment variables or the
   hermes credential pool (`~/.hermes/auth.json`), never from git.
 - Spend by model reads `~/.hermes/state.db` (the Hermes agent's state DB)
-  in read-only mode; the DB is never mounted into the Docker container
-  (WAL/shm issues), so spend data is host-daemon-only.
+  in read-only mode, and Pi spend reads `~/.pi/agent/sessions` (Pi session
+  logs); neither is ever mounted into the Docker container (WAL/shm and
+  per-session file issues), so spend data is host-daemon-only.
 - The container runs as a non-root user and mounts the keys file read-only.
 - The search box filters cards live.
 - "Available platforms" is a collapsible dropdown (click to expand).

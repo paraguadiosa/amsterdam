@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatBillingJs, formatConsoleLine } from '../src/format.js';
+import { formatBillingJs, formatConsoleLine, formatSpendLine, formatPiSpendLine } from '../src/format.js';
 
 // ── formatBillingJs ──────────────────────────────
 
@@ -85,5 +85,26 @@ describe('formatConsoleLine', () => {
   it('shows unknown for unrecognized data', () => {
     const line = formatConsoleLine('weird', { detected: true });
     assert.ok(line.includes('unknown'));
+  });
+});
+
+// ── formatPiSpendLine ────────────────────────────
+
+describe('formatPiSpendLine', () => {
+  it('shows real pi cost with two decimals', () => {
+    const line = formatPiSpendLine({
+      model: 'deepseek-v4-flash',
+      sessions: 12,
+      costUsd: 0.4321,
+    });
+    assert.ok(line.includes('deepseek-v4-flash'));
+    assert.ok(line.includes('$0.43'));
+    assert.ok(line.includes('(12 sessions)'));
+  });
+
+  it('shows zero cost as $0.00', () => {
+    const line = formatPiSpendLine({ model: 'gpt-5', sessions: 1, costUsd: 0 });
+    assert.ok(line.includes('$0.00'));
+    assert.ok(!line.includes('n/a'));
   });
 });

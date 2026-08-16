@@ -42,6 +42,9 @@ const ROWS = [
   ['s9', 'kimi-k3', 'kimi-coding', 2, 300, 150, 0, 0, 0, 0, 0, 'unknown', '2026-08-05T00:00:00Z'],
   // Local GGUF — null estimated cost, null status.
   ['s9', '/models/local.gguf', 'custom', 1, 100, 100, 0, 0, 0, null, null, null, '2026-08-06T00:00:00Z'],
+  // Phantom snapshot — unknown status but a large recorded cost that a
+  // bad pricing run polluted. Must not surface anywhere.
+  ['sX', 'deepseek-ai/DeepSeek-V3.2', 'huggingface', 12, 8456, 1503, 63296, 0, 0, 1252.287, 0, 'unknown', '2026-08-07T00:00:00Z'],
 ];
 
 describe('spend', () => {
@@ -109,6 +112,25 @@ describe('spend', () => {
     assert.equal(kimi.costStatus, 'unknown'); // no authoritative rate
   });
 
+  it('nulls untrusted recorded costs from bad pricing snapshots', () => {
+    const spend = readFromDb();
+
+    const phantom = spend.models.find((m) => m.model === 'deepseek-ai/DeepSeek-V3.2');
+    assert.ok(phantom);
+    assert.equal(phantom.provider, 'huggingface');
+    assert.equal(phantom.costStatus, 'unknown');
+    assert.equal(phantom.estimatedCostUsd, null);
+    // Tokens, actual cost, and lastSeen survive the purge.
+    assert.equal(phantom.calls, 12);
+    assert.equal(phantom.inputTokens, 8456);
+    assert.equal(phantom.outputTokens, 1503);
+    assert.equal(phantom.cacheReadTokens, 63296);
+    assert.equal(phantom.actualCostUsd, 0);
+    assert.equal(phantom.lastSeen, '2026-08-07T00:00:00Z');
+    // No model carries the polluted snapshot anywhere.
+    assert.ok(!spend.models.some((m) => m.estimatedCostUsd === 1252.287));
+  });
+
   it('purges anthropic and claude models from the aggregation', () => {
     const spend = readFromDb();
     const leftovers = spend.models.filter(
@@ -121,20 +143,22 @@ describe('spend', () => {
   it('orders models by estimated cost descending with nulls last', () => {
     const spend = readFromDb();
     const costs = spend.models.map((m) => m.estimatedCostUsd);
-    // Null cost sorts last; local and unknown models price as zero.
-    assert.deepEqual(costs, [3.3333, 0, 0]);
+    // Null cost sorts last; local and unknown models price as zero, and
+    // the phantom snapshot is nulled before sorting.
+    assert.deepEqual(costs, [3.3333, 0, 0, null]);
   });
 
   it('computes totals across all rows', () => {
     const spend = readFromDb();
-    assert.equal(spend.modelCount, 3);
+    assert.equal(spend.modelCount, 4);
+    // The phantom row is untrusted, so it is excluded from the total.
     assert.equal(spend.totalEstimatedUsd, 3.3333);
     assert.equal(spend.totalActualUsd, 3);
   });
 
   it('honors HERMES_STATE_DB env override', () => {
     const spend = readFromDb();
-    assert.equal(spend.modelCount, 3);
+    assert.equal(spend.modelCount, 4);
   });
 
   it('returns null when the DB file is missing', () => {

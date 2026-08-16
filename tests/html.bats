@@ -237,6 +237,51 @@ setup() {
     [ "$status" -eq 1 ]
 }
 
+# ── spend by Pi ─────────────────────────────────
+
+@test "has spend by Pi section" {
+    [[ "$HTML_CONTENT" == *"Spend by Pi"* ]]
+}
+
+@test "pi spend table exists" {
+    [[ "$HTML_CONTENT" == *'id="pi-spend-table"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-label="Spend by Pi"'* ]]
+}
+
+@test "pi spend summary line markup exists" {
+    [[ "$HTML_CONTENT" == *'id="pi-summary"'* ]]
+    [[ "$HTML_CONTENT" == *"Pi total"* ]]
+    [[ "$HTML_CONTENT" == *"Hermes total"* ]]
+}
+
+@test "pi spend section sits between spend table and search" {
+    local spend_line=$(grep -n 'id="spend-empty"' "$HTML" | head -1 | cut -d: -f1)
+    local pi_line=$(grep -n 'id="pi-spend-section"' "$HTML" | head -1 | cut -d: -f1)
+    local search_line=$(grep -n '<input id="search"' "$HTML" | head -1 | cut -d: -f1)
+    [ "$pi_line" -gt "$spend_line" ]
+    [ "$pi_line" -lt "$search_line" ]
+}
+
+@test "pi spend table lists expected columns" {
+    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Last seen</th>"* ]]
+    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Tokens</th>"* ]]
+    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Cost</th>"* ]]
+}
+
+@test "pi spend rows reuse mono and cost styling" {
+    [[ "$HTML_CONTENT" == *'class="cost"'* ]]
+    [[ "$HTML_CONTENT" == *'class="model"'* ]]
+}
+
+@test "renderPiSpend is called from applyBilling" {
+    [[ "$HTML_CONTENT" == *"renderPiSpend(billing)"* ]]
+}
+
+@test "pi spend table is not wired to the sort handler" {
+    run grep -F '#pi-spend-table thead' "$HTML"
+    [ "$status" -eq 1 ]
+}
+
 # ── column picker ────────────────────────────────
 
 @test "column picker button exists with aria controls" {

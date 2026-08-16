@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import providers from './providers/index.js';
 import { loadDefaults } from './env.js';
 import { readSpend } from './spend.js';
-import { formatBillingJs, formatConsoleLine, formatSpendLine } from './format.js';
+import { readPiSpend } from './pi-spend.js';
+import { formatBillingJs, formatConsoleLine, formatSpendLine, formatPiSpendLine } from './format.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = resolve(__dirname, '..', 'data');
@@ -50,6 +51,7 @@ export async function openFloodgates(env = process.env, fetchFn = globalThis.fet
     timestamp: new Date().toISOString(),
     providers: results,
     spend: readSpend(env),
+    piSpend: readPiSpend(env),
   };
 }
 
@@ -72,6 +74,16 @@ async function main() {
     console.log('\nSpend by model');
     if (billing.spend.models.length) {
       for (const model of billing.spend.models) console.log(formatSpendLine(model));
+    } else {
+      console.log('  No usage recorded yet.');
+    }
+  }
+
+  if (billing.piSpend) {
+    console.log('\nSpend by Pi');
+    console.log(`  Pi total: $${billing.piSpend.totalUsd.toFixed(2)} (actual)`);
+    if (billing.piSpend.models.length) {
+      for (const model of billing.piSpend.models) console.log(formatPiSpendLine(model));
     } else {
       console.log('  No usage recorded yet.');
     }

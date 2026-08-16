@@ -38,7 +38,7 @@ const AGGREGATE_SQL = `
 
 const TOTAL_SQL = `
   SELECT
-    ROUND(SUM(estimated_cost_usd), 4) AS estimated,
+    ROUND(SUM(CASE WHEN cost_status = 'estimated' THEN estimated_cost_usd ELSE 0 END), 4) AS estimated,
     ROUND(SUM(actual_cost_usd), 4) AS actual
   FROM session_model_usage
   WHERE LOWER(billing_provider) <> 'anthropic'
@@ -107,6 +107,33 @@ function fillMissingCosts(models) {
   return models;
 }
 
+// A recorded cost is only trustworthy when the whole group is 'estimated'.
+// Groups marked 'unknown' (for example a bad pricing snapshot) keep their
+// tokens and actual cost but drop the estimated number, so no phantom
+// figure leaks into the totals or the table. A recorded zero is not a
+// snapshot, so it stays as-is.
+function dropUntrustedCosts(models) {
+  for (const m of models) {
+    if (m.costStatus === 'unknown' && m.estimatedCostUsd) m.estimatedCostUsd = null;
+  }
+  return models;
+}
+
+// The SQL orders by the raw recorded cost, which an untrusted snapshot can
+// pollute. Re-sort so null/unknown costs land last, matching the UI sort.
+function sortByCost(models) {
+  return models.sort((a, b) => {
+    const av = a.estimatedCostUsd;
+    const bv = b.estimatedCostUsd;
+    const aNa = av == null;
+    const bNa = bv == null;
+    if (aNa && bNa) return String(a.model).localeCompare(String(b.model));
+    if (aNa) return 1;
+    if (bNa) return -1;
+    return bv - av || String(a.model).localeCompare(String(b.model));
+  });
+}
+
 // Read spend from the Hermes state DB. Never throws: any failure returns
 // null so the rest of Amsterdam keeps working (CI and Docker have no DB).
 // Accepts either a plain path or an env-like object with HERMES_STATE_DB.
@@ -157,6 +184,8 @@ export function readSpend(arg) {
       });
     }
     fillMissingCosts(models);
+    dropUntrustedCosts(models);
+    sortByCost(models);
     return {
       source: 'hermes-state-db',
       generatedAt: new Date().toISOString(),
