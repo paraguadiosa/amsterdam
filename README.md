@@ -2,26 +2,80 @@
 
 > **Amsterdam:** the LLM river held by a HTML dam. Run `amsterdam` to open the gates.
 
+[![CI](https://github.com/paraguadiosa/amsterdam/actions/workflows/ci.yml/badge.svg)](https://github.com/paraguadiosa/amsterdam/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js >= 22](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](#requirements)
+
 A static panel to open all LLM billing consoles from one place — with
 live balance and usage numbers fetched straight from provider APIs.
 
-<img width="1468" height="677" alt="image" src="https://github.com/user-attachments/assets/aeaac237-1cc4-4afa-9771-7dc28f1bda9a" />
+<img width="1468" height="677" alt="Amsterdam Console dashboard" src="https://github.com/user-attachments/assets/aeaac237-1cc4-4afa-9771-7dc28f1bda9a" />
+
+## Features
+
+- **One dashboard for all consoles** — a chip per provider, each opening
+  its billing console in a new tab. Search filters chips live.
+- **Live balances** — real money numbers from providers with billing APIs
+  (DeepSeek, Moonshot), refreshed every 2.5 minutes.
+- **Key verification** — providers without a billing API report whether
+  the key is valid (HTTP 200 on `/v1/models`) and how many models it can
+  see.
+- **Credits remaining panel** — the live sum of all provider balances,
+  with a per-provider split. Manual balances are supported for providers
+  without an API.
+- **Spend by model** — side-by-side cost tables from the Hermes agent
+  state database (estimated) and Pi session logs (actual billed USD).
+  Sortable, with a column picker.
+- **Two serving modes** — live local daemon with an HTTP API, or a static
+  `file://` snapshot with no server at all.
+- **Docker support** — a small `node:22-alpine` image that runs as a
+  non-root user, with a built-in health check.
+- **No build step** — a single HTML file and plain Node modules. No
+  bundler, no framework.
+- **Secrets safe by default** — keys live in environment variables or the
+  Hermes credential pool, never in git. Gitleaks hooks block accidental
+  commits and pushes of secrets.
+
+## Requirements
+
+- **Node.js 22 or newer** (the app uses `node:test`, `fetch`, and ESM).
+- **curl** — used by the CLI helpers to probe the daemon.
+- **Docker** — optional, only for the container mode.
+- **bats** and **npm** — only needed to run the test suite.
+
+The runtime itself has zero npm dependencies beyond Node built-ins.
 
 ## Quick start
 
-### Default: host daemon (fast iteration)
+### 1. Clone and configure
 
 ```bash
-./scripts/amsterdam-install   # symlink amsterdam into ~/.local/bin (once)
+git clone git@github.com:paraguadiosa/amsterdam.git
+cd amsterdam
+cp .env.example .env    # then fill in your API keys
+```
+
+### 2. Install the CLI (once)
+
+```bash
+./scripts/amsterdam-install   # symlinks amsterdam into ~/.local/bin
+```
+
+### 3. Run
+
+```bash
 amsterdam                     # start the daemon in the background, print the URL
 ```
 
-The first `amsterdam` starts the host daemon in the background (the command
-returns to the prompt immediately) and prints the live URL
+The first `amsterdam` starts the host daemon in the background (the
+command returns to the prompt immediately) and prints the live URL
 (<http://localhost:3131>). It does not open a browser on that first call.
-When the daemon is already running, `amsterdam` opens the live dashboard in
-your browser instead. Use `amsterdam serve` for a foreground debug daemon
-(Ctrl+C to stop).
+When the daemon is already running, `amsterdam` opens the live dashboard
+in your browser instead. Use `amsterdam serve` for a foreground debug
+daemon (Ctrl+C to stop).
+
+No API keys yet? The dashboard still works — chips show `unverified`
+until a key is found.
 
 ### Opt-in: Docker container
 
@@ -40,9 +94,9 @@ For a one-shot snapshot instead:
 ./scripts/amster open    # open the static dashboard (file://)
 ```
 
-## CLI helper
+## CLI reference
 
-```bash
+```
 amsterdam               # Start the daemon in the background, or open the dashboard
 amsterdam serve         # Foreground debug daemon (Ctrl+C to stop)
 amsterdam start         # Start the daemon in the background (same as no arguments)
@@ -59,9 +113,9 @@ amsterdam path          # Show the absolute path
 amsterdam help          # Show help
 ```
 
-The wrapper starts the host daemon by default, passes `docker|up|stop|build|run`
-to `scripts/amster-docker`, and the rest to `scripts/amster`. The low-level
-helpers work the same way:
+The wrapper starts the host daemon by default, passes
+`docker|up|stop|build|run` to `scripts/amster-docker`, and the rest to
+`scripts/amster`. The low-level helpers work the same way:
 
 ```bash
 ./scripts/amster start    # Start the daemon in the background, print the URL
@@ -75,13 +129,47 @@ helpers work the same way:
 ./scripts/amster help     # Show help
 ```
 
-The daemon state lives in `data/` (gitignored): `data/amsterdam.pid` holds the
-pid of the background daemon and `data/amsterdam.log` its output. `amster stop`
-reads the pidfile and kills exactly that process. The port is the `PORT`
-environment variable when set, otherwise 3131. Override the browser opener
-with `AMSTERDAM_OPEN` (default `xdg-open`) for headless use.
+The daemon state lives in `data/` (gitignored): `data/amsterdam.pid`
+holds the pid of the background daemon and `data/amsterdam.log` its
+output. `amster stop` reads the pidfile and kills exactly that process.
 
-### Live mode vs static mode
+### Environment variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `3131` | Port for the daemon and the container |
+| `AMSTERDAM_OPEN` | `xdg-open` | Browser opener command (set to `echo` for headless use) |
+| `HERMES_STATE_DB` | `~/.hermes/state.db` | Hermes spend database path |
+| `PI_SESSIONS_DIR` | `~/.pi/agent/sessions` | Pi session log directory |
+| `AMSTERDAM_BIN_DIR` | `~/.local/bin` | Install target for `amsterdam-install` |
+
+## Configuration — credentials in one place
+
+Amsterdam reads credentials from four sources, in order. The first source
+that defines a variable wins:
+
+1. `process.env` (already exported in your shell)
+2. `./.env` in the project directory
+3. `~/.hermes/.env`
+4. **`~/.hermes/auth.json`** — the Hermes credential pool
+
+The Hermes credential pool is the recommended source. Keys added with
+`hermes auth add <provider> --api-key <key>` are picked up automatically.
+Hermes provider ids are mapped to Amsterdam variables (for example
+`kimi-coding` → `KIMI_API_KEY`). Only manual credentials carry a token;
+env-sourced ones resolve through the `.env` files above. The pool's
+`base_url` is also honored for providers that read one
+(`KIMI_BASE_URL`, `DEEPSEEK_BASE_URL`, `GROQ_BASE_URL`), with the
+OpenAI-style trailing `/v1` stripped.
+
+So you maintain your keys in **one place** (`hermes auth`), and Amsterdam
+detects them without duplicating them in a project `.env`.
+
+All supported variables are listed in [`.env.example`](.env.example).
+Copy it to `.env` and fill in the keys you have. `.env` is git-ignored —
+it must never be committed.
+
+## Live mode vs static mode
 
 | Mode | Command | Data | Refresh |
 |------|---------|------|---------|
@@ -89,16 +177,18 @@ with `AMSTERDAM_OPEN` (default `xdg-open`) for headless use.
 | Static | `amster dump` + `amster open` | `data/billing.js` | None (snapshot) |
 
 The dashboard detects how it is served. Over HTTP it polls `/api/billing`
-and shows a live status; over `file://` it renders the static snapshot and
-suggests `amster serve`. `amster open` opens the live URL when the daemon is
-running and falls back to the static file otherwise.
+and shows a live status; over `file://` it renders the static snapshot
+and suggests `amster serve`. `amster open` opens the live URL when the
+daemon is running and falls back to the static file otherwise.
+
+## Spend data
 
 ### Credits remaining
 
-The dashboard leads with a big **Credits remaining** panel: the live sum of
-all provider balances with real billing APIs (DeepSeek, Moonshot), plus a
-per-provider split. It updates with every 2.5-minute auto-refresh, so the
-number on screen is always how much money is left in the accounts.
+The dashboard leads with a big **Credits remaining** panel: the live sum
+of all provider balances with real billing APIs (DeepSeek, Moonshot),
+plus a per-provider split. It updates with every 2.5-minute auto-refresh,
+so the number on screen is always how much money is left in the accounts.
 
 Providers without a billing API (the verified-only providers) cannot
 report a balance — the API simply has no public credits endpoint (this is
@@ -117,40 +207,32 @@ to that database. The data is aggregated per `(model, billing_provider)`:
 sessions, calls, tokens, and estimated/actual cost. Only rows whose cost
 status is `estimated` count toward the Hermes total; untrusted snapshots
 (for example a bad pricing row marked `unknown`) are excluded from the
-total and shown as `n/a`. Override the database path with `HERMES_STATE_DB`.
+total and shown as `n/a`. Override the database path with
+`HERMES_STATE_DB`.
 
-**Pi sessions — actual.** Pi (pi.dev CLI) writes one JSONL file per session
-under `~/.pi/agent/sessions`. Every assistant message carries the provider,
-model, tokens, and real USD cost. Amsterdam aggregates per `(model,
-provider)` and per project (the basename of the session working directory;
-home-directory sessions count as `home`). Override the sessions directory
-with `PI_SESSIONS_DIR`. Pi costs are billed amounts, so they always show as
-USD — never `n/a`. When the directory is missing, the section is hidden.
+**Pi sessions — actual.** Pi (pi.dev CLI) writes one JSONL file per
+session under `~/.pi/agent/sessions`. Every assistant message carries the
+provider, model, tokens, and real USD cost. Amsterdam aggregates per
+`(model, provider)` and per project (the basename of the session working
+directory; home-directory sessions count as `home`). Override the sessions
+directory with `PI_SESSIONS_DIR`. Pi costs are billed amounts, so they
+always show as USD — never `n/a`. When the directory is missing, the
+section is hidden.
 
 In Docker there is no Hermes state DB and no Pi sessions, so the spend
 sections stay empty — run `amster serve` on the host to see spend data.
 
-The table is sortable by clicking any column header (default: est. cost desc).
-Click **Columns** to choose which columns are visible — the choice is saved
-per browser. Local GGUF files in `~/models` appear in the table even without
-recorded usage, marked with status `no usage`. Groups with usage but no
-recorded cost get a token-based estimate when the model has an authoritative
-rate (deepseek-v4-flash, deepseek-v4-pro); local GGUF runs show as `free`.
-Models without a known rate keep `n/a`.
+The table is sortable by clicking any column header (default: est. cost
+desc). Click **Columns** to choose which columns are visible — the choice
+is saved per browser. Local GGUF files in `~/models` appear in the table
+even without recorded usage, marked with status `no usage`. Groups with
+usage but no recorded cost get a token-based estimate when the model has
+an authoritative rate (deepseek-v4-flash, deepseek-v4-pro); local GGUF
+runs show as `free`. Models without a known rate keep `n/a`.
 
 Anthropic is purged at the data layer: rows from the `anthropic` billing
 provider and any `claude-*` model are dropped from the aggregation, the
 totals, and the CLI output — wherever the spend data goes.
-
-### Install to `~/.local/bin`
-
-```bash
-./scripts/amsterdam-install
-```
-
-This symlinks `amsterdam`, `amster`, and `amster-docker` into
-`~/.local/bin`. The scripts resolve symlinks, so they work from any
-directory and keep working after repo updates.
 
 ## Architecture
 
@@ -188,37 +270,24 @@ scripts/
 | Account info | Hugging Face | Username + verified status |
 | Key verification + model count | OpenAI, Groq, Together, Mistral, Google, Fireworks | Number of models + `verified: true` on HTTP 200 |
 
-## Credentials — one place to keep them
+Adding a provider is small: write a module that exports `id`, `name`,
+`envKey`, and a `fetchBalance`/`fetchAccount` function, then register it
+in `src/providers/index.js`. The tests in `tests/providers.test.js` show
+the expected shape.
 
-Amsterdam reads credentials from three sources, in order. The first
-source that defines a variable wins:
-
-1. `process.env` (already exported in your shell)
-2. `./.env` in the project directory
-3. `~/.hermes/.env`
-4. **`~/.hermes/auth.json`** — the hermes credential pool
-
-The hermes credential pool is the recommended source. Keys added with
-`hermes auth add <provider> --api-key <key>` are picked up automatically.
-Hermes provider ids are mapped to amsterdam variables (e.g.
-`kimi-coding` → `KIMI_API_KEY`).
-Only manual credentials carry a token; env-sourced ones resolve through
-the `.env` files above. The pool's `base_url` is also honored for
-providers that read one (`KIMI_BASE_URL`, `DEEPSEEK_BASE_URL`, `GROQ_BASE_URL`),
-with the OpenAI-style trailing `/v1` stripped.
-
-So you maintain your keys in **one place** (`hermes auth`), and amsterdam
-detects them without duplicating them in a project `.env`.
-
-## Tests
+## Testing
 
 ```bash
-npm test              # Node.js tests with coverage (fails below 80% lines)
-npm run test:shell    # Shell + HTML tests (bats)
-npm run test:all      # Both
+npm install            # one-time, for the coverage tool (c8)
+npm test               # Node.js tests with coverage (fails below 80% lines)
+npm run test:shell     # Shell + HTML tests (bats)
+npm run test:all       # Both
 ```
 
-## CI (GitHub Actions)
+The suite covers the providers, the credential loader, the spend
+aggregators, the HTTP server, the CLI scripts, and the dashboard HTML.
+
+## CI
 
 `.github/workflows/ci.yml` runs on every push and pull request:
 
@@ -226,26 +295,53 @@ npm run test:all      # Both
    and the bats suite.
 2. **Docker** — builds the image and smoke-tests `/` and `/api/billing`.
 
-Once pushed to GitHub, add a status badge (replace `OWNER` with your
-account or org):
+## Contributing
 
-```markdown
-[![CI](https://github.com/OWNER/amsterdam/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/amsterdam/actions/workflows/ci.yml)
-```
+Contributions are welcome. The project is small on purpose — keep it that
+way.
 
-## Notes
+1. **Fork** the repository and create a branch:
+   `git checkout -b my-feature`.
+2. **Make the change.** Keep it scoped; the single-HTML-file constraint
+   applies to the dashboard.
+3. **Test it.** Run `npm run test:all` and keep the Node coverage at or
+   above 80%.
+4. **Install the git hooks** (once): `git config core.hooksPath .githooks`.
+   The pre-commit hook scans staged files with
+   [gitleaks](https://github.com/gitleaks/gitleaks); the pre-push hook
+   scans the outgoing commit range and **fails closed** if gitleaks is
+   missing — install it before pushing.
+5. **Open a pull request** describing what changed and why.
 
-- Single HTML file, no build step, no bundler.
-- The hero banner is an Amsterdam canal scene: gabled houses, a moon over
-  the water, a canal boat, and the city flag (red-black-red with the XXX).
-- No secrets stored — keys come from environment variables or the
-  hermes credential pool (`~/.hermes/auth.json`), never from git.
-- Spend by model reads `~/.hermes/state.db` (the Hermes agent's state DB)
-  in read-only mode, and Pi spend reads `~/.pi/agent/sessions` (Pi session
-  logs); neither is ever mounted into the Docker container (WAL/shm and
-  per-session file issues), so spend data is host-daemon-only.
-- The container runs as a non-root user and mounts the keys file read-only.
-- The search box filters cards live.
-- "Available platforms" is a collapsible dropdown (click to expand).
-- "Open console" buttons open each page in a new tab.
-- The repo is local-only: no remotes, no push.
+Style notes: plain Node modules with `node:` prefixed imports, no
+framework, no bundler, comments kept minimal. Shell scripts stay POSIX
+`/bin/sh`. Secret-checking is not optional — real keys in the repo must
+be rotated immediately.
+
+## Security
+
+- No secrets are stored in the repo. Keys come from environment
+  variables or the Hermes credential pool (`~/.hermes/auth.json`).
+- `.gitignore` is hardened and `.env.example` ships empty.
+- Gitleaks pre-commit and pre-push hooks block accidental leaks.
+- The Docker container runs as a non-root user and mounts the keys file
+  read-only.
+- Spend data reads are strictly read-only: Amsterdam never writes to
+  `~/.hermes/state.db` or `~/.pi/agent/sessions`, and neither is mounted
+  into the container.
+
+To report a vulnerability, open a GitHub issue with the label `security`
+or contact the maintainers privately. Do not open a public issue that
+contains real keys.
+
+## License
+
+[MIT](LICENSE) — see the [LICENSE](LICENSE) file.
+
+## Related projects
+
+- **Hermes** — the local agent whose state database (`~/.hermes/state.db`)
+  and credential pool (`~/.hermes/auth.json`) feed the estimated spend
+  table. Amsterdam reads both read-only.
+- [Pi](https://pi.dev) — the CLI whose session logs (`~/.pi/agent/sessions`)
+  feed the actual spend table.
