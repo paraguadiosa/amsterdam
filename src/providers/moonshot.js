@@ -7,7 +7,8 @@ export default {
   defaultBaseUrl: 'https://api.moonshot.cn',
 
   async fetchBalance({ apiKey, baseUrl }, fetchFn = globalThis.fetch) {
-    const res = await fetchFn(`${baseUrl}/v1/users/me/balance`, {
+    const base = String(baseUrl || this.defaultBaseUrl).replace(/\/v1\/?$/, '');
+    const res = await fetchFn(`${base}/v1/users/me/balance`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
