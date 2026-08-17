@@ -19,6 +19,9 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
   async function getBilling(force = false) {
     const now = Date.now();
     if (!force && cache.data && now - cache.at < CACHE_TTL_MS) return cache.data;
+    // Re-read .env files and the Hermes pool so keys added since boot
+    // are picked up without a daemon restart.
+    if (loadEnv) loadDefaults(env);
     const data = await openFloodgates(env, fetchFn);
     cache = { data, at: Date.now() };
     return data;
@@ -46,6 +49,18 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
       const data = await getBilling();
       res.writeHead(200, { 'Content-Type': 'application/javascript' });
       res.end(formatBillingJs(data));
+      return;
+    }
+
+    if (pathname.startsWith('/src/')) {
+      const rel = pathname.slice('/src/'.length);
+      const safe = /^[\w./-]+\.js$/.test(rel) && !rel.includes('..');
+      if (!safe) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
+      await sendFile(res, resolve(ROOT, 'src', rel), 'application/javascript');
       return;
     }
 

@@ -35,6 +35,9 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Secrets safe by default** — keys live in environment variables or the
   Hermes credential pool, never in git. Gitleaks hooks block accidental
   commits and pushes of secrets.
+- **Five themes** — night, day, dusk, aurora, and retro palettes, all
+  meeting WCAG AA on their surfaces. The picker in the hero remembers
+  your choice; `auto` follows the clock (day 07:00-19:59).
 
 ## Requirements
 
@@ -223,8 +226,10 @@ In Docker there is no Hermes state DB and no Pi sessions, so the spend
 sections stay empty — run `amster serve` on the host to see spend data.
 
 The table is sortable by clicking any column header (default: est. cost
-desc). Click **Columns** to choose which columns are visible — the choice
-is saved per browser. Local GGUF files in `~/models` appear in the table
+desc). A **model dropdown** next to the Columns button filters the
+table to one model — the choice is saved per browser and re-applied on
+the next load. Click **Columns** to choose which columns are visible —
+the choice is saved per browser too. Local GGUF files in `~/models` appear in the table
 even without recorded usage, marked with status `no usage`. Groups with
 usage but no recorded cost get a token-based estimate when the model has
 an authoritative rate (deepseek-v4-flash, deepseek-v4-pro); local GGUF
@@ -239,16 +244,18 @@ totals, and the CLI output — wherever the spend data goes.
 ```
 src/
   providers/
-    deepseek.js      # Balance endpoint (has real billing API)
-    moonshot.js      # Balance endpoint (has real billing API)
-    huggingface.js   # Whoami endpoint (account info)
-    verify.js        # Factory for key-verification-only providers
-    index.js         # Provider registry
+    catalog.js       # Single source of truth for every provider
+    deepseek.js      # Balance fetcher (custom, keyed by catalog id)
+    moonshot.js      # Balance fetcher (custom, keyed by catalog id)
+    huggingface.js   # Whoami fetcher (custom, keyed by catalog id)
+    verify.js        # Generic key-verification factory
+    index.js         # Builds the runtime registry from the catalog
   dam.js             # Orchestrator — fetches all, writes data/billing.js
   server.js          # Local HTTP server for live mode
   env.js             # Credential loader (.env files + hermes pool)
   spend.js           # Read-only per-model spend from the Hermes state DB
   pi-spend.js        # Read-only spend from Pi session logs
+  themes.js          # Palette registry — one entry per theme, no CSS per theme
   format.js          # Output formatters (JS file + console)
 data/
   billing.js         # Auto-generated (gitignored)
@@ -260,6 +267,7 @@ scripts/
   amsterdam          # Wrapper: default to host daemon, Docker via `amsterdam docker`
   amsterdam-install  # Symlink the commands into ~/.local/bin
   amster-docker      # Docker build/run helper
+  sync-providers     # Regenerate .env.example from the catalog
 ```
 
 ### Provider types
@@ -268,12 +276,29 @@ scripts/
 |------|-----------|-----------------|
 | Balance API | DeepSeek, Moonshot | Actual balance numbers |
 | Account info | Hugging Face | Username + verified status |
-| Key verification + model count | OpenAI, Groq, Together, Mistral, Google, Fireworks | Number of models + `verified: true` on HTTP 200 |
+| Key verification + model count | OpenAI, Groq, Together, Mistral, Google, Fireworks, xAI | Number of models + `verified: true` on HTTP 200 |
+| Link only | Local llama.cpp, Google Cloud Billing | No API — console link only |
 
-Adding a provider is small: write a module that exports `id`, `name`,
-`envKey`, and a `fetchBalance`/`fetchAccount` function, then register it
-in `src/providers/index.js`. The tests in `tests/providers.test.js` show
-the expected shape.
+### Adding a provider (automatic)
+
+Everything is derived from `src/providers/catalog.js`. To add a
+provider such as xAI, add one object there, then refresh `.env.example`:
+
+```bash
+node scripts/sync-providers
+```
+
+That is all. The runtime registry (`src/providers/index.js`), the
+dashboard card (rendered from the catalog in `index.html`), and the
+Hermes credential-pool mapping (`src/env.js`) all read the catalog, so
+they pick up the new provider without further edits.
+
+Most providers are `kind: 'verify'` — they only verify the key against
+`/v1/models`, so a catalog entry is the whole job. A provider with a
+real balance or account endpoint needs a small custom fetcher in
+`src/providers/<id>.js` plus a line in the `CUSTOM_FETCHERS` map in
+`src/providers/index.js`. The tests in `tests/providers.test.js` show
+both shapes.
 
 ## Testing
 
@@ -285,7 +310,8 @@ npm run test:all       # Both
 ```
 
 The suite covers the providers, the credential loader, the spend
-aggregators, the HTTP server, the CLI scripts, and the dashboard HTML.
+aggregators, the HTTP server, the theme registry, the CLI scripts, and
+the dashboard HTML.
 
 ## CI
 

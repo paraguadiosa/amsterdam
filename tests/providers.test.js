@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import deepseek from '../src/providers/deepseek.js';
 import huggingface from '../src/providers/huggingface.js';
 import moonshot from '../src/providers/moonshot.js';
-import { createVerifyProvider, openai, groq, together, mistral, google, fireworks } from '../src/providers/verify.js';
+import { createVerifyProvider } from '../src/providers/verify.js';
 import providers from '../src/providers/index.js';
+import '../src/providers/catalog.js';
+
+const CATALOG = globalThis.AMS_PROVIDERS;
 
 function mockFetch(body, status = 200) {
   return async () => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -200,7 +203,13 @@ describe('createVerifyProvider', () => {
 // ── verify-only providers metadata ───────────────
 
 describe('verify-only providers', () => {
-  const verifyProviders = [openai, groq, together, mistral, google, fireworks];
+  const verifyProviders = CATALOG
+    .filter((p) => p.kind === 'verify')
+    .map((p) => createVerifyProvider(p));
+
+  it('covers every verify entry in the catalog', () => {
+    assert.equal(verifyProviders.length, CATALOG.filter((p) => p.kind === 'verify').length);
+  });
 
   for (const p of verifyProviders) {
     it(`${p.id} has id and envKey`, () => {
@@ -220,22 +229,46 @@ describe('verify-only providers', () => {
 // ── google uses query param auth ─────────────────
 
 describe('google auth', () => {
-  it('sends key as query parameter', async () => {
+  it('sends key as query parameter on the models path', async () => {
+    const meta = CATALOG.find((p) => p.id === 'google');
+    const google = createVerifyProvider(meta);
     let capturedUrl = '';
     const spy = async (url) => {
       capturedUrl = url;
       return { ok: true, json: async () => ({}) };
     };
     await google.fetchBalance({ apiKey: 'AIza-test', baseUrl: 'https://generativelanguage.googleapis.com' }, spy);
-    assert.ok(capturedUrl.includes('?key=AIza-test'));
+    assert.ok(capturedUrl.includes('/v1beta/models?key=AIza-test'));
+  });
+});
+
+// ── anthropic uses x-api-key auth ─────────────────
+
+describe('anthropic auth', () => {
+  it('sends x-api-key and anthropic-version headers', async () => {
+    const meta = CATALOG.find((p) => p.id === 'anthropic');
+    const anthropic = createVerifyProvider(meta);
+    let capturedUrl = '';
+    let capturedOptions = {};
+    const spy = async (url, options) => {
+      capturedUrl = url;
+      capturedOptions = options;
+      return { ok: true, json: async () => ({ data: [{ id: 'claude-opus-5' }] }) };
+    };
+    const result = await anthropic.fetchBalance({ apiKey: 'sk-ant-test', baseUrl: 'https://api.anthropic.com/' }, spy);
+    assert.equal(capturedUrl, 'https://api.anthropic.com/v1/models');
+    assert.equal(capturedOptions.headers['x-api-key'], 'sk-ant-test');
+    assert.equal(capturedOptions.headers['anthropic-version'], '2023-06-01');
+    assert.equal(result.verified, true);
+    assert.equal(result.models, 1);
   });
 });
 
 // ── registry ─────────────────────────────────────
 
 describe('provider registry', () => {
-  it('exports all providers', () => {
-    assert.equal(providers.length, 9);
+  it('exports all key-backed providers (11)', () => {
+    assert.equal(providers.length, 11);
   });
 
   it('has unique ids', () => {
@@ -246,6 +279,21 @@ describe('provider registry', () => {
   it('every provider has fetchBalance', () => {
     for (const p of providers) {
       assert.equal(typeof p.fetchBalance, 'function');
+    }
+  });
+
+  it('includes xAI with its env var', () => {
+    const xai = providers.find((p) => p.id === 'xai');
+    assert.ok(xai);
+    assert.equal(xai.envKey, 'XAI_API_KEY');
+    assert.equal(xai.defaultBaseUrl, 'https://api.x.ai');
+  });
+
+  it('skips link-only catalog entries', () => {
+    const linkIds = CATALOG.filter((p) => p.kind === 'link').map((p) => p.id);
+    assert.ok(linkIds.length >= 2);
+    for (const id of linkIds) {
+      assert.equal(providers.some((p) => p.id === id), false);
     }
   });
 });

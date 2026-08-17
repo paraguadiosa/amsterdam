@@ -1,0 +1,51 @@
+#!/usr/bin/env node
+import { writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import '../src/providers/catalog.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const OUT = resolve(__dirname, '..', '.env.example');
+
+const catalog = globalThis.AMS_PROVIDERS;
+
+const KIND_LABEL = {
+  balance: 'balance API',
+  account: 'account info',
+  verify: 'key verification',
+};
+
+function render() {
+  const lines = [];
+  lines.push('# Amsterdam — environment variables');
+  lines.push('# Generated from src/providers/catalog.js — run `node scripts/sync-providers` after edits.');
+  lines.push('# Copy this file to `.env` and fill in your keys.');
+  lines.push('# `.env` is git-ignored: it must NEVER be committed or pushed.');
+  lines.push('# Real keys in the repo = rotate them immediately.');
+  lines.push('');
+
+  const seen = new Set();
+  for (const p of catalog) {
+    if (!p.envKey || KIND_LABEL[p.kind] === undefined) continue;
+
+    lines.push(`# ${p.name} — ${KIND_LABEL[p.kind]}`);
+    if (!seen.has(p.envKey)) {
+      lines.push(`${p.envKey}=`);
+      seen.add(p.envKey);
+    }
+    if (p.baseUrlEnv && !seen.has(p.baseUrlEnv)) {
+      lines.push(`${p.baseUrlEnv}=${p.defaultBaseUrl}`);
+      seen.add(p.baseUrlEnv);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n') + '\n';
+}
+
+const content = render();
+writeFileSync(OUT, content);
+console.log(`Wrote ${OUT}`);
+for (const p of catalog) {
+  if (p.envKey) console.log(`  ${p.id} -> ${p.envKey}`);
+}

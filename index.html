@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Amsterdam Console</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23101828'/%3E%3Cg%20stroke='%23c8102e'%20stroke-width='6'%20stroke-linecap='square'%3E%3Cline%20x1='22'%20y1='9'%20x2='42'%20y2='23'/%3E%3Cline%20x1='42'%20y1='9'%20x2='22'%20y2='23'/%3E%3Cline%20x1='22'%20y1='25'%20x2='42'%20y2='39'/%3E%3Cline%20x1='42'%20y1='25'%20x2='22'%20y2='39'/%3E%3Cline%20x1='22'%20y1='41'%20x2='42'%20y2='55'/%3E%3Cline%20x1='42'%20y1='41'%20x2='22'%20y2='55'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   /* ── design tokens ──────────────────────────────────────────── */
   :root {
@@ -20,7 +21,7 @@
     /* text — all pass WCAG AA on --bg (#070b12) */
     --text:        #dde6f5;
     --muted:       #8b9cc0;
-    --faint:       #5f7398;
+    --faint:       #6f85b0;
 
     /* accent: canal blue */
     --accent:      #5b8def;
@@ -60,7 +61,22 @@
     /* type */
     --font:      "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
     --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+
+    /* layout */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --bp-md: 768px;
+    --bp-lg: 1024px;
   }
+
+  /* All palettes (night, day, dusk, aurora, retro) live in
+     src/themes.js and are injected as :root overrides at runtime.
+     :root above stays as the no-JS night fallback. */
 
   /* ── reset ──────────────────────────────────────────────────── */
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -69,7 +85,7 @@
   body {
     font-family: var(--font);
     background-color: var(--bg);
-    background-image: radial-gradient(ellipse 1000px 480px at 25% -8%, #101c3d 0%, transparent 60%);
+    background-image: radial-gradient(ellipse 1000px 480px at 25% -8%, var(--body-glow) 0%, transparent 60%);
     color: var(--text);
     min-height: 100vh;
     line-height: 1.6;
@@ -107,17 +123,47 @@
   }
 
   /* ── layout ──────────────────────────────────────────────────── */
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 80px; }
+  .skip-link {
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    z-index: 20;
+    padding: 8px 12px;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transform: translateY(-160%);
+  }
+
+  .skip-link:focus {
+    transform: none;
+  }
+
+  .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 28px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px 20px 72px;
+  }
+
+  .workspace,
+  .dock {
+    min-width: 0;
+  }
 
   /* ── hero banner ─────────────────────────────────────────────── */
   .hero {
     position: relative;
-    height: clamp(320px, 44vw, 470px);
+    height: clamp(168px, 22vw, 228px);
     border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--border);
     box-shadow: var(--shadow-hover);
-    margin-bottom: 22px;
+    margin-bottom: 20px;
     isolation: isolate;
   }
 
@@ -134,11 +180,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom,
-      rgba(7,11,18,.55) 0%,
-      rgba(7,11,18,.15) 34%,
-      rgba(7,11,18,0) 55%,
-      rgba(7,11,18,.42) 100%);
+    background: var(--hero-fade);
     pointer-events: none;
     z-index: 1;
   }
@@ -147,11 +189,12 @@
     position: absolute;
     inset: 0;
     z-index: 2;
-    padding: clamp(22px, 4vw, 42px);
+    padding: clamp(16px, 3vw, 28px);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    justify-content: flex-end;
+    gap: 2px;
     pointer-events: none;
   }
 
@@ -160,45 +203,45 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2.4px;
-    color: var(--accent-2);
-    margin-bottom: 12px;
-    text-shadow: 0 1px 4px rgba(0,0,0,.7);
+    color: var(--kicker-color);
+    margin-bottom: 6px;
+    text-shadow: var(--kicker-shadow);
   }
 
   .hero h1 {
-    font-size: clamp(1.75rem, 4.6vw, 2.6rem);
+    font-size: clamp(1.55rem, 3.4vw, 2.15rem);
     font-weight: 800;
     letter-spacing: -0.8px;
     line-height: 1.1;
-    color: #eef3ff;
-    text-shadow: 0 2px 14px rgba(0,0,0,.6);
+    color: var(--hero-title);
+    text-shadow: var(--hero-title-shadow);
   }
 
   .hero .sub {
-    margin-top: 6px;
-    color: #c3d2ef;
-    font-size: 0.9375rem;
-    max-width: 38em;
-    text-shadow: 0 1px 6px rgba(0,0,0,.7);
+    margin-top: 4px;
+    color: var(--hero-sub);
+    font-size: 0.875rem;
+    max-width: 42em;
+    text-shadow: var(--hero-sub-shadow);
   }
 
   .hero .meta {
     margin-top: 2px;
-    color: var(--faint);
+    color: var(--hero-meta);
     font-size: 0.8125rem;
-    text-shadow: 0 1px 4px rgba(0,0,0,.7);
+    text-shadow: var(--hero-meta-shadow);
   }
 
   .verse {
-    margin-top: auto;
-    max-width: 36em;
-    font-size: 0.8125rem;
+    margin-top: 8px;
+    max-width: 42em;
+    font-size: 0.75rem;
     font-style: italic;
-    line-height: 1.55;
-    color: #b9c8e4;
+    line-height: 1.45;
+    color: var(--verse);
     border-left: 2px solid var(--accent);
-    padding-left: 12px;
-    text-shadow: 0 1px 5px rgba(0,0,0,.75);
+    padding-left: 10px;
+    text-shadow: var(--verse-shadow);
   }
 
   .flag-badge {
@@ -207,8 +250,8 @@
     right: 16px;
     z-index: 2;
     border-radius: 7px;
-    border: 1px solid rgba(255,255,255,.16);
-    box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    border: 1px solid var(--flag-border);
+    box-shadow: var(--flag-shadow);
     background: #0b0b12;
     line-height: 0;
   }
@@ -219,9 +262,9 @@
     display: flex;
     align-items: stretch;
     gap: 0;
-    margin-bottom: 22px;
+    margin-bottom: 16px;
     background:
-      linear-gradient(120deg, rgba(91,141,239,.16), rgba(43,79,168,.1) 55%, rgba(16,24,40,0)),
+      var(--credits-fade),
       var(--card);
     border: 1px solid var(--border-hi);
     border-radius: var(--radius-lg);
@@ -236,12 +279,12 @@
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(to bottom, var(--accent), #2b4fa8);
+    background: var(--credits-bar);
   }
 
   .credits-body {
     flex: 1;
-    padding: 20px 24px 20px 28px;
+    padding: 16px 20px 16px 24px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -263,7 +306,8 @@
     height: 7px;
     border-radius: 50%;
     background: var(--green);
-    box-shadow: 0 0 8px rgba(52,211,153,.8);
+    /* glow color comes from the active palette */
+    box-shadow: var(--live-dot-glow);
     animation: pulse 2.4s ease-in-out infinite;
   }
 
@@ -274,12 +318,12 @@
 
   .credits-value {
     font-family: var(--font-mono);
-    font-size: clamp(2.1rem, 6vw, 3.2rem);
+    font-size: clamp(1.85rem, 4.6vw, 2.7rem);
     font-weight: 700;
     letter-spacing: -1.5px;
     line-height: 1.15;
     color: var(--green);
-    text-shadow: 0 0 22px rgba(52,211,153,.25);
+    text-shadow: 0 0 22px var(--credits-glow);
   }
 
   .credits-split {
@@ -306,13 +350,20 @@
     border-radius: var(--radius-sm);
   }
 
+  /* Collapsed spend summary: same panel, amber value to mark spend. */
+  .spend-blob { cursor: pointer; }
+  .spend-blob .credits-value {
+    color: var(--amber);
+    text-shadow: 0 0 22px var(--warn-bg);
+  }
+
   /* ── warning banner ──────────────────────────────────────────── */
   .warning {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 11px 16px;
-    margin-bottom: 28px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
     background: var(--warn-bg);
     border: 1px solid var(--warn-border);
     border-radius: var(--radius-md);
@@ -355,9 +406,9 @@
   /* ── billing summary ─────────────────────────────────────────── */
   #billing-summary {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
-    margin-bottom: 32px;
+    margin-bottom: 8px;
   }
 
   /* ── chips ───────────────────────────────────────────────────── */
@@ -488,12 +539,28 @@
   }
 
   /* ── spend by model ─────────────────────────────────────────── */
+  #spend-section,
+  #pi-spend-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 12px 4px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table-tools {
+    padding: 0 4px;
+  }
+
   #spend-table,
   #pi-spend-table {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
     font-size: 0.8125rem;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
   }
 
   #spend-table th,
@@ -556,7 +623,35 @@
   }
 
   /* ── column picker ─────────────────────────────────────────── */
-  .table-tools { margin: -4px 0 14px; }
+  .table-tools { margin: 0 0 12px; display: flex; gap: 8px; align-items: flex-start; padding: 0 4px; }
+
+  .model-filter {
+    padding: 8px 12px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-2);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    max-width: 260px;
+  }
+
+  .model-filter:hover:not(:disabled) {
+    border-color: var(--border-hi);
+    color: var(--text);
+  }
+
+  .model-filter:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .model-filter:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 
   .columns-wrap { position: relative; display: inline-block; }
 
@@ -614,7 +709,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 32px 0 14px;
+    margin: 22px 0 12px;
     font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -663,7 +758,7 @@
   #search {
     display: block;
     width: 100%;
-    padding: 12px 16px;
+    padding: 11px 14px;
     font-family: var(--font);
     font-size: 0.9375rem;
     color: var(--text);
@@ -671,13 +766,13 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     outline: none;
-    margin-bottom: 36px;
+    margin: 22px 0 14px;
     transition: border-color var(--t-fast), box-shadow var(--t-fast);
   }
 
   #search:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(91,141,239,.15);
+    box-shadow: var(--search-ring);
   }
 
   #search::placeholder { color: var(--faint); }
@@ -690,6 +785,8 @@
   }
 
   #extra-cards.collapsed { display: none; }
+  #spend-section.collapsed,
+  #pi-spend-content.collapsed { display: none; }
   .card.hidden     { display: none; }
 
   /* ── provider card ───────────────────────────────────────────── */
@@ -731,15 +828,15 @@
     font-weight: 600;
     letter-spacing: 0.6px;
     text-transform: uppercase;
-    color: var(--accent-2);
-    background: rgba(91,141,239,.1);
-    border: 1px solid rgba(91,141,239,.25);
+    color: var(--tag-color);
+    background: var(--tag-bg);
+    border: 1px solid var(--tag-border);
   }
 
   .card .tag.local {
-    color: var(--green);
-    background: rgba(52,211,153,.08);
-    border-color: rgba(52,211,153,.25);
+    color: var(--tag-local-color);
+    background: var(--tag-local-bg);
+    border-color: var(--tag-local-border);
   }
 
   .card .note {
@@ -800,14 +897,14 @@
   .cards[data-group="extra"] .card .tag {
     font-size: 0.625rem;
     padding: 2px 7px;
-    background: rgba(91,141,239,.07);
-    border-color: rgba(91,141,239,.2);
+    background: var(--tag-row-bg);
+    border-color: var(--tag-row-border);
   }
 
   .cards[data-group="detected"] .card .tag.local,
   .cards[data-group="extra"] .card .tag.local {
-    background: rgba(52,211,153,.07);
-    border-color: rgba(52,211,153,.2);
+    background: var(--tag-row-local-bg);
+    border-color: var(--tag-row-local-border);
   }
 
   .cards[data-group="detected"] .card .envs,
@@ -848,14 +945,14 @@
     background: linear-gradient(135deg, var(--btn-from) 0%, var(--btn-to) 100%);
     border-radius: var(--radius-md);
     border: none;
-    box-shadow: 0 2px 8px rgba(43,79,168,.35);
+    box-shadow: var(--btn-shadow);
     cursor: pointer;
     transition: filter var(--t-fast), box-shadow var(--t-fast);
   }
 
   .btn:hover {
     filter: brightness(1.1);
-    box-shadow: 0 4px 14px rgba(43,79,168,.5);
+    box-shadow: var(--btn-shadow-hover);
   }
 
   .btn.ghost {
@@ -904,8 +1001,8 @@
 
   /* ── footer ──────────────────────────────────────────────────── */
   footer {
-    margin-top: 48px;
-    padding-top: 24px;
+    margin-top: 28px;
+    padding-top: 20px;
     border-top: 1px solid var(--border);
     color: var(--faint);
     font-size: 0.75rem;
@@ -914,24 +1011,134 @@
   }
 
   /* ── responsive ──────────────────────────────────────────────── */
+  @media (min-width: 1024px) {
+    .wrap {
+      grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+      align-items: start;
+    }
+
+    .hero,
+    footer {
+      grid-column: 1 / -1;
+    }
+
+    .workspace { grid-column: 1; }
+    .dock {
+      grid-column: 2;
+      position: sticky;
+      top: 16px;
+    }
+
+    .dock #search { margin-top: 0; }
+  }
+
   @media (max-width: 640px) {
-    .wrap { padding: 20px 16px 64px; }
-    .hero { height: 300px; }
+    .wrap { padding: 16px 14px 56px; }
+    .hero { height: 168px; }
     .verse { display: none; }
     .flag-badge { top: 10px; right: 10px; transform: scale(.85); }
     .cards { grid-template-columns: 1fr; }
     #billing-summary { grid-template-columns: repeat(2, 1fr); }
     .credits-note { display: none; }
+    .credits { flex-direction: column; }
+    .kicker { margin-bottom: 6px; }
+  }
+
+  /* ── hero artwork: day/night crossfade ─────────────────────── */
+  .hero-scene { transition: opacity 0.5s ease; }
+
+  .hero-art--day { opacity: 0; }
+  [data-scene="night"] .hero-art--night { opacity: 1; }
+  [data-scene="night"] .hero-art--day { opacity: 0; }
+  [data-scene="day"] .hero-art--night { opacity: 0; }
+  [data-scene="day"] .hero-art--day { opacity: 1; }
+
+  /* ── theme picker ──────────────────────────────────────────── */
+  .theme-wrap {
+    position: absolute;
+    top: 16px;
+    right: 88px;
+    z-index: 3;
+  }
+
+  .theme-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    font-family: var(--font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: var(--toggle-color);
+    background: var(--toggle-bg);
+    border: 1px solid var(--toggle-border);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--toggle-shadow);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+
+  .theme-picker-label { text-transform: uppercase; }
+
+  .theme-select {
+    font-family: var(--font);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  .theme-select:hover { border-color: var(--accent); }
+
+  .theme-select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 640px) {
+    .theme-wrap { top: 10px; right: 72px; transform: scale(.85); }
   }
 </style>
+<script src="src/themes.js"></script>
+<script src="src/providers/catalog.js"></script>
+<script>
+  /* Apply the stored or clock-derived theme before first paint.
+     Night is the fallback when storage is closed. */
+  (function () {
+    var T = window.AMS_THEMES;
+    var style = document.createElement('style');
+    style.id = 'ams-theme-vars';
+    document.head.appendChild(style);
+
+    function apply(id) {
+      document.documentElement.setAttribute('data-theme', id);
+      document.documentElement.setAttribute('data-scene', T.THEMES[id].scene);
+      style.textContent = T.buildThemeCss(id);
+    }
+
+    var pref = 'auto';
+    try {
+      var saved = localStorage.getItem('amsterdam.theme');
+      if (saved === 'auto' || T.THEMES[saved]) pref = saved;
+    } catch (e) {}
+    apply(T.effectiveTheme(pref, new Date()));
+    window.__amsTheme = { apply: apply };
+  })();
+</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <div class="ams-stripe" aria-hidden="true"></div>
 <div class="wrap">
 
   <!-- ── hero banner: Amsterdam by night ─────────────────────── -->
   <header class="hero">
-    <svg class="hero-scene" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <svg class="hero-scene hero-art--night" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0a1128"/>
@@ -1229,6 +1436,109 @@
   </g>
 </svg>
 
+    <svg class="hero-scene hero-art--day" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="skyD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ec8f2"/>
+      <stop offset="0.72" stop-color="#cfe3f8"/>
+      <stop offset="1" stop-color="#eaf3fc"/>
+    </linearGradient>
+    <radialGradient id="sunGlowD" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff3c4" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#ffe9a8" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="waterD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d3e4f6"/>
+      <stop offset="1" stop-color="#aecbec"/>
+    </linearGradient>
+    <pattern id="tulipD" width="42" height="12" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="11" height="11" rx="2" fill="#c8102e"/>
+      <rect x="15" y="0" width="11" height="11" rx="2" fill="#e0701a"/>
+      <rect x="30" y="0" width="11" height="11" rx="2" fill="#e6b31e"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="440" fill="url(#skyD)"/>
+
+  <g fill="#ffffff" opacity="0.9">
+    <ellipse cx="330" cy="92" rx="64" ry="16"/>
+    <ellipse cx="396" cy="88" rx="46" ry="13"/>
+    <ellipse cx="560" cy="58" rx="52" ry="12"/>
+    <ellipse cx="622" cy="62" rx="38" ry="10"/>
+    <ellipse cx="760" cy="150" rx="58" ry="13" opacity="0.8"/>
+    <ellipse cx="190" cy="176" rx="44" ry="11" opacity="0.7"/>
+  </g>
+
+  <circle cx="1020" cy="96" r="58" fill="url(#sunGlowD)"/>
+  <circle cx="1020" cy="96" r="28" fill="#fdeeb4"/>
+
+  <g stroke="#2c3b4d" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7">
+    <path d="M480 130 q6 -7 12 0 q6 -7 12 0"/>
+    <path d="M900 60 q5 -6 10 0 q5 -6 10 0"/>
+    <path d="M180 90 q5 -6 10 0 q5 -6 10 0"/>
+  </g>
+
+  <!-- polder horizon: fields, tulip rows, canal -->
+  <rect x="0" y="298" width="1200" height="16" fill="#9cc585"/>
+  <rect x="0" y="314" width="1200" height="46" fill="#8cb86e"/>
+  <rect x="0" y="360" width="1200" height="16" fill="url(#tulipD)" opacity="0.95"/>
+  <rect x="0" y="376" width="1200" height="20" fill="#7fb069"/>
+  <rect x="0" y="396" width="1200" height="10" fill="url(#tulipD)" opacity="0.9"/>
+  <rect x="0" y="406" width="1200" height="34" fill="url(#waterD)"/>
+
+  <g stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.55">
+    <line x1="60" y1="418" x2="150" y2="418"/>
+    <line x1="230" y1="426" x2="310" y2="426"/>
+    <line x1="420" y1="414" x2="500" y2="414"/>
+    <line x1="640" y1="428" x2="740" y2="428"/>
+    <line x1="900" y1="418" x2="980" y2="418"/>
+  </g>
+
+  <!-- distant windmill on the dike -->
+  <g transform="translate(240 308) scale(0.34)">
+    <path d="M-26 0 L-22 -95 L22 -95 L26 0 Z" fill="#4f6756"/>
+    <path d="M-22 -95 L22 -95 L18 -113 L-18 -113 Z" fill="#3f5544"/>
+    <g stroke="#3f5544" stroke-linecap="round" stroke-width="12">
+      <line x1="0" y1="-108" x2="-70" y2="-178"/>
+      <line x1="0" y1="-108" x2="70" y2="-178"/>
+      <line x1="0" y1="-108" x2="70" y2="-38"/>
+      <line x1="0" y1="-108" x2="-70" y2="-38"/>
+    </g>
+  </g>
+
+  <!-- main windmill silhouette -->
+  <g transform="translate(860 0)">
+    <ellipse cx="0" cy="330" rx="100" ry="13" fill="#6f9e58"/>
+    <path d="M-36 330 L-31 180 L31 180 L36 330 Z" fill="#2f3d4d"/>
+    <path d="M-31 180 L31 180 L27 156 L-27 156 Z" fill="#26333f"/>
+    <line x1="0" y1="156" x2="0" y2="144" stroke="#26333f" stroke-width="7"/>
+    <rect x="-5" y="216" width="10" height="14" rx="2" fill="#eaf3fc"/>
+    <path d="M-7 288 q7 -12 14 0 z" fill="#1f2b38"/>
+    <circle cx="0" cy="164" r="10" fill="#1c2733"/>
+    <g stroke="#26333f" stroke-linecap="round">
+      <line x1="0" y1="164" x2="-128" y2="36" stroke-width="8"/>
+      <line x1="0" y1="164" x2="128" y2="292" stroke-width="8"/>
+      <line x1="0" y1="164" x2="128" y2="36" stroke-width="8"/>
+      <line x1="0" y1="164" x2="-128" y2="292" stroke-width="8"/>
+    </g>
+    <g stroke="#3a4a5c" stroke-width="3" stroke-linecap="round">
+      <line x1="-36" y1="138" x2="-50" y2="152"/>
+      <line x1="-72" y1="112" x2="-86" y2="126"/>
+      <line x1="-108" y1="86" x2="-122" y2="100"/>
+      <line x1="36" y1="138" x2="50" y2="152"/>
+      <line x1="72" y1="112" x2="86" y2="126"/>
+      <line x1="108" y1="86" x2="122" y2="100"/>
+      <line x1="-36" y1="190" x2="-50" y2="176"/>
+      <line x1="-72" y1="216" x2="-86" y2="202"/>
+      <line x1="-108" y1="242" x2="-122" y2="228"/>
+      <line x1="36" y1="190" x2="50" y2="176"/>
+      <line x1="72" y1="216" x2="86" y2="202"/>
+      <line x1="108" y1="242" x2="122" y2="228"/>
+    </g>
+  </g>
+</svg>
+
     <div class="hero-copy">
       <p class="kicker">Est. 1275 &middot; a dam on the Amstel</p>
       <h1>Amsterdam Console</h1>
@@ -1250,8 +1560,18 @@
         </g>
       </svg>
     </div>
+
+    <div class="theme-wrap">
+      <label class="theme-picker" for="theme-select">
+        <span class="theme-picker-label">Theme</span>
+        <select id="theme-select" class="theme-select" aria-label="Choose theme">
+          <option value="auto">Auto</option>
+        </select>
+      </label>
+    </div>
   </header>
 
+  <main id="main" class="workspace">
   <!-- ── credits remaining ─────────────────────────────────────── -->
   <section class="credits" id="credits" aria-label="Total remaining credits">
     <div class="credits-body">
@@ -1274,8 +1594,24 @@
   <div id="billing-summary"></div>
 
   <!-- spend by model — populated from data/billing.js and /api/billing -->
-  <h2><span class="dot" aria-hidden="true"></span>Spend by model</h2>
-  <div class="table-tools">
+  <h2 class="toggle" id="spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="spend-section">
+    <span class="dot" aria-hidden="true"></span>Spend by model
+    <span class="chevron" aria-hidden="true">&#9658;</span>
+  </h2>
+  <section class="credits spend-blob" id="spend-blob" aria-label="Total estimated spend" hidden>
+    <div class="credits-body">
+      <p class="credits-label">Total spend (est.) <span class="live-dot" aria-hidden="true"></span></p>
+      <p class="credits-value" id="spend-blob-total">&mdash;</p>
+      <p class="credits-split" id="spend-blob-split">&mdash;</p>
+    </div>
+    <p class="credits-note">Estimated spend from the Hermes state DB. Click <b>Spend by model</b> to expand the full table.</p>
+  </section>
+  <div id="spend-section">
+    <div class="table-tools">
+    <label class="sr-only" for="model-filter">Filter spend by model</label>
+    <select id="model-filter" class="model-filter" aria-label="Filter spend by model">
+      <option value="">All models</option>
+    </select>
     <div class="columns-wrap">
       <button id="columns-btn" class="btn ghost" type="button" aria-expanded="false" aria-controls="columns-panel">Columns</button>
       <div id="columns-panel" class="columns-panel" hidden>
@@ -1310,28 +1646,45 @@
   </table>
   <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
   <div class="hint" id="spend-empty">No usage recorded yet.</div>
+  </div>
 
   <!-- spend by Pi — populated from data/billing.js and /api/billing -->
   <div id="pi-spend-section">
-    <h2><span class="dot" aria-hidden="true"></span>Spend by Pi</h2>
-    <div id="pi-summary"></div>
-    <table id="pi-spend-table" aria-label="Spend by Pi">
-      <thead>
-        <tr>
-          <th scope="col">Model</th>
-          <th scope="col">Provider</th>
-          <th scope="col">Sessions</th>
-          <th scope="col">Calls</th>
-          <th scope="col">Tokens</th>
-          <th scope="col">Cost</th>
-          <th scope="col">Last seen</th>
-        </tr>
-      </thead>
-      <tbody id="pi-spend-body"></tbody>
-    </table>
-    <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+    <h2 class="toggle" id="pi-spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="pi-spend-content">
+      <span class="dot" aria-hidden="true"></span>Spend by Pi
+      <span class="chevron" aria-hidden="true">&#9658;</span>
+    </h2>
+    <section class="credits spend-blob" id="pi-spend-blob" aria-label="Total Pi spend" hidden>
+      <div class="credits-body">
+        <p class="credits-label">Total spend (actual) <span class="live-dot" aria-hidden="true"></span></p>
+        <p class="credits-value" id="pi-spend-blob-total">&mdash;</p>
+        <p class="credits-split" id="pi-spend-blob-split">&mdash;</p>
+      </div>
+      <p class="credits-note">Actual billed spend from Pi session logs. Click <b>Spend by Pi</b> to expand the full table.</p>
+    </section>
+    <div id="pi-spend-content">
+      <div id="pi-summary"></div>
+      <table id="pi-spend-table" aria-label="Spend by Pi">
+        <thead>
+          <tr>
+            <th scope="col">Model</th>
+            <th scope="col">Provider</th>
+            <th scope="col">Sessions</th>
+            <th scope="col">Calls</th>
+            <th scope="col">Tokens</th>
+            <th scope="col">Cost</th>
+            <th scope="col">Last seen</th>
+          </tr>
+        </thead>
+        <tbody id="pi-spend-body"></tbody>
+      </table>
+      <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+    </div>
   </div>
 
+  </main>
+
+  <aside class="dock" aria-label="Provider consoles">
   <label class="sr-only" for="search">Filter providers</label>
   <input id="search" type="text" placeholder="Filter providers…" autocomplete="off">
 
@@ -1345,91 +1698,11 @@
     <span class="chevron" aria-hidden="true">&#9658;</span>
   </h2>
   <div class="cards collapsed" data-group="extra" id="extra-cards">
-
-    <div class="card" data-name="deepseek deep seek" data-provider="deepseek">
-      <h3>DeepSeek</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Console: Billing / Usage after login.</p>
-      <p class="envs">Env: DEEPSEEK_API_KEY</p>
-      <a class="btn" href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="kimi moonshot moonshot" data-provider="moonshot">
-      <h3>Kimi / Moonshot</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Console: Billing / Usage after login.</p>
-      <p class="envs">Env: KIMI_API_KEY / MOONSHOT_API_KEY</p>
-      <a class="btn" href="https://platform.moonshot.ai/console" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="huggingface hf hugging face" data-provider="huggingface">
-      <h3>Hugging Face</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Inference providers, free tier included.</p>
-      <p class="envs">Env: HF_TOKEN</p>
-      <a class="btn" href="https://huggingface.co/settings/billing" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="local llama llama.cpp qwen gguf local">
-      <h3>Local llama.cpp / Qwen GGUF</h3>
-      <span class="tag local">No billing</span>
-      <p class="note">Local server, OpenAI-compatible. No billing applies.</p>
-      <p class="envs">URL: http://127.0.0.1:8080/v1</p>
-      <a class="btn ghost" href="http://127.0.0.1:8080/v1" target="_blank" rel="noopener noreferrer">Open local</a>
-    </div>
-
-    <div class="card" data-name="openai gpt chatgpt" data-provider="openai">
-      <h3>OpenAI</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Usage and billing.</p>
-      <a class="btn" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="google ai studio gemini" data-provider="google">
-      <h3>Google AI Studio</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Try models and view usage.</p>
-      <a class="btn" href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="google cloud gcp">
-      <h3>Google Cloud Billing</h3>
-      <span class="tag">Billing</span>
-      <p class="note">GCP billing dashboard.</p>
-      <a class="btn" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="groq" data-provider="groq">
-      <h3>Groq</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Usage and limits.</p>
-      <a class="btn" href="https://console.groq.com/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="together" data-provider="together">
-      <h3>Together</h3>
-      <span class="tag">Billing</span>
-      <p class="note">API and usage.</p>
-      <a class="btn" href="https://api.together.xyz/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="mistral le chat" data-provider="mistral">
-      <h3>Mistral</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Console and usage.</p>
-      <a class="btn" href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
-    <div class="card" data-name="fireworks" data-provider="fireworks">
-      <h3>Fireworks</h3>
-      <span class="tag">Billing</span>
-      <p class="note">Models and usage.</p>
-      <a class="btn" href="https://app.fireworks.ai/" target="_blank" rel="noopener noreferrer">Open console</a>
-    </div>
-
+    <!-- Provider cards are rendered from src/providers/catalog.js. -->
   </div>
 
   <div class="empty" id="empty">Nothing matches that filter.</div>
+  </aside>
 
   <footer>
     <p>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets</p>
@@ -1438,6 +1711,35 @@
 
 <script src="data/billing.js"></script>
 <script>
+  /* ── provider cards ──────────────────────────────────────────── */
+  // Rendered from src/providers/catalog.js so a new provider appears
+  // here automatically. Cards with a key are detection-tracked via
+  // data-provider; link-only cards stay in the Available list.
+  function renderProviderCards() {
+    var list = window.AMS_PROVIDERS || [];
+    var host = document.getElementById('extra-cards');
+    if (!host) return;
+    host.innerHTML = list.map(function (p) {
+      var local = p.tag === 'No billing';
+      var tag = local ? 'tag local' : 'tag';
+      var provider = p.envKey ? ' data-provider="' + p.id + '"' : '';
+      var envLine = p.envLabel || (p.envKey
+        ? 'Env: ' + p.envKey + (p.baseUrlEnv ? ' / ' + p.baseUrlEnv : '')
+        : '');
+      var btnClass = local ? 'btn ghost' : 'btn';
+      var btnLabel = local ? 'Open local' : 'Open console';
+      return '<div class="card" data-name="' + escapeHtml(p.search || p.name.toLowerCase()) + '"' + provider + '>'
+        + '<h3>' + escapeHtml(p.name) + '</h3>'
+        + '<span class="' + tag + '">' + escapeHtml(p.tag) + '</span>'
+        + '<p class="note">' + escapeHtml(p.note || '') + '</p>'
+        + (envLine ? '<p class="envs">' + escapeHtml(envLine) + '</p>' : '')
+        + '<a class="' + btnClass + '" href="' + escapeHtml(p.consoleUrl) + '" target="_blank" rel="noopener noreferrer">' + btnLabel + '</a>'
+        + '</div>';
+    }).join('');
+  }
+
+  renderProviderCards();
+
   /* ── helpers ────────────────────────────────────────────────── */
   function currencySymbol(provider) {
     if (provider.currency === "CNY") return "¥";
@@ -1699,6 +2001,40 @@
     });
   }
 
+  /* ── model filter ───────────────────────────────────────────── */
+  var MODEL_FILTER_STORAGE = 'amsterdam.modelFilter';
+  var modelFilter = '';
+  try { modelFilter = localStorage.getItem(MODEL_FILTER_STORAGE) || ''; } catch (e) { modelFilter = ''; }
+
+  // Rebuild the dropdown from the current snapshot so the option list
+  // stays in sync with live data. The choice survives refreshes and
+  // resets to "All models" when the model disappears from the data.
+  function syncModelFilter(models) {
+    var filterEl = document.getElementById('model-filter');
+    if (!filterEl) return;
+    var names = [];
+    models.forEach(function (m) {
+      var n = String(m.model || '');
+      if (n && names.indexOf(n) === -1) names.push(n);
+    });
+    names.sort(function (a, b) { return a.localeCompare(b); });
+    if (names.indexOf(modelFilter) === -1) modelFilter = '';
+    var options = '<option value="">All models</option>' + names.map(function (n) {
+      return '<option value="' + escapeHtml(n) + '"' + (n === modelFilter ? ' selected' : '') + '>' + escapeHtml(n) + '</option>';
+    }).join('');
+    filterEl.innerHTML = options;
+    filterEl.disabled = names.length < 2;
+  }
+
+  var modelFilterEl = document.getElementById('model-filter');
+  if (modelFilterEl) {
+    modelFilterEl.addEventListener('change', function () {
+      modelFilter = modelFilterEl.value;
+      try { localStorage.setItem(MODEL_FILTER_STORAGE, modelFilter); } catch (err) {}
+      renderSpend(window.BILLING);
+    });
+  }
+
   function renderSpend(billing) {
     var spend      = billing && billing.spend;
     var table      = document.getElementById('spend-table');
@@ -1707,9 +2043,42 @@
     unavailable.classList.remove('show');
     empty.classList.remove('show');
 
+    /* Collapsed-state summary: total + per-provider split, computed
+       from the same rows the table shows (claude/anthropic purged). */
+    var blobTotal = document.getElementById('spend-blob-total');
+    var blobSplit = document.getElementById('spend-blob-split');
+    var total = 0;
+    var byProvider = {};
+    var counted = 0;
+    if (spend && spend.models) {
+      spend.models.forEach(function (m) {
+        var name = String(m.model || '').toLowerCase();
+        if (name.indexOf('claude') === 0 || (m.provider || '') === 'anthropic') return;
+        if (m.estimatedCostUsd == null) return;
+        var key = m.provider || 'unknown';
+        total += m.estimatedCostUsd;
+        byProvider[key] = (byProvider[key] || 0) + m.estimatedCostUsd;
+        counted++;
+      });
+    }
+    var providerKeys = Object.keys(byProvider);
+    if (providerKeys.length) {
+      blobTotal.textContent = '$' + total.toFixed(2);
+      blobSplit.textContent = providerKeys.map(function (k) {
+        return k + ' $' + byProvider[k].toFixed(2);
+      }).join(' + ');
+    } else if (spend && spend.models && spend.models.length) {
+      blobTotal.textContent = '$0.00';
+      blobSplit.textContent = spend.models.length + ' models \u00b7 no estimated costs';
+    } else {
+      blobTotal.textContent = 'n/a';
+      blobSplit.textContent = 'No Hermes spend data';
+    }
+
     if (!spend) {
       table.style.display = 'none';
       unavailable.classList.add('show');
+      syncModelFilter([]);
       return;
     }
     // Anthropic was purged from the console: its usage history is
@@ -1720,8 +2089,13 @@
       var name = String(m.model || '').toLowerCase();
       return name.indexOf('claude') !== 0 && (m.provider || '') !== 'anthropic';
     });
-    if (!models || models.length === 0) {
+    syncModelFilter(models);
+    if (modelFilter) {
+      models = models.filter(function (m) { return String(m.model || '') === modelFilter; });
+    }
+    if (models.length === 0) {
       table.style.display = 'none';
+      empty.textContent = modelFilter ? 'No models match the filter.' : 'No usage recorded yet.';
       empty.classList.add('show');
       return;
     }
@@ -1770,6 +2144,33 @@
       'Pi total: ' + piTotal + ' (actual) · ' + pi.sessionCount
       + ' sessions · ' + pi.modelCount + ' models — Hermes total: '
       + hermesTotal + ' (estimated)';
+
+    /* Collapsed-state summary: total + per-provider split from the
+       same rows the table shows. */
+    var piModels = pi.models || [];
+    var blobTotal = document.getElementById('pi-spend-blob-total');
+    var blobSplit = document.getElementById('pi-spend-blob-split');
+    var total = 0;
+    var byProvider = {};
+    piModels.forEach(function (m) {
+      if (m.costUsd == null) return;
+      total += m.costUsd;
+      var key = m.provider || 'unknown';
+      byProvider[key] = (byProvider[key] || 0) + m.costUsd;
+    });
+    var providerKeys = Object.keys(byProvider);
+    if (providerKeys.length) {
+      blobTotal.textContent = '$' + total.toFixed(2);
+      blobSplit.textContent = providerKeys.map(function (k) {
+        return k + ' $' + byProvider[k].toFixed(2);
+      }).join(' + ');
+    } else if (piModels.length) {
+      blobTotal.textContent = '$0.00';
+      blobSplit.textContent = piModels.length + ' models \u00b7 no costs';
+    } else {
+      blobTotal.textContent = 'n/a';
+      blobSplit.textContent = 'No Pi session logs';
+    }
 
     var models = (pi.models || []).slice().sort(function (a, b) {
       return (b.costUsd || 0) - (a.costUsd || 0)
@@ -1950,6 +2351,35 @@
     }
   });
 
+  /* ── collapsible spend sections (like Available platforms) ── */
+  function makeSectionToggle(toggleId, contentId, blobId) {
+    var toggle  = document.getElementById(toggleId);
+    var content = document.getElementById(contentId);
+    var blob    = blobId ? document.getElementById(blobId) : null;
+    var open    = true;
+
+    function setOpen(state) {
+      open = state;
+      content.classList.toggle("collapsed", !open);
+      toggle.classList.toggle("expanded", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      if (blob) blob.hidden = open;
+    }
+
+    toggle.addEventListener("click", function () { setOpen(!open); });
+    toggle.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setOpen(!open);
+      }
+    });
+    if (blob) blob.addEventListener("click", function () { setOpen(true); });
+    setOpen(true);
+  }
+
+  makeSectionToggle("spend-toggle", "spend-section", "spend-blob");
+  makeSectionToggle("pi-spend-toggle", "pi-spend-content", "pi-spend-blob");
+
   /* ── card filter ────────────────────────────────────────────── */
   var search = document.getElementById("search");
   var empty  = document.getElementById("empty");
@@ -1970,6 +2400,60 @@
     });
     empty.classList.toggle("show", visible === 0);
   });
+
+  /* ── theme picker: auto + named palettes ───────────────────── */
+  var THEME_STORAGE = 'amsterdam.theme';
+  var T = window.AMS_THEMES;
+
+  function loadThemePref() {
+    var pref = 'auto';
+    try {
+      var saved = localStorage.getItem(THEME_STORAGE);
+      if (saved === 'auto' || T.THEMES[saved]) pref = saved;
+    } catch (e) {}
+    return pref;
+  }
+
+  function saveThemePref(pref) {
+    try { localStorage.setItem(THEME_STORAGE, pref); } catch (e) {}
+  }
+
+  function renderThemeUI(pref) {
+    var select = document.getElementById('theme-select');
+    if (select) select.value = pref;
+  }
+
+  function applyThemePref(pref) {
+    saveThemePref(pref);
+    window.__amsTheme.apply(T.effectiveTheme(pref, new Date()));
+    renderThemeUI(pref);
+  }
+
+  function buildThemeSelect() {
+    var select = document.getElementById('theme-select');
+    // The static 'auto' option is kept in the markup,
+    // so only append the dynamic theme list here.
+    T.listThemes().forEach(function (id) {
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = T.THEMES[id].label;
+      select.appendChild(opt);
+    });
+  }
+
+  buildThemeSelect();
+  renderThemeUI(loadThemePref());
+
+  document.getElementById('theme-select').addEventListener("change", function () {
+    applyThemePref(this.value);
+  });
+
+  // In auto mode, keep following the clock while the page stays open.
+  setInterval(function () {
+    if (loadThemePref() === 'auto') {
+      window.__amsTheme.apply(T.effectiveTheme('auto', new Date()));
+    }
+  }, 60000);
 </script>
 </body>
 </html>

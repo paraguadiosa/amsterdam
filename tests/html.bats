@@ -4,6 +4,8 @@ setup() {
     REPO_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
     HTML="$REPO_DIR/index.html"
     HTML_CONTENT="$(cat "$HTML")"
+    CATALOG="$REPO_DIR/src/providers/catalog.js"
+    CATALOG_CONTENT="$(cat "$CATALOG")"
 }
 
 # ── language ──────────────────────────────────────
@@ -218,6 +220,20 @@ setup() {
     [[ "$HTML_CONTENT" == *"renderSpend"* ]]
 }
 
+@test "collapsed spend summary blob exists" {
+    [[ "$HTML_CONTENT" == *'id="spend-blob"'* ]]
+    [[ "$HTML_CONTENT" == *'id="spend-blob-total"'* ]]
+    [[ "$HTML_CONTENT" == *'id="spend-blob-split"'* ]]
+    [[ "$HTML_CONTENT" == *'makeSectionToggle("spend-toggle", "spend-section", "spend-blob")'* ]]
+}
+
+@test "collapsed Pi spend summary blob exists" {
+    [[ "$HTML_CONTENT" == *'id="pi-spend-blob"'* ]]
+    [[ "$HTML_CONTENT" == *'id="pi-spend-blob-total"'* ]]
+    [[ "$HTML_CONTENT" == *'id="pi-spend-blob-split"'* ]]
+    [[ "$HTML_CONTENT" == *'makeSectionToggle("pi-spend-toggle", "pi-spend-content", "pi-spend-blob")'* ]]
+}
+
 @test "has formatSpendCost function" {
     [[ "$HTML_CONTENT" == *"formatSpendCost"* ]]
 }
@@ -316,6 +332,55 @@ setup() {
     [[ "$HTML_CONTENT" == *'Show columns'* ]]
 }
 
+# ── model filter dropdown ────────────────────────
+
+@test "model filter select exists with a label" {
+    [[ "$HTML_CONTENT" == *'id="model-filter"'* ]]
+    [[ "$HTML_CONTENT" == *'<label class="sr-only" for="model-filter">'* ]]
+}
+
+@test "model filter defaults to all models" {
+    [[ "$HTML_CONTENT" == *'<option value="">All models</option>'* ]]
+}
+
+@test "model filter sits in the spend toolbar before the columns picker" {
+    local tools_line=$(grep -n 'class="table-tools"' "$HTML" | head -1 | cut -d: -f1)
+    local filter_line=$(grep -n 'id="model-filter"' "$HTML" | head -1 | cut -d: -f1)
+    local columns_line=$(grep -n 'id="columns-btn"' "$HTML" | head -1 | cut -d: -f1)
+    [ "$filter_line" -gt "$tools_line" ]
+    [ "$filter_line" -lt "$columns_line" ]
+}
+
+@test "model filter options are rebuilt from live data" {
+    [[ "$HTML_CONTENT" == *'syncModelFilter'* ]]
+    [[ "$HTML_CONTENT" == *'filterEl.innerHTML'* ]]
+}
+
+@test "model filter choice persists in localStorage" {
+    [[ "$HTML_CONTENT" == *'amsterdam.modelFilter'* ]]
+}
+
+@test "model filter resets when the model disappears" {
+    [[ "$HTML_CONTENT" == *'names.indexOf(modelFilter) === -1'* ]]
+}
+
+@test "model filter rows are filtered before rendering" {
+    [[ "$HTML_CONTENT" == *"String(m.model || '') === modelFilter"* ]]
+}
+
+@test "model filter shows a hint when nothing matches" {
+    [[ "$HTML_CONTENT" == *'No models match the filter.'* ]]
+}
+
+@test "model filter empties are disabled" {
+    [[ "$HTML_CONTENT" == *'filterEl.disabled'* ]]
+}
+
+@test "model filter re-renders on change" {
+    [[ "$HTML_CONTENT" == *'modelFilterEl.addEventListener'* ]]
+    [[ "$HTML_CONTENT" == *'renderSpend(window.BILLING)'* ]]
+}
+
 # ── structure ─────────────────────────────────────
 
 @test "has search input" {
@@ -377,15 +442,37 @@ setup() {
     [[ "$HTML_CONTENT" == *"Nothing matches that filter"* ]]
 }
 
-# ── cards with provider IDs ──────────────────────
+# ── provider catalog (single source of truth) ─────
 
-@test "DeepSeek card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="deepseek"'* ]]
+@test "catalog defines every tracked provider id" {
+    for id in deepseek moonshot huggingface openai google groq together mistral fireworks xai anthropic; do
+        [[ "$CATALOG_CONTENT" == *"id: '$id'"* ]]
+    done
 }
 
-@test "anthropic is purged from the dashboard" {
-    run grep -E 'data-provider="anthropic"|ANTHROPIC_API_KEY|console.anthropic.com' "$HTML"
-    [ "$status" -eq 1 ]
+@test "xai is registered with its env var" {
+    [[ "$CATALOG_CONTENT" == *"id: 'xai'"* ]]
+    [[ "$CATALOG_CONTENT" == *"XAI_API_KEY"* ]]
+}
+
+@test "cards render from the catalog" {
+    [[ "$HTML_CONTENT" == *'window.AMS_PROVIDERS'* ]]
+    [[ "$HTML_CONTENT" == *'renderProviderCards'* ]]
+    [[ "$HTML_CONTENT" == *"getElementById('extra-cards')"* ]]
+}
+
+@test "catalog loads before the app script" {
+    local catalog_line=$(grep -n 'src="src/providers/catalog.js"' "$HTML" | head -1 | cut -d: -f1)
+    local app_line=$(grep -n 'src="data/billing.js"' "$HTML" | head -1 | cut -d: -f1)
+    [ "$catalog_line" -lt "$app_line" ]
+}
+
+@test "anthropic is a catalog provider card" {
+    [[ "$CATALOG_CONTENT" == *"id: 'anthropic'"* ]]
+    [[ "$CATALOG_CONTENT" == *"ANTHROPIC_API_KEY"* ]]
+    [[ "$CATALOG_CONTENT" == *"console.anthropic.com"* ]]
+    [[ "$CATALOG_CONTENT" == *"'x-api-key'"* ]]
+    [[ "$CATALOG_CONTENT" == *"'anthropic-version'"* ]]
 }
 
 @test "spend table filters purged providers" {
@@ -393,42 +480,46 @@ setup() {
     [[ "$HTML_CONTENT" == *"(m.provider || '') !== 'anthropic'"* ]]
 }
 
-@test "OpenAI card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="openai"'* ]]
-}
-
-@test "Groq card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="groq"'* ]]
-}
-
-@test "Mistral card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="mistral"'* ]]
-}
-
-@test "Moonshot card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="moonshot"'* ]]
-}
-
-@test "HuggingFace card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="huggingface"'* ]]
-}
-
-@test "Fireworks card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="fireworks"'* ]]
-}
-
 # ── buttons ───────────────────────────────────────
 
-@test "all external links open in new tab" {
-    local count_links=$(grep -c '<a class="btn' "$HTML")
-    local count_target=$(grep -c 'target="_blank"' "$HTML")
-    [ "$count_links" -eq "$count_target" ]
+@test "provider cards open in a new tab" {
+    [[ "$HTML_CONTENT" == *'target="_blank" rel="noopener noreferrer"'* ]]
+    local count=$(grep -c "consoleUrl:" "$CATALOG")
+    [ "$count" -ge 4 ]
 }
 
-@test "buttons say Open console or Open local" {
-    run grep -oP '>Open (console|local)<' "$HTML"
-    [ "$status" -eq 0 ]
-    [ "${#lines[@]}" -ge 4 ]
+@test "card buttons say Open console or Open local" {
+    [[ "$HTML_CONTENT" == *"'Open console'"* ]]
+    [[ "$HTML_CONTENT" == *"'Open local'"* ]]
+}
+
+# ── themes ─────────────────────────────────────
+
+@test "theme registry script loads in head" {
+    [[ "$HTML_CONTENT" == *'src="src/themes.js"'* ]]
+}
+
+@test "theme picker is a native select dropdown" {
+    [[ "$HTML_CONTENT" == *'id="theme-select"'* ]]
+    [[ "$HTML_CONTENT" == *'<select'* ]]
+    [[ "$HTML_CONTENT" == *'addEventListener("change"'* ]]
+}
+
+@test "theme choice persists in localStorage" {
+    [[ "$HTML_CONTENT" == *'amsterdam.theme'* ]]
+}
+
+@test "auto mode follows the clock" {
+    [[ "$HTML_CONTENT" == *'effectiveTheme'* ]]
+    [[ "$HTML_CONTENT" == *'setInterval'* ]]
+}
+
+@test "palettes live in the registry, not in index.html" {
+    local registry="$REPO_DIR/src/themes.js"
+    local count=$(grep -c 'label:' "$registry")
+    [ "$count" -eq 5 ]
+    run grep -F '[data-theme="day"]' "$HTML"
+    [ "$status" -eq 1 ]
 }
 
 # ── footer ────────────────────────────────────────
