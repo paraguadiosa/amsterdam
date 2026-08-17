@@ -1,29 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
+import './providers/catalog.js';
 
 // Hermes credential pool provider id → amsterdam env var.
-// Hermes names differ from amsterdam (kimi-coding → moonshot).
-const POOL_PROVIDER_TO_ENV = {
-  'kimi-coding': 'KIMI_API_KEY',
-  'kimi-coding-cn': 'KIMI_CN_API_KEY',
-  deepseek: 'DEEPSEEK_API_KEY',
-  huggingface: 'HF_TOKEN',
-  openai: 'OPENAI_API_KEY',
-  groq: 'GROQ_API_KEY',
-  together: 'TOGETHER_API_KEY',
-  mistral: 'MISTRAL_API_KEY',
-  google: 'GOOGLE_API_KEY',
-  fireworks: 'FIREWORKS_API_KEY',
-};
-
-// Provider id → base-url env var for providers that read one.
-const POOL_PROVIDER_TO_BASE_URL_ENV = {
-  'kimi-coding': 'KIMI_BASE_URL',
-  'kimi-coding-cn': 'KIMI_CN_BASE_URL',
-  deepseek: 'DEEPSEEK_BASE_URL',
-  groq: 'GROQ_BASE_URL',
-};
+// Derived from catalog.js so a new provider inherits its mapping
+// automatically (hermesId → envKey / baseUrlEnv).
+const POOL_PROVIDER_TO_ENV = {};
+const POOL_PROVIDER_TO_BASE_URL_ENV = {};
+for (const meta of globalThis.AMS_PROVIDERS) {
+  if (!meta.hermesId || !meta.envKey) continue;
+  POOL_PROVIDER_TO_ENV[meta.hermesId] = meta.envKey;
+  if (meta.baseUrlEnv) POOL_PROVIDER_TO_BASE_URL_ENV[meta.hermesId] = meta.baseUrlEnv;
+}
 
 // Pool base urls follow the OpenAI convention and end in /v1.
 // Amsterdam appends its own paths, so strip the suffix.
