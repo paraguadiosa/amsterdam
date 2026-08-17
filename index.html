@@ -1196,6 +1196,52 @@
   @media (prefers-reduced-motion: reduce) {
     .live-dot { animation: none; }
   }
+  /* ── demo badge + onboarding tour ─────────────────────────── */
+  .demo-badge {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-pill);
+    padding: 2px 10px;
+  }
+
+  .tour-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 6, 12, .62);
+    z-index: 90;
+  }
+
+  #tour-root[hidden] { display: none; }
+
+  .tour-highlight {
+    position: relative;
+    z-index: 95;
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 28px var(--panel-glow);
+  }
+
+  .tour-box {
+    position: fixed;
+    z-index: 100;
+    max-width: 340px;
+    padding: 18px 20px;
+    background: var(--card);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, .5);
+  }
+
+  .tour-box h2 { margin: 0 0 6px; font-size: 1.05rem; }
+  .tour-box p { margin: 0 0 14px; color: var(--muted); font-size: .9rem; line-height: 1.45; }
+  .tour-nav { display: flex; align-items: center; gap: 8px; }
+  #tour-progress { margin-right: auto; font-size: .78rem; color: var(--faint); }
+  .tour-box .btn[disabled] { opacity: .45; cursor: default; }
 </style>
 <script src="src/themes.js"></script>
 <script src="src/providers/catalog.js"></script>
@@ -1657,6 +1703,7 @@
     </div>
 
     <div class="theme-wrap">
+      <span class="demo-badge" id="demo-badge" hidden>Sample data</span>
       <label class="theme-picker" for="theme-select">
         <span class="theme-picker-label">Theme</span>
         <select id="theme-select" class="theme-select" aria-label="Choose theme">
@@ -1808,7 +1855,29 @@
   </footer>
 </div>
 
-<script src="data/billing.js"></script>
+<!-- onboarding tour — demo mode (?demo) -->
+<div id="tour-root" hidden>
+  <div class="tour-backdrop" id="tour-backdrop"></div>
+  <div class="tour-box" id="tour-box" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-text" tabindex="-1">
+    <h2 id="tour-title"></h2>
+    <p id="tour-text"></p>
+    <div class="tour-nav">
+      <span id="tour-progress" aria-live="polite"></span>
+      <button id="tour-skip" class="btn ghost" type="button">Skip tour</button>
+      <button id="tour-prev" class="btn ghost" type="button">Back</button>
+      <button id="tour-next" class="btn" type="button">Next</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* Demo mode: ?demo in the URL loads the sample fixture from
+     demo/billing.js instead of the generated snapshot. document.write
+     keeps the load synchronous, so window.BILLING is ready before the
+     app script below runs. */
+  var AMS_DEMO = /[?&]demo([=&]|$)/.test(location.search);
+  document.write('<script src="' + (AMS_DEMO ? 'demo/billing.js' : 'data/billing.js') + '"><\/script>');
+</script>
 <script>
   /* ── provider cards ──────────────────────────────────────────── */
   // Rendered from src/providers/catalog.js so a new provider appears
@@ -2305,7 +2374,7 @@
   }
 
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
-  var live = location.protocol === "http:" || location.protocol === "https:";
+  var live = !AMS_DEMO && (location.protocol === "http:" || location.protocol === "https:");
   var summaryEl = document.getElementById("billing-summary");
   var statusEl  = document.getElementById("billing-status");
 
@@ -2378,10 +2447,20 @@
     statusEl.className = cls || "";
   }
 
+  function idleStatus() {
+    if (AMS_DEMO) {
+      setStatus('Demo mode — sample data, not real balances · <button id="tour-replay" class="btn ghost" type="button">Replay tour</button>');
+      var badge = document.getElementById('demo-badge');
+      if (badge) badge.hidden = false;
+      return;
+    }
+    setStatus('Static snapshot — run <code>amster serve</code> for live updates');
+  }
+
   function refresh(manual) {
     if (!live) {
       applyBilling(window.BILLING);
-      setStatus('Static snapshot — run <code>amster serve</code> for live updates');
+      idleStatus();
       return;
     }
     if (manual) setStatus('Refreshing…');
@@ -2512,7 +2591,7 @@
     setStatus('Live · auto-refresh every 2.5 min', 'live');
     setInterval(function () { refresh(false); }, REFRESH_INTERVAL_MS);
   } else {
-    setStatus('Static snapshot — run <code>amster serve</code> for live updates');
+    idleStatus();
   }
 
   /* ── collapsible extra group ────────────────────────────────── */
@@ -2642,6 +2721,172 @@
       window.__amsTheme.apply(T.effectiveTheme('auto', new Date()));
     }
   }, 60000);
+</script>
+<script>
+  /* ── onboarding tour (demo mode) ────────────────────────────── */
+  // A short welcome for first-time visitors. It runs once per
+  // browser (localStorage) and can be replayed from the status line.
+  // Steps anchor to existing panels; a missing target degrades to a
+  // centered dialog.
+  (function () {
+    var TOUR_STORAGE = 'amsterdam.tourDone';
+    var root = document.getElementById('tour-root');
+    if (!root) return;
+    var box        = document.getElementById('tour-box');
+    var titleEl    = document.getElementById('tour-title');
+    var textEl     = document.getElementById('tour-text');
+    var progressEl = document.getElementById('tour-progress');
+    var prevBtn    = document.getElementById('tour-prev');
+    var nextBtn    = document.getElementById('tour-next');
+    var skipBtn    = document.getElementById('tour-skip');
+
+    var STEPS = [
+      { target: null,
+        title: 'Welcome to the Amsterdam Console',
+        text: 'One dashboard for every LLM billing console, with live balances and spend per model. You are looking at sample data — no keys, no accounts, nothing leaves your browser.' },
+      { target: '#theme-select',
+        title: 'Pick a theme',
+        text: 'Four bio-luminescent palettes. Auto follows the clock: solar by day, canal-city night after 20:00.' },
+      { target: '#credits',
+        title: 'Credits remaining',
+        text: 'The live sum of all provider balances, refreshed every 2.5 minutes. The split below shows where the money sits.' },
+      { target: '#billing-summary',
+        title: 'One chip per provider',
+        text: 'Balances, verified keys, and errors at a glance. Providers without a billing API take a manual balance — click edit on a verified chip.' },
+      { target: '#spend-section',
+        title: 'Spend by model',
+        text: 'Estimated and actual cost side by side. Click a column header to sort, use Columns to reshape the table, or filter to one model.' },
+      { target: '#search',
+        title: 'Filter providers',
+        text: 'Type to filter the cards live. Each card opens the provider console in a new tab.' },
+      { target: null,
+        title: 'Run it yourself',
+        text: 'Amsterdam is open source under the MIT license. Clone the repo, add your keys with hermes auth or a .env file, and run: amsterdam.' },
+    ];
+
+    var stepIndex   = 0;
+    var highlighted = null;
+    var lastFocus   = null;
+    var active      = false;
+
+    function tourDone() {
+      try { localStorage.setItem(TOUR_STORAGE, '1'); } catch (e) {}
+    }
+
+    function tourSeen() {
+      try { return localStorage.getItem(TOUR_STORAGE) === '1'; } catch (e) { return true; }
+    }
+
+    function clearHighlight() {
+      if (highlighted) {
+        highlighted.classList.remove('tour-highlight');
+        highlighted = null;
+      }
+    }
+
+    function positionBox(target) {
+      box.style.left = '';
+      box.style.top = '';
+      box.style.transform = '';
+      if (!target) {
+        box.style.left = '50%';
+        box.style.top = '50%';
+        box.style.transform = 'translate(-50%, -50%)';
+        return;
+      }
+      var rect = target.getBoundingClientRect();
+      var margin = 12;
+      var bw = box.offsetWidth;
+      var bh = box.offsetHeight;
+      var left = Math.min(Math.max(margin, rect.left), window.innerWidth - bw - margin);
+      if (left < margin) left = margin;
+      var top = rect.bottom + margin;
+      if (top + bh > window.innerHeight - margin) top = rect.top - bh - margin;
+      if (top < margin) top = Math.max(margin, (window.innerHeight - bh) / 2);
+      box.style.left = left + 'px';
+      box.style.top = top + 'px';
+    }
+
+    function showStep(i) {
+      stepIndex = i;
+      var step = STEPS[i];
+      clearHighlight();
+      var target = step.target ? document.querySelector(step.target) : null;
+      if (target && target.offsetParent !== null) {
+        target.classList.add('tour-highlight');
+        highlighted = target;
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        target = null;
+      }
+      titleEl.textContent = step.title;
+      textEl.textContent = step.text;
+      progressEl.textContent = 'Step ' + (i + 1) + ' of ' + STEPS.length;
+      prevBtn.disabled = i === 0;
+      nextBtn.textContent = i === STEPS.length - 1 ? 'Done' : 'Next';
+      // Wait for the scroll to settle before measuring the target.
+      setTimeout(function () {
+        positionBox(highlighted);
+        box.focus();
+      }, 350);
+    }
+
+    function startTour() {
+      if (active) return;
+      active = true;
+      lastFocus = document.activeElement;
+      root.hidden = false;
+      showStep(0);
+    }
+
+    function endTour() {
+      active = false;
+      root.hidden = true;
+      clearHighlight();
+      tourDone();
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    nextBtn.addEventListener('click', function () {
+      if (stepIndex < STEPS.length - 1) showStep(stepIndex + 1); else endTour();
+    });
+    prevBtn.addEventListener('click', function () {
+      if (stepIndex > 0) showStep(stepIndex - 1);
+    });
+    skipBtn.addEventListener('click', endTour);
+
+    // The Replay tour button is re-rendered with the status line,
+    // so bind it by delegation.
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.id === 'tour-replay') startTour();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (!active) return;
+      if (e.key === 'Escape') { endTour(); return; }
+      if (e.key === 'ArrowRight' && stepIndex < STEPS.length - 1) { showStep(stepIndex + 1); return; }
+      if (e.key === 'ArrowLeft' && stepIndex > 0) { showStep(stepIndex - 1); return; }
+      if (e.key === 'Tab') {
+        // Focus trap: cycle through the tour buttons.
+        var items = [skipBtn, prevBtn, nextBtn].filter(function (b) { return !b.disabled; });
+        var idx = items.indexOf(document.activeElement);
+        e.preventDefault();
+        var next = e.shiftKey
+          ? (idx <= 0 ? items[items.length - 1] : items[idx - 1])
+          : (idx === items.length - 1 ? items[0] : items[idx + 1]);
+        next.focus();
+      }
+    });
+
+    window.addEventListener('resize', function () {
+      if (active) positionBox(highlighted);
+    });
+
+    window.startTour = startTour;
+
+    // Auto-start once per browser in demo mode, after the first render.
+    if (window.AMS_DEMO && !tourSeen()) startTour();
+  })();
 </script>
 </body>
 </html>

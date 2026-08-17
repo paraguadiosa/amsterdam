@@ -124,8 +124,14 @@ setup() {
     [[ "$HTML_CONTENT" == *'id="billing-summary"'* ]]
 }
 
-@test "loads data/billing.js script" {
-    [[ "$HTML_CONTENT" == *'src="data/billing.js"'* ]]
+@test "loads the billing snapshot by default" {
+    [[ "$HTML_CONTENT" == *'data/billing.js'* ]]
+}
+
+@test "demo mode loads the sample fixture" {
+    [[ "$HTML_CONTENT" == *'demo/billing.js'* ]]
+    [[ "$HTML_CONTENT" == *'var AMS_DEMO'* ]]
+    [[ "$HTML_CONTENT" == *'location.search'* ]]
 }
 
 @test "has renderSummary function" {
@@ -134,6 +140,60 @@ setup() {
 
 @test "has formatChip function" {
     [[ "$HTML_CONTENT" == *"formatChip"* ]]
+}
+
+# ── demo mode + onboarding tour ─────────────────
+
+@test "demo mode disables live polling" {
+    [[ "$HTML_CONTENT" == *'var live = !AMS_DEMO'* ]]
+}
+
+@test "demo status line offers a tour replay" {
+    [[ "$HTML_CONTENT" == *'id="tour-replay"'* ]]
+    [[ "$HTML_CONTENT" == *'Demo mode'* ]]
+}
+
+@test "demo badge is hidden by default" {
+    [[ "$HTML_CONTENT" == *'<span class="demo-badge" id="demo-badge" hidden>Sample data</span>'* ]]
+}
+
+@test "tour dialog markup exists" {
+    [[ "$HTML_CONTENT" == *'id="tour-root" hidden'* ]]
+    [[ "$HTML_CONTENT" == *'id="tour-box"'* ]]
+    [[ "$HTML_CONTENT" == *'role="dialog"'* ]]
+    [[ "$HTML_CONTENT" == *'aria-modal="true"'* ]]
+}
+
+@test "tour has skip back and next controls" {
+    [[ "$HTML_CONTENT" == *'id="tour-skip"'* ]]
+    [[ "$HTML_CONTENT" == *'id="tour-prev"'* ]]
+    [[ "$HTML_CONTENT" == *'id="tour-next"'* ]]
+}
+
+@test "tour announces progress politely" {
+    [[ "$HTML_CONTENT" == *'id="tour-progress" aria-live="polite"'* ]]
+}
+
+@test "tour runs once per browser" {
+    [[ "$HTML_CONTENT" == *"amsterdam.tourDone"* ]]
+    [[ "$HTML_CONTENT" == *'tourSeen'* ]]
+}
+
+@test "tour closes on Escape and traps Tab" {
+    [[ "$HTML_CONTENT" == *"e.key === 'Escape'"* ]]
+    [[ "$HTML_CONTENT" == *"e.key === 'Tab'"* ]]
+}
+
+@test "tour restores focus on close" {
+    [[ "$HTML_CONTENT" == *'lastFocus.focus()'* ]]
+}
+
+@test "tour anchors to the main panels" {
+    [[ "$HTML_CONTENT" == *"target: '#credits'"* ]]
+    [[ "$HTML_CONTENT" == *"target: '#billing-summary'"* ]]
+    [[ "$HTML_CONTENT" == *"target: '#spend-section'"* ]]
+    [[ "$HTML_CONTENT" == *"target: '#search'"* ]]
+    [[ "$HTML_CONTENT" == *"target: '#theme-select'"* ]]
 }
 
 @test "has refresh button" {
@@ -463,7 +523,7 @@ setup() {
 
 @test "catalog loads before the app script" {
     local catalog_line=$(grep -n 'src="src/providers/catalog.js"' "$HTML" | head -1 | cut -d: -f1)
-    local app_line=$(grep -n 'src="data/billing.js"' "$HTML" | head -1 | cut -d: -f1)
+    local app_line=$(grep -n 'data/billing.js' "$HTML" | head -1 | cut -d: -f1)
     [ "$catalog_line" -lt "$app_line" ]
 }
 

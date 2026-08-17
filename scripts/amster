@@ -55,6 +55,7 @@ commands:
   dump    Fetch billing data once (open the floodgates)
   serve   Start a local server in the foreground (Ctrl+C to stop)
   open    Open the dashboard in a browser
+  demo    Open the dashboard with sample data and the onboarding tour
   link    Show the file:// URL of the launcher
   path    Show the absolute path of the launcher
   help    Show this help
@@ -182,6 +183,13 @@ case "${1:-}" in
             exit 1
         fi
         "$OPEN" "$HTML"
+        ;;
+    demo)
+        if daemon_up; then
+            "$OPEN" "$URL/?demo"
+        else
+            "$OPEN" "$HTML?demo"
+        fi
         ;;
     link)
         printf 'file://%s\n' "$HTML"

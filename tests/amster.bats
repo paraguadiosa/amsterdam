@@ -206,6 +206,24 @@ count_listeners() {
     [[ "$(cat "$OPEN_LOG")" == "open:$HTML" ]]
 }
 
+@test "demo opens the live URL with ?demo when the daemon is running" {
+    "$AMSTER" start
+    run "$AMSTER" demo
+    [ "$status" -eq 0 ]
+    [[ "$(cat "$OPEN_LOG")" == "open:http://localhost:$TEST_PORT/?demo" ]]
+}
+
+@test "demo falls back to the static file with ?demo when stopped" {
+    run "$AMSTER" demo
+    [ "$status" -eq 0 ]
+    [[ "$(cat "$OPEN_LOG")" == "open:$HTML?demo" ]]
+}
+
+@test "usage lists the demo command" {
+    run "$AMSTER" help
+    [[ "$output" == *"demo"* ]]
+}
+
 @test "open with missing HTML exits 1 with error" {
     local tmp="$HTML.bak"
     mv "$HTML" "$tmp"

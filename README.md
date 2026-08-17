@@ -28,6 +28,8 @@ live balance and usage numbers fetched straight from provider APIs.
   Sortable, with a column picker.
 - **Two serving modes** — live local daemon with an HTTP API, or a static
   `file://` snapshot with no server at all.
+- **Demo mode with onboarding** — `?demo` in the URL loads sample data and
+  a guided tour, so visitors can try the dashboard without any keys.
 - **Docker support** — a small `node:22-alpine` image that runs as a
   non-root user, with a built-in health check.
 - **No build step** — a single HTML file and plain Node modules. No
@@ -80,7 +82,8 @@ in your browser instead. Use `amsterdam serve` for a foreground debug
 daemon (Ctrl+C to stop).
 
 No API keys yet? The dashboard still works — chips show `unverified`
-until a key is found.
+until a key is found. Want to look around first? `amsterdam demo` opens
+the dashboard with sample data and the onboarding tour.
 
 ### Opt-in: Docker container
 
@@ -107,6 +110,7 @@ amsterdam serve         # Foreground debug daemon (Ctrl+C to stop)
 amsterdam start         # Start the daemon in the background (same as no arguments)
 amsterdam status        # Show whether the host daemon is running
 amsterdam open          # Open the dashboard in a browser
+amsterdam demo          # Open the dashboard with sample data and the tour
 amsterdam docker        # Background Docker container, then print the URL
 amsterdam up            # Same as docker
 amsterdam stop          # Stop the background container
@@ -129,6 +133,7 @@ The wrapper starts the host daemon by default, passes
 ./scripts/amster serve    # Live server in the foreground (Ctrl+C to stop)
 ./scripts/amster dump     # Fetch billing data once (open the floodgates)
 ./scripts/amster open     # Open the dashboard in a browser
+./scripts/amster demo     # Open the dashboard with sample data and the tour
 ./scripts/amster link     # Show the file:// URL
 ./scripts/amster path     # Show the absolute path
 ./scripts/amster help     # Show help
@@ -173,6 +178,33 @@ detects them without duplicating them in a project `.env`.
 All supported variables are listed in [`.env.example`](.env.example).
 Copy it to `.env` and fill in the keys you have. `.env` is git-ignored —
 it must never be committed.
+
+## Demo mode — show it to other people
+
+Add `?demo` to the URL and the dashboard runs on the sample fixture in
+`demo/billing.js` instead of real data. No keys, no daemon, no Hermes or
+Pi data — nothing leaves the visitor's browser. A **Sample data** badge
+marks the page, live polling is off, and a seven-step onboarding tour
+auto-starts on the first visit (once per browser; **Replay tour** in the
+status line brings it back).
+
+```bash
+amsterdam demo    # open the demo locally
+```
+
+To publish the demo on a static host (for example your own domain), copy
+three things to the web root — no server code needed:
+
+```
+index.html
+src/      # themes + provider catalog
+demo/     # the sample fixture
+```
+
+Then link visitors to `https://your-domain.example/?demo`. The fixture
+contains only made-up numbers, so it is safe to publish; the test suite
+(`tests/demo.test.js`) asserts it carries no key-shaped strings. Without
+`?demo` the same files render the normal empty state.
 
 ## Live mode vs static mode
 
@@ -261,6 +293,8 @@ src/
   format.js          # Output formatters (JS file + console)
 data/
   billing.js         # Auto-generated (gitignored)
+demo/
+  billing.js         # Sample fixture for demo mode (?demo) — safe to publish
 index.html           # Dashboard — reads data/billing.js and /api/billing
 Dockerfile           # Container build (node:22-alpine, runs as non-root)
 .dockerignore        # Keeps the build context small

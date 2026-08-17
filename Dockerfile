@@ -10,6 +10,7 @@ WORKDIR /app
 
 # Runtime only — the app has zero npm dependencies beyond Node built-ins.
 COPY src/ ./src/
+COPY demo/ ./demo/
 COPY index.html ./
 COPY scripts/amster ./scripts/amster
 COPY package.json ./
