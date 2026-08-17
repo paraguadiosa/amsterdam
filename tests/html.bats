@@ -517,7 +517,7 @@ setup() {
 @test "palettes live in the registry, not in index.html" {
     local registry="$REPO_DIR/src/themes.js"
     local count=$(grep -c 'label:' "$registry")
-    [ "$count" -eq 5 ]
+    [ "$count" -eq 4 ]
     run grep -F '[data-theme="day"]' "$HTML"
     [ "$status" -eq 1 ]
 }

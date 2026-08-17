@@ -35,9 +35,11 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Secrets safe by default** — keys live in environment variables or the
   Hermes credential pool, never in git. Gitleaks hooks block accidental
   commits and pushes of secrets.
-- **Five themes** — night, day, dusk, aurora, and retro palettes, all
-  meeting WCAG AA on their surfaces. The picker in the hero remembers
-  your choice; `auto` follows the clock (day 07:00-19:59).
+- **Four bio-luminescent themes** — Dusk, Acid Green, Cyber Neon, and
+  Ecopunk Solar palettes over glassmorphism panels, HUD glow, and CRT
+  scanlines, with the Amsterdam canal-city hero (gabled houses and
+  windmills by night, green polder by day). The picker in the hero
+  remembers your choice; `auto` follows the clock (solar 07:00-19:59).
 
 ## Requirements
 
