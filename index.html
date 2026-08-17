@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Amsterdam Console</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23101828'/%3E%3Cg%20stroke='%23c8102e'%20stroke-width='6'%20stroke-linecap='square'%3E%3Cline%20x1='22'%20y1='9'%20x2='42'%20y2='23'/%3E%3Cline%20x1='42'%20y1='9'%20x2='22'%20y2='23'/%3E%3Cline%20x1='22'%20y1='25'%20x2='42'%20y2='39'/%3E%3Cline%20x1='42'%20y1='25'%20x2='22'%20y2='39'/%3E%3Cline%20x1='22'%20y1='41'%20x2='42'%20y2='55'/%3E%3Cline%20x1='42'%20y1='41'%20x2='22'%20y2='55'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   /* ── design tokens ──────────────────────────────────────────── */
   :root {
@@ -2430,10 +2431,12 @@
 
   function buildThemeSelect() {
     var select = document.getElementById('theme-select');
-    ['auto'].concat(T.listThemes()).forEach(function (id) {
+    // The static 'auto' option is kept in the markup,
+    // so only append the dynamic theme list here.
+    T.listThemes().forEach(function (id) {
       var opt = document.createElement('option');
       opt.value = id;
-      opt.textContent = id === 'auto' ? 'Auto' : T.THEMES[id].label;
+      opt.textContent = T.THEMES[id].label;
       select.appendChild(opt);
     });
   }
