@@ -1127,7 +1127,6 @@
   .card,
   #spend-section,
   #pi-spend-content,
-  #billing-summary .chip,
   .columns-panel {
     background: var(--glass-bg);
     -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -1163,69 +1162,6 @@
     z-index: 1;
   }
 
-  /* provider chips become glass pill-chips with pulsing LEDs */
-  #billing-summary .chip {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border: 1px solid var(--glass-border);
-    border-left-width: 1px;
-    border-radius: var(--radius-pill);
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    backdrop-filter: blur(var(--glass-blur));
-    box-shadow: var(--panel-glow);
-  }
-
-  #billing-summary .chip:hover {
-    transform: translateY(-1px);
-    border-color: var(--border-hi);
-    box-shadow: var(--panel-glow-hover);
-  }
-
-  #billing-summary .chip .chip-value {
-    font-family: var(--font-mono);
-  }
-
-  #billing-summary .chip .chip-edit {
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-  }
-
-  .chip-led {
-    flex-shrink: 0;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: var(--live-dot-glow);
-    animation: led-pulse 2.2s ease-in-out infinite;
-  }
-
-  @keyframes led-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: .35; transform: scale(.75); }
-  }
-
-  #billing-summary .chip.balance .chip-led,
-  #billing-summary .chip.verified .chip-led {
-    background: var(--green);
-    box-shadow: 0 0 10px var(--green), 0 0 18px var(--credits-glow);
-  }
-
-  #billing-summary .chip.usage .chip-led,
-  #billing-summary .chip.off .chip-led {
-    background: var(--amber);
-    box-shadow: 0 0 10px var(--amber);
-  }
-
-  #billing-summary .chip.error .chip-led {
-    background: var(--red);
-    box-shadow: 0 0 10px var(--red);
-  }
-
   /* CRT scanlines over tables and provider lists */
   #spend-section,
   #pi-spend-content {
@@ -1258,8 +1194,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .live-dot,
-    .chip-led { animation: none; }
+    .live-dot { animation: none; }
   }
 </style>
 <script src="src/themes.js"></script>
@@ -2393,7 +2328,6 @@
     liveIds.forEach(function (id) {
       var chip = formatChip(id, billing.providers[id]);
       html += '<div class="chip ' + chip.cls + '" data-provider="' + id + '">'
-            + '<span class="chip-led" aria-hidden="true"></span>'
             + '<span class="chip-name">' + id + '</span>'
             + '<span class="chip-value">' + chip.value + '</span>';
       if (chip.editable) {
