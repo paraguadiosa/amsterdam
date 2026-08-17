@@ -445,7 +445,7 @@ setup() {
 # ── provider catalog (single source of truth) ─────
 
 @test "catalog defines every tracked provider id" {
-    for id in deepseek moonshot huggingface openai google groq together mistral fireworks xai; do
+    for id in deepseek moonshot huggingface openai google groq together mistral fireworks xai anthropic; do
         [[ "$CATALOG_CONTENT" == *"id: '$id'"* ]]
     done
 }
@@ -467,9 +467,12 @@ setup() {
     [ "$catalog_line" -lt "$app_line" ]
 }
 
-@test "anthropic is purged from the dashboard" {
-    run grep -E 'data-provider="anthropic"|ANTHROPIC_API_KEY|console.anthropic.com' "$HTML" "$CATALOG"
-    [ "$status" -eq 1 ]
+@test "anthropic is a catalog provider card" {
+    [[ "$CATALOG_CONTENT" == *"id: 'anthropic'"* ]]
+    [[ "$CATALOG_CONTENT" == *"ANTHROPIC_API_KEY"* ]]
+    [[ "$CATALOG_CONTENT" == *"console.anthropic.com"* ]]
+    [[ "$CATALOG_CONTENT" == *"'x-api-key'"* ]]
+    [[ "$CATALOG_CONTENT" == *"'anthropic-version'"* ]]
 }
 
 @test "spend table filters purged providers" {

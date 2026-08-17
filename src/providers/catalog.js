@@ -17,6 +17,7 @@
  *   kind           balance | account | verify | link
  *   auth           verify only: 'bearer' (default) or 'query'
  *   modelsPath     verify only: default '/v1/models'
+ *   buildRequest   verify only: optional (apiKey, baseUrl) => ({ url, options })
  *   hermesId       Hermes credential-pool provider id (omit if n/a)
  *   consoleUrl     billing/console URL for the card button
  *   note           card note line
@@ -185,6 +186,31 @@
       note: 'Usage and billing.',
       tag: 'Billing',
       search: 'xai x ai grok',
+    },
+    {
+      id: 'anthropic',
+      name: 'Anthropic',
+      envKey: 'ANTHROPIC_API_KEY',
+      baseUrlEnv: 'ANTHROPIC_BASE_URL',
+      defaultBaseUrl: 'https://api.anthropic.com',
+      kind: 'verify',
+      auth: 'bearer',
+      hermesId: 'anthropic',
+      consoleUrl: 'https://console.anthropic.com/',
+      note: 'Usage and billing.',
+      tag: 'Billing',
+      search: 'anthropic claude',
+      buildRequest: function (apiKey, baseUrl) {
+        return {
+          url: String(baseUrl).replace(/\/+$/, '') + '/v1/models',
+          options: {
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+          },
+        };
+      },
     },
   ];
 

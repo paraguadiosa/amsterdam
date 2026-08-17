@@ -242,11 +242,33 @@ describe('google auth', () => {
   });
 });
 
+// ── anthropic uses x-api-key auth ─────────────────
+
+describe('anthropic auth', () => {
+  it('sends x-api-key and anthropic-version headers', async () => {
+    const meta = CATALOG.find((p) => p.id === 'anthropic');
+    const anthropic = createVerifyProvider(meta);
+    let capturedUrl = '';
+    let capturedOptions = {};
+    const spy = async (url, options) => {
+      capturedUrl = url;
+      capturedOptions = options;
+      return { ok: true, json: async () => ({ data: [{ id: 'claude-opus-5' }] }) };
+    };
+    const result = await anthropic.fetchBalance({ apiKey: 'sk-ant-test', baseUrl: 'https://api.anthropic.com/' }, spy);
+    assert.equal(capturedUrl, 'https://api.anthropic.com/v1/models');
+    assert.equal(capturedOptions.headers['x-api-key'], 'sk-ant-test');
+    assert.equal(capturedOptions.headers['anthropic-version'], '2023-06-01');
+    assert.equal(result.verified, true);
+    assert.equal(result.models, 1);
+  });
+});
+
 // ── registry ─────────────────────────────────────
 
 describe('provider registry', () => {
-  it('exports all key-backed providers (10)', () => {
-    assert.equal(providers.length, 10);
+  it('exports all key-backed providers (11)', () => {
+    assert.equal(providers.length, 11);
   });
 
   it('has unique ids', () => {
