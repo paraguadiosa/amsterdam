@@ -52,15 +52,16 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
       return;
     }
 
-    if (pathname.startsWith('/src/')) {
-      const rel = pathname.slice('/src/'.length);
+    const staticMatch = pathname.match(/^\/(src|demo)\/(.+)$/);
+    if (staticMatch) {
+      const rel = staticMatch[2];
       const safe = /^[\w./-]+\.js$/.test(rel) && !rel.includes('..');
       if (!safe) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not found');
         return;
       }
-      await sendFile(res, resolve(ROOT, 'src', rel), 'application/javascript');
+      await sendFile(res, resolve(ROOT, staticMatch[1], rel), 'application/javascript');
       return;
     }
 

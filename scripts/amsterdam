@@ -18,6 +18,7 @@ commands:
   start   Start the host daemon in the background (same as no arguments)
   status  Show whether the host daemon is running
   open    Open the dashboard in a browser
+  demo    Open the dashboard with sample data and the onboarding tour
   docker  Run the dashboard as a background Docker container
   up      Same as docker
   stop    Stop the background Docker container
@@ -47,7 +48,7 @@ case "${1:-}" in
     serve|daemon)
         exec "$AMSTER" serve
         ;;
-    start|status|dump|fetch|open|link|path)
+    start|status|dump|fetch|open|demo|link|path)
         exec "$AMSTER" "$@"
         ;;
     docker|up)

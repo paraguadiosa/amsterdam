@@ -88,6 +88,19 @@ describe('server', () => {
     const res = await fetch(`${base}/src/%2e%2e/package.json`);
     assert.equal(res.status, 404);
   });
+
+  it('serves demo/billing.js as the sample fixture', async () => {
+    const res = await fetch(`${base}/demo/billing.js`);
+    assert.equal(res.status, 200);
+    const text = await res.text();
+    assert.ok(text.includes('Sample data for demo mode'));
+    assert.ok(text.includes('BILLING'));
+  });
+
+  it('rejects path traversal in /demo/', async () => {
+    const res = await fetch(`${base}/demo/%2e%2e/package.json`);
+    assert.equal(res.status, 404);
+  });
 });
 
 describe('server caching', () => {

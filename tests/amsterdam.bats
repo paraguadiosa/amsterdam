@@ -151,6 +151,12 @@ EOF
     [[ "$output" == "file://$HTML" ]]
 }
 
+@test "demo passes through to amster and opens the static demo" {
+    run "$AMSTERDAM" demo
+    [ "$status" -eq 0 ]
+    [[ "$(cat "$OPEN_LOG")" == "open:$HTML?demo" ]]
+}
+
 @test "unknown command prints usage to stderr and exits 2" {
     run "$AMSTERDAM" whatever
     [ "$status" -eq 2 ]
