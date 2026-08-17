@@ -1103,6 +1103,66 @@
   @media (max-width: 640px) {
     .theme-wrap { top: 10px; right: 72px; transform: scale(.85); }
   }
+
+  /* ── hero artwork: day/night crossfade ─────────────────────── */
+  .hero-scene { transition: opacity 0.5s ease; }
+
+  .hero-art--day { opacity: 0; }
+  [data-scene="night"] .hero-art--night { opacity: 1; }
+  [data-scene="night"] .hero-art--day { opacity: 0; }
+  [data-scene="day"] .hero-art--night { opacity: 0; }
+  [data-scene="day"] .hero-art--day { opacity: 1; }
+
+  /* ── theme picker ──────────────────────────────────────────── */
+  .theme-wrap {
+    position: absolute;
+    top: 16px;
+    right: 88px;
+    z-index: 3;
+  }
+
+  .theme-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    font-family: var(--font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: var(--toggle-color);
+    background: var(--toggle-bg);
+    border: 1px solid var(--toggle-border);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--toggle-shadow);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+
+  .theme-picker-label { text-transform: uppercase; }
+
+  .theme-select {
+    font-family: var(--font);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  .theme-select:hover { border-color: var(--accent); }
+
+  .theme-select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 640px) {
+    .theme-wrap { top: 10px; right: 72px; transform: scale(.85); }
+  }
 </style>
 <script src="src/themes.js"></script>
 <script src="src/providers/catalog.js"></script>
