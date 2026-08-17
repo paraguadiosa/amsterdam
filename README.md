@@ -244,11 +244,12 @@ totals, and the CLI output — wherever the spend data goes.
 ```
 src/
   providers/
-    deepseek.js      # Balance endpoint (has real billing API)
-    moonshot.js      # Balance endpoint (has real billing API)
-    huggingface.js   # Whoami endpoint (account info)
-    verify.js        # Factory for key-verification-only providers
-    index.js         # Provider registry
+    catalog.js       # Single source of truth for every provider
+    deepseek.js      # Balance fetcher (custom, keyed by catalog id)
+    moonshot.js      # Balance fetcher (custom, keyed by catalog id)
+    huggingface.js   # Whoami fetcher (custom, keyed by catalog id)
+    verify.js        # Generic key-verification factory
+    index.js         # Builds the runtime registry from the catalog
   dam.js             # Orchestrator — fetches all, writes data/billing.js
   server.js          # Local HTTP server for live mode
   env.js             # Credential loader (.env files + hermes pool)
@@ -266,6 +267,7 @@ scripts/
   amsterdam          # Wrapper: default to host daemon, Docker via `amsterdam docker`
   amsterdam-install  # Symlink the commands into ~/.local/bin
   amster-docker      # Docker build/run helper
+  sync-providers     # Regenerate .env.example from the catalog
 ```
 
 ### Provider types
@@ -274,12 +276,29 @@ scripts/
 |------|-----------|-----------------|
 | Balance API | DeepSeek, Moonshot | Actual balance numbers |
 | Account info | Hugging Face | Username + verified status |
-| Key verification + model count | OpenAI, Groq, Together, Mistral, Google, Fireworks | Number of models + `verified: true` on HTTP 200 |
+| Key verification + model count | OpenAI, Groq, Together, Mistral, Google, Fireworks, xAI | Number of models + `verified: true` on HTTP 200 |
+| Link only | Local llama.cpp, Google Cloud Billing | No API — console link only |
 
-Adding a provider is small: write a module that exports `id`, `name`,
-`envKey`, and a `fetchBalance`/`fetchAccount` function, then register it
-in `src/providers/index.js`. The tests in `tests/providers.test.js` show
-the expected shape.
+### Adding a provider (automatic)
+
+Everything is derived from `src/providers/catalog.js`. To add a
+provider such as xAI, add one object there, then refresh `.env.example`:
+
+```bash
+node scripts/sync-providers
+```
+
+That is all. The runtime registry (`src/providers/index.js`), the
+dashboard card (rendered from the catalog in `index.html`), and the
+Hermes credential-pool mapping (`src/env.js`) all read the catalog, so
+they pick up the new provider without further edits.
+
+Most providers are `kind: 'verify'` — they only verify the key against
+`/v1/models`, so a catalog entry is the whole job. A provider with a
+real balance or account endpoint needs a small custom fetcher in
+`src/providers/<id>.js` plus a line in the `CUSTOM_FETCHERS` map in
+`src/providers/index.js`. The tests in `tests/providers.test.js` show
+both shapes.
 
 ## Testing
 

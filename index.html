@@ -1710,6 +1710,35 @@
 
 <script src="data/billing.js"></script>
 <script>
+  /* ── provider cards ──────────────────────────────────────────── */
+  // Rendered from src/providers/catalog.js so a new provider appears
+  // here automatically. Cards with a key are detection-tracked via
+  // data-provider; link-only cards stay in the Available list.
+  function renderProviderCards() {
+    var list = window.AMS_PROVIDERS || [];
+    var host = document.getElementById('extra-cards');
+    if (!host) return;
+    host.innerHTML = list.map(function (p) {
+      var local = p.tag === 'No billing';
+      var tag = local ? 'tag local' : 'tag';
+      var provider = p.envKey ? ' data-provider="' + p.id + '"' : '';
+      var envLine = p.envLabel || (p.envKey
+        ? 'Env: ' + p.envKey + (p.baseUrlEnv ? ' / ' + p.baseUrlEnv : '')
+        : '');
+      var btnClass = local ? 'btn ghost' : 'btn';
+      var btnLabel = local ? 'Open local' : 'Open console';
+      return '<div class="card" data-name="' + escapeHtml(p.search || p.name.toLowerCase()) + '"' + provider + '>'
+        + '<h3>' + escapeHtml(p.name) + '</h3>'
+        + '<span class="' + tag + '">' + escapeHtml(p.tag) + '</span>'
+        + '<p class="note">' + escapeHtml(p.note || '') + '</p>'
+        + (envLine ? '<p class="envs">' + escapeHtml(envLine) + '</p>' : '')
+        + '<a class="' + btnClass + '" href="' + escapeHtml(p.consoleUrl) + '" target="_blank" rel="noopener noreferrer">' + btnLabel + '</a>'
+        + '</div>';
+    }).join('');
+  }
+
+  renderProviderCards();
+
   /* ── helpers ────────────────────────────────────────────────── */
   function currencySymbol(provider) {
     if (provider.currency === "CNY") return "¥";

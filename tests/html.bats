@@ -4,6 +4,8 @@ setup() {
     REPO_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
     HTML="$REPO_DIR/index.html"
     HTML_CONTENT="$(cat "$HTML")"
+    CATALOG="$REPO_DIR/src/providers/catalog.js"
+    CATALOG_CONTENT="$(cat "$CATALOG")"
 }
 
 # ── language ──────────────────────────────────────
@@ -440,14 +442,33 @@ setup() {
     [[ "$HTML_CONTENT" == *"Nothing matches that filter"* ]]
 }
 
-# ── cards with provider IDs ──────────────────────
+# ── provider catalog (single source of truth) ─────
 
-@test "DeepSeek card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="deepseek"'* ]]
+@test "catalog defines every tracked provider id" {
+    for id in deepseek moonshot huggingface openai google groq together mistral fireworks xai; do
+        [[ "$CATALOG_CONTENT" == *"id: '$id'"* ]]
+    done
+}
+
+@test "xai is registered with its env var" {
+    [[ "$CATALOG_CONTENT" == *"id: 'xai'"* ]]
+    [[ "$CATALOG_CONTENT" == *"XAI_API_KEY"* ]]
+}
+
+@test "cards render from the catalog" {
+    [[ "$HTML_CONTENT" == *'window.AMS_PROVIDERS'* ]]
+    [[ "$HTML_CONTENT" == *'renderProviderCards'* ]]
+    [[ "$HTML_CONTENT" == *"getElementById('extra-cards')"* ]]
+}
+
+@test "catalog loads before the app script" {
+    local catalog_line=$(grep -n 'src="src/providers/catalog.js"' "$HTML" | head -1 | cut -d: -f1)
+    local app_line=$(grep -n 'src="data/billing.js"' "$HTML" | head -1 | cut -d: -f1)
+    [ "$catalog_line" -lt "$app_line" ]
 }
 
 @test "anthropic is purged from the dashboard" {
-    run grep -E 'data-provider="anthropic"|ANTHROPIC_API_KEY|console.anthropic.com' "$HTML"
+    run grep -E 'data-provider="anthropic"|ANTHROPIC_API_KEY|console.anthropic.com' "$HTML" "$CATALOG"
     [ "$status" -eq 1 ]
 }
 
@@ -456,42 +477,17 @@ setup() {
     [[ "$HTML_CONTENT" == *"(m.provider || '') !== 'anthropic'"* ]]
 }
 
-@test "OpenAI card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="openai"'* ]]
-}
-
-@test "Groq card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="groq"'* ]]
-}
-
-@test "Mistral card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="mistral"'* ]]
-}
-
-@test "Moonshot card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="moonshot"'* ]]
-}
-
-@test "HuggingFace card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="huggingface"'* ]]
-}
-
-@test "Fireworks card has data-provider" {
-    [[ "$HTML_CONTENT" == *'data-provider="fireworks"'* ]]
-}
-
 # ── buttons ───────────────────────────────────────
 
-@test "all external links open in new tab" {
-    local count_links=$(grep -c '<a class="btn' "$HTML")
-    local count_target=$(grep -c 'target="_blank"' "$HTML")
-    [ "$count_links" -eq "$count_target" ]
+@test "provider cards open in a new tab" {
+    [[ "$HTML_CONTENT" == *'target="_blank" rel="noopener noreferrer"'* ]]
+    local count=$(grep -c "consoleUrl:" "$CATALOG")
+    [ "$count" -ge 4 ]
 }
 
-@test "buttons say Open console or Open local" {
-    run grep -oP '>Open (console|local)<' "$HTML"
-    [ "$status" -eq 0 ]
-    [ "${#lines[@]}" -ge 4 ]
+@test "card buttons say Open console or Open local" {
+    [[ "$HTML_CONTENT" == *"'Open console'"* ]]
+    [[ "$HTML_CONTENT" == *"'Open local'"* ]]
 }
 
 # ── themes ─────────────────────────────────────
