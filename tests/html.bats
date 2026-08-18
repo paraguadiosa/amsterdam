@@ -330,11 +330,11 @@ setup() {
     [[ "$HTML_CONTENT" == *"Hermes total"* ]]
 }
 
-@test "pi spend section sits between spend table and search" {
+@test "pi spend section sits before spend table" {
     local spend_line=$(grep -n 'id="spend-empty"' "$HTML" | head -1 | cut -d: -f1)
     local pi_line=$(grep -n 'id="pi-spend-section"' "$HTML" | head -1 | cut -d: -f1)
     local search_line=$(grep -n '<input id="search"' "$HTML" | head -1 | cut -d: -f1)
-    [ "$pi_line" -gt "$spend_line" ]
+    [ "$pi_line" -lt "$spend_line" ]
     [ "$pi_line" -lt "$search_line" ]
 }
 

@@ -1737,6 +1737,41 @@
   <div id="billing-summary"></div>
 
 
+  <!-- spend by Pi — populated from data/billing.js and /api/billing -->
+  <div id="pi-spend-section">
+    <h2 class="toggle" id="pi-spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="pi-spend-content">
+      <span class="dot" aria-hidden="true"></span>Spend by Pi
+      <span class="chevron" aria-hidden="true">&#9658;</span>
+    </h2>
+    <section class="credits spend-blob" id="pi-spend-blob" aria-label="Total Pi spend" hidden>
+      <canvas class="sparkline" id="pi-spark" aria-hidden="true"></canvas>
+      <div class="credits-body">
+        <p class="credits-label">Total spend (actual) <span class="live-dot" aria-hidden="true"></span></p>
+        <p class="credits-value" id="pi-spend-blob-total">&mdash;</p>
+        <p class="credits-split" id="pi-spend-blob-split">&mdash;</p>
+      </div>
+      <p class="credits-note">Actual billed spend from Pi session logs. Click <b>Spend by Pi</b> to expand the full table.</p>
+    </section>
+    <div id="pi-spend-content">
+      <div id="pi-summary"></div>
+      <table id="pi-spend-table" aria-label="Spend by Pi">
+        <thead>
+          <tr>
+            <th scope="col">Model</th>
+            <th scope="col">Provider</th>
+            <th scope="col">Sessions</th>
+            <th scope="col">Calls</th>
+            <th scope="col">Tokens</th>
+            <th scope="col">Cost</th>
+            <th scope="col">Last seen</th>
+          </tr>
+        </thead>
+        <tbody id="pi-spend-body"></tbody>
+      </table>
+      <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+    </div>
+  </div>
+
   <!-- spend by model — populated from data/billing.js and /api/billing -->
   <h2 class="toggle" id="spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="spend-section">
     <span class="dot" aria-hidden="true"></span>Spend by model
@@ -1791,41 +1826,6 @@
   </table>
   <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
   <div class="hint" id="spend-empty">No usage recorded yet.</div>
-  </div>
-
-  <!-- spend by Pi — populated from data/billing.js and /api/billing -->
-  <div id="pi-spend-section">
-    <h2 class="toggle" id="pi-spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="pi-spend-content">
-      <span class="dot" aria-hidden="true"></span>Spend by Pi
-      <span class="chevron" aria-hidden="true">&#9658;</span>
-    </h2>
-    <section class="credits spend-blob" id="pi-spend-blob" aria-label="Total Pi spend" hidden>
-      <canvas class="sparkline" id="pi-spark" aria-hidden="true"></canvas>
-      <div class="credits-body">
-        <p class="credits-label">Total spend (actual) <span class="live-dot" aria-hidden="true"></span></p>
-        <p class="credits-value" id="pi-spend-blob-total">&mdash;</p>
-        <p class="credits-split" id="pi-spend-blob-split">&mdash;</p>
-      </div>
-      <p class="credits-note">Actual billed spend from Pi session logs. Click <b>Spend by Pi</b> to expand the full table.</p>
-    </section>
-    <div id="pi-spend-content">
-      <div id="pi-summary"></div>
-      <table id="pi-spend-table" aria-label="Spend by Pi">
-        <thead>
-          <tr>
-            <th scope="col">Model</th>
-            <th scope="col">Provider</th>
-            <th scope="col">Sessions</th>
-            <th scope="col">Calls</th>
-            <th scope="col">Tokens</th>
-            <th scope="col">Cost</th>
-            <th scope="col">Last seen</th>
-          </tr>
-        </thead>
-        <tbody id="pi-spend-body"></tbody>
-      </table>
-      <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
-    </div>
   </div>
 
   </main>
