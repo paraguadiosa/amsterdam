@@ -115,6 +115,36 @@ describe('moonshot', () => {
   });
 });
 
+// ── zai ──────────────────────────────────────────
+
+describe('zai', () => {
+  it('verifies the key via the models endpoint', async () => {
+    const zai = providers.find((p) => p.id === 'zai');
+    const body = { object: 'list', data: [{ id: 'glm-4.5', object: 'model' }] };
+    const result = await zai.fetchBalance(
+      { apiKey: 'zai-test', baseUrl: 'https://api.z.ai/api/paas/v4' },
+      mockFetch(body),
+    );
+    assert.equal(result.verified, true);
+    assert.equal(result.models, 1);
+  });
+
+  it('throws on non-200', async () => {
+    const zai = providers.find((p) => p.id === 'zai');
+    await assert.rejects(
+      () => zai.fetchBalance({ apiKey: 'bad', baseUrl: 'https://api.z.ai/api/paas/v4' }, mockFetchFail(401)),
+      { message: 'HTTP 401' },
+    );
+  });
+
+  it('has correct metadata', () => {
+    const zai = providers.find((p) => p.id === 'zai');
+    assert.equal(zai.id, 'zai');
+    assert.equal(zai.envKey, 'ZAI_API_KEY');
+    assert.equal(zai.defaultBaseUrl, 'https://api.z.ai/api/paas/v4');
+  });
+});
+
 // ── verify factory ───────────────────────────────
 
 describe('createVerifyProvider', () => {
@@ -267,8 +297,8 @@ describe('anthropic auth', () => {
 // ── registry ─────────────────────────────────────
 
 describe('provider registry', () => {
-  it('exports all key-backed providers (11)', () => {
-    assert.equal(providers.length, 11);
+  it('exports all key-backed providers (12)', () => {
+    assert.equal(providers.length, 12);
   });
 
   it('has unique ids', () => {
@@ -287,6 +317,13 @@ describe('provider registry', () => {
     assert.ok(xai);
     assert.equal(xai.envKey, 'XAI_API_KEY');
     assert.equal(xai.defaultBaseUrl, 'https://api.x.ai');
+  });
+
+  it('includes Z.AI / GLM with its env var', () => {
+    const zai = providers.find((p) => p.id === 'zai');
+    assert.ok(zai);
+    assert.equal(zai.envKey, 'ZAI_API_KEY');
+    assert.equal(zai.defaultBaseUrl, 'https://api.z.ai/api/paas/v4');
   });
 
   it('skips link-only catalog entries', () => {

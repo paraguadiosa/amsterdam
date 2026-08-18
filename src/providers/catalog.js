@@ -212,6 +212,20 @@
         };
       },
     },
+    {
+      id: 'zai',
+      name: 'Z.AI / GLM',
+      envKey: 'ZAI_API_KEY',
+      baseUrlEnv: 'ZAI_BASE_URL',
+      defaultBaseUrl: 'https://api.z.ai/api/paas/v4',
+      kind: 'verify',
+      auth: 'bearer',
+      hermesId: 'zai',
+      consoleUrl: 'https://z.ai/manage-apikey/billing',
+      note: 'Usage and billing.',
+      tag: 'Billing',
+      search: 'z.ai z ai glm zhipu',
+    },
   ];
 
   global.AMS_PROVIDERS = CATALOG;
