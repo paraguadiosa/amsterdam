@@ -9,7 +9,9 @@
 A static panel to open all LLM billing consoles from one place — with
 live balance and usage numbers fetched straight from provider APIs.
 
-<img width="1468" height="677" alt="Amsterdam Console dashboard" src="https://github.com/user-attachments/assets/aeaac237-1cc4-4afa-9771-7dc28f1bda9a" />
+**Live demo:** [Amsterdam demo](https://evecoronel.com/amsterdam/?demo) — sample data, no keys, no signup. Served from the [`astrocronopio.github.io`](https://github.com/paraguadiosa/astrocronopio.github.io) repository (custom domain `evecoronel.com`).
+
+<img width="1440" height="820" alt="Amsterdam Console demo dashboard" src="docs/amsterdam-demo.png" />
 
 ## Features
 
@@ -202,6 +204,12 @@ status line brings it back).
 ```bash
 amsterdam demo    # open the demo locally
 ```
+
+A live copy is published at
+<https://evecoronel.com/amsterdam/?demo>, served from the `amsterdam/`
+directory of the
+[astrocronopio.github.io](https://github.com/paraguadiosa/astrocronopio.github.io)
+repository (its Pages custom domain is `evecoronel.com`).
 
 To publish the demo on a static host (for example your own domain), copy
 three things to the web root — no server code needed:
