@@ -1,12 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  autoGrain,
   bucketLabelToMs,
   colorAt,
   donutSvg,
   filterTimelineRange,
   hbarSvg,
+  lineSeriesSvg,
   msToBucketLabel,
   pivotTimeline,
   rollupTimeline,
@@ -64,17 +64,6 @@ describe('filterTimelineRange', () => {
   });
 });
 
-describe('autoGrain', () => {
-  it('scales the bucket size with the visible span', () => {
-    assert.equal(autoGrain(3600e3), '5min'); // 1 h window
-    assert.equal(autoGrain(6 * 3600e3), '5min'); // 6 h window
-    assert.equal(autoGrain(24 * 3600e3), 'hour'); // 24 h window
-    assert.equal(autoGrain(48 * 3600e3), 'hour'); // 48 h window
-    assert.equal(autoGrain(7 * 86400e3), 'day'); // 7 d window
-    assert.equal(autoGrain(Infinity), 'day'); // all time
-  });
-});
-
 describe('bucket label helpers', () => {
   it('round-trips epoch ms and UTC labels', () => {
     const label = msToBucketLabel(Date.parse('2026-08-07T00:07:30Z'));
@@ -98,6 +87,34 @@ describe('stackedBarsSvg', () => {
     const drawn = stackedBarsSvg([]);
     assert.ok(drawn.svg.includes('No timeline data'));
     assert.deepEqual(drawn.buckets, []);
+  });
+});
+
+describe('lineSeriesSvg', () => {
+  it('draws one line per series plus an emphasized total line', () => {
+    const drawn = lineSeriesSvg(ROWS, { width: 400 });
+    assert.ok(drawn.svg.includes('<svg'));
+    assert.ok(drawn.svg.includes('role="img"'));
+    assert.ok(drawn.svg.includes('class="total-line"'));
+    assert.ok(drawn.svg.includes('Total spend'));
+    assert.ok(drawn.svg.includes('gpt-5 · openai'));
+    assert.ok(drawn.legend.includes('Total'));
+    assert.ok(drawn.legend.includes('deepseek-v4-flash'));
+    // two series + one total = three polylines, with no stacked rects
+    assert.equal((drawn.svg.match(/<polyline/g) || []).length, 3);
+    assert.equal((drawn.svg.match(/<rect/g) || []).length, 0);
+  });
+
+  it('renders an empty state when there are no rows', () => {
+    const drawn = lineSeriesSvg([]);
+    assert.ok(drawn.svg.includes('No timeline data'));
+    assert.deepEqual(drawn.buckets, []);
+  });
+
+  it('draws dots for a single bucket instead of a zero-length line', () => {
+    const one = lineSeriesSvg([ROWS[0]]);
+    assert.ok(one.svg.includes('<circle'));
+    assert.ok(one.svg.includes('class="total-dot"'));
   });
 });
 

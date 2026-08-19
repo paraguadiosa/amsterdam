@@ -267,6 +267,38 @@
     line-height: 0;
   }
 
+  .hero-nav {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 3;
+  }
+
+  .hero-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-family: var(--font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--toggle-color);
+    background: var(--toggle-bg);
+    border: 1px solid var(--toggle-border);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--toggle-shadow);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    text-decoration: none;
+  }
+
+  .hero-nav a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
   /* ── credits panel ───────────────────────────────────────────── */
   .credits {
     position: relative;
@@ -1113,6 +1145,7 @@
 
   @media (max-width: 640px) {
     .theme-wrap { top: 10px; right: 72px; transform: scale(.85); }
+    .hero-nav { top: 10px; left: 10px; transform: scale(.85); }
   }
 
   /* ── bio-luminescent HUD: glass, glow, scanlines, cursor ──── */
@@ -1277,6 +1310,7 @@
 
   <!-- ── hero banner: Amsterdam ecopunk city ────────────────── -->
   <header class="hero">
+    <nav class="hero-nav" aria-label="Console"><a href="usage.html">Amsterdam Monitoring</a></nav>
     <svg class="hero-scene hero-art--night" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -1851,7 +1885,7 @@
   </aside>
 
   <footer>
-    <p>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets &middot; <a href="usage.html">Usage monitor</a></p>
+    <p>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets</p>
   </footer>
 </div>
 

@@ -41,8 +41,8 @@ sección D es práctica: debes ejecutar los comandos.
 - c) El costo se estimó con precios de lista
 - d) El costo se cargó a mano
 
-**A5.** Con el rango "24h" y granularidad en `Auto`, ¿qué tamaño de
-bloque usa el gráfico?
+**A5.** Con el rango "24h" y la granularidad por defecto, ¿qué tamaño
+de bloque usa el gráfico?
 
 - a) 5 minutos
 - b) 1 hora
@@ -201,7 +201,8 @@ sigue vivo.
 **A2.** b — `'YYYY-MM-DD HH:MM'` en UTC (`bucket5min`).
 **A3.** b — Hermes solo agrega por sesión; no hay timestamp por llamada.
 **A4.** b — USD real parseado de `~/.pi/agent/sessions`.
-**A5.** b — `autoGrain(24 h)` → `hour` (más de 6 h y hasta 48 h).
+**A5.** a — la granularidad por defecto es 5 minutos y no depende del
+rango; el rango queda fijo y solo cambia el binning.
 **A6.** c — solo el dashboard; el monitor y el export muestran los logs
 como son.
 **A7.** c — `amount: null` borra la entrada (upsert con delete).
