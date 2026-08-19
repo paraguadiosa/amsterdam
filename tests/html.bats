@@ -33,18 +33,15 @@ setup() {
     [[ "$HTML_CONTENT" == *'class="hero-copy"'* ]]
 }
 
-@test "banner references the Amstel dam" {
-    [[ "$HTML_CONTENT" == *"a dam on the Amstel"* ]]
+@test "banner dropped the dam wordplay" {
+    [[ "$HTML_CONTENT" != *"a dam on the Amstel"* ]]
+    [[ "$HTML_CONTENT" != *"HTML dam"* ]]
+    [[ "$HTML_CONTENT" != *"The Amstel's dam"* ]]
 }
 
 @test "banner shows the amsterdam flag badge" {
     [[ "$HTML_CONTENT" == *'class="flag-badge"'* ]]
     [[ "$HTML_CONTENT" == *"#c8102e"* ]]
-}
-
-@test "banner carries the dam metaphor" {
-    [[ "$HTML_CONTENT" == *"HTML dam"* ]]
-    [[ "$HTML_CONTENT" == *"The Amstel's dam once made this town"* ]]
 }
 
 @test "top flag stripe is present" {
@@ -618,10 +615,10 @@ setup() {
     [[ "$HTML_CONTENT" == *'querySelectorAll(".card")'* ]]
 }
 
-# ── usage monitor page ────────────────────────
+# ── Amsterdam Monitor page ────────────────────────
 
 @test "usage page has the monitor title" {
-    [[ "$USAGE_CONTENT" == *'<title>Usage Monitor'* ]]
+    [[ "$USAGE_CONTENT" == *'<title>Amsterdam Monitor'* ]]
 }
 
 @test "usage page polls the usage API" {
@@ -632,7 +629,9 @@ setup() {
     [[ "$USAGE_CONTENT" == *'href="index.html"'* ]]
 }
 
-@test "dashboard footer links to the usage monitor" {
+@test "console links to Amsterdam Monitoring at the top" {
+    [[ "$HTML_CONTENT" == *'class="hero-nav"'* ]]
+    [[ "$HTML_CONTENT" == *'Amsterdam Monitoring'* ]]
     [[ "$HTML_CONTENT" == *'href="usage.html"'* ]]
 }
 
@@ -640,6 +639,26 @@ setup() {
     [[ "$USAGE_CONTENT" == *'Credits used by time'* ]]
     [[ "$USAGE_CONTENT" == *'name="grain"'* ]]
     [[ "$USAGE_CONTENT" == *'usage-charts.js'* ]]
+}
+
+@test "usage page defaults to 5-minute buckets with no auto grain" {
+    [[ "$USAGE_CONTENT" == *'value="5min" checked'* ]]
+    [[ "$USAGE_CONTENT" != *'name="grain" value="auto"'* ]]
+}
+
+@test "usage page toggles between stacks and time series" {
+    [[ "$USAGE_CONTENT" == *'name="view"'* ]]
+    [[ "$USAGE_CONTENT" == *'value="lines" checked'* ]]
+    [[ "$USAGE_CONTENT" == *'value="stacks"'* ]]
+    [[ "$USAGE_CONTENT" == *'lineSeriesSvg'* ]]
+    [[ "$USAGE_CONTENT" == *'stackedBarsSvg'* ]]
+}
+
+@test "usage page has a monitor demo mode" {
+    [[ "$USAGE_CONTENT" == *'AMS_MONITOR_DEMO'* ]]
+    [[ "$USAGE_CONTENT" == *'demo/usage.js'* ]]
+    [[ "$USAGE_CONTENT" == *'id="demo-badge"'* ]]
+    [[ "$USAGE_CONTENT" == *'./src/usage-charts.js'* ]]
 }
 
 @test "usage page has a grafana-style time range picker" {
@@ -653,4 +672,12 @@ setup() {
     [[ "$USAGE_CONTENT" == *'src="src/themes.js"'* ]]
     [[ "$USAGE_CONTENT" == *'amsterdam.theme'* ]]
     [[ "$USAGE_CONTENT" == *'id="theme-select"'* ]]
+}
+
+@test "all pages share the same favicon" {
+    local html_icon usage_icon
+    html_icon="$(grep -o 'rel="icon"[^>]*' "$HTML" | head -1)"
+    usage_icon="$(grep -o 'rel="icon"[^>]*' "$REPO_DIR/usage.html" | head -1)"
+    [[ -n "$html_icon" ]]
+    [[ "$html_icon" == "$usage_icon" ]]
 }

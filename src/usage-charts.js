@@ -1,4 +1,4 @@
-// Pure SVG chart builders for the usage monitor. No DOM, no dependencies.
+// Pure SVG chart builders for Amsterdam Monitor. No DOM, no dependencies.
 // The page and the tests both import these functions.
 
 const PALETTE = ['#4fc3f7', '#aed581', '#ffb74d', '#f06292', '#ba68c8', '#4db6ac', '#90a4ae'];
@@ -111,6 +111,97 @@ export function stackedBarsSvg(rows, { width, height = 220 } = {}) {
     svg:
       `<svg viewBox="0 0 ${svgW} ${height}" role="img" ` +
       `aria-label="Spend per 5 minutes by model and provider">${parts.join('')}</svg>`,
+    width: svgW,
+    series,
+    buckets,
+  };
+}
+
+// Time-series lines: one thin line per series plus an emphasized total
+// line (the sum across series). Same shape as stackedBarsSvg so the
+// page can swap renderers behind one toggle.
+export function lineSeriesSvg(rows, { width, height = 220 } = {}) {
+  const { series, cells, buckets } = pivotTimeline(rows);
+  if (buckets.length === 0) return emptySvg('No timeline data');
+  const LEFT = 56;
+  const TOP = 12;
+  const BOTTOM = 40;
+  const slot = Math.max(8, Math.min(16, Math.floor((Math.max(width || 640, 320) - LEFT - 12) / buckets.length)));
+  const svgW = LEFT + buckets.length * slot + 12;
+  const plotH = height - TOP - BOTTOM;
+  const base = TOP + plotH;
+
+  // matrix[seriesIndex][bucketIndex] = cost, so each line shares one axis.
+  const matrix = series.map((name) =>
+    buckets.map((bucket) => cells.get(bucket + SEP + name) || 0),
+  );
+  const totals = buckets.map((_, bi) => matrix.reduce((sum, col) => sum + col[bi], 0));
+  const yMax = niceCeil(Math.max(...totals, 0));
+  const xAt = (i) => LEFT + i * slot + slot / 2;
+  const yAt = (value) => base - (value / yMax) * plotH;
+
+  const parts = [];
+  for (let i = 0; i <= 4; i += 1) {
+    const y = base - (plotH * i) / 4;
+    const value = (yMax * i) / 4;
+    parts.push(
+      `<line x1="${LEFT}" y1="${y}" x2="${svgW - 8}" y2="${y}" class="grid"/>`,
+      `<text x="${LEFT - 6}" y="${y + 3}" class="axis" text-anchor="end">${esc(money(value))}</text>`,
+    );
+  }
+
+  const pointAt = (i, value, fill, title) =>
+    `<circle cx="${xAt(i)}" cy="${yAt(value).toFixed(1)}" r="2.5" fill="${fill}">` +
+    `<title>${esc(title)}</title></circle>`;
+
+  // Per-series lines, palette-colored and thin.
+  matrix.forEach((col, si) => {
+    if (col.length === 1) {
+      parts.push(pointAt(0, col[0], colorAt(si), `${buckets[0]} — ${series[si]}: ${money(col[0])}`));
+      return;
+    }
+    const pts = col.map((value, bi) => `${xAt(bi)},${yAt(value).toFixed(1)}`).join(' ');
+    parts.push(
+      `<polyline points="${pts}" fill="none" stroke="${colorAt(si)}" stroke-width="1.5" stroke-linejoin="round">` +
+        `<title>${esc(series[si])}</title></polyline>`,
+    );
+  });
+
+  // Total line, emphasized with the theme accent via CSS classes.
+  if (totals.length === 1) {
+    parts.push(
+      `<circle cx="${xAt(0)}" cy="${yAt(totals[0]).toFixed(1)}" r="3" class="total-dot">` +
+        `<title>${esc(buckets[0])} — Total: ${money(totals[0])}</title></circle>`,
+    );
+  } else {
+    const pts = totals.map((value, bi) => `${xAt(bi)},${yAt(value).toFixed(1)}`).join(' ');
+    parts.push(
+      `<polyline points="${pts}" fill="none" class="total-line" stroke-linejoin="round" stroke-linecap="round">` +
+        `<title>Total spend</title></polyline>`,
+    );
+  }
+
+  const labelStep = Math.max(1, Math.ceil(buckets.length / 12));
+  buckets.forEach((bucket, i) => {
+    if (i % labelStep === 0) {
+      parts.push(
+        `<text x="${xAt(i)}" y="${base + 12}" class="axis" text-anchor="end" ` +
+          `transform="rotate(-45 ${xAt(i)} ${base + 12})">${esc(bucket.slice(5))}</text>`,
+      );
+    }
+  });
+
+  const legend =
+    '<span class="chip"><i style="background:var(--accent)"></i>Total</span>' +
+    series
+      .map((name, i) => `<span class="chip"><i style="background:${colorAt(i)}"></i>${esc(name)}</span>`)
+      .join('');
+
+  return {
+    legend,
+    svg:
+      `<svg viewBox="0 0 ${svgW} ${height}" role="img" ` +
+      `aria-label="Spend over time as lines, with total">${parts.join('')}</svg>`,
     width: svgW,
     series,
     buckets,
@@ -230,14 +321,6 @@ export function filterTimelineRange(rows, fromLabel, toLabel) {
   return rows.filter((row) =>
     (!fromLabel || row.bucket >= fromLabel) && (!toLabel || row.bucket <= toLabel),
   );
-}
-
-// Pick a readable grain for a time span, the way Grafana auto-scales:
-// up to 6 h -> 5min, up to 48 h -> hour, beyond -> day.
-export function autoGrain(spanMs) {
-  if (spanMs <= 6 * 3600e3) return '5min';
-  if (spanMs <= 48 * 3600e3) return 'hour';
-  return 'day'; // beyond 48 h, and open-ended ranges (Infinity)
 }
 
 // Format epoch ms as a UTC 5-minute bucket label.

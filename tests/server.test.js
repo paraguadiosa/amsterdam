@@ -56,11 +56,11 @@ describe('server', () => {
     rmSync(storeDir, { recursive: true, force: true });
   });
 
-  it('serves the usage monitor at /', async () => {
+  it('serves the Amsterdam Monitor at /', async () => {
     const res = await fetch(`${base}/`);
     assert.equal(res.status, 200);
     const text = await res.text();
-    assert.ok(text.includes('Usage Monitor'));
+    assert.ok(text.includes('Amsterdam Monitor'));
   });
 
   it('serves the billing console at /index.html and /console', async () => {
@@ -77,13 +77,13 @@ describe('server', () => {
     assert.equal(res.status, 404);
   });
 
-  it('serves the usage monitor page at /usage.html and /usage', async () => {
+  it('serves the Amsterdam Monitor page at /usage.html and /usage', async () => {
     for (const path of ['/usage.html', '/usage']) {
       const res = await fetch(`${base}${path}`);
       assert.equal(res.status, 200);
       assert.equal(res.headers.get('content-type'), 'text/html');
       const text = await res.text();
-      assert.ok(text.includes('Usage Monitor'));
+      assert.ok(text.includes('Amsterdam Monitor'));
     }
   });
 

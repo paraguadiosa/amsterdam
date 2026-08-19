@@ -97,7 +97,7 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
       return;
     }
 
-    // The usage monitor is the landing page; the classic billing console
+    // Amsterdam Monitor is the landing page; the classic billing console
     // stays available at /index.html (and /console for humans).
     if (pathname === '/') {
       await sendFile(res, resolve(ROOT, 'usage.html'), 'text/html');

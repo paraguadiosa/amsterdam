@@ -1,6 +1,6 @@
 // Unified usage across orchestrators (Pi, Hermes, and whatever comes
 // next). Every orchestrator normalizes its own data into one shape, so
-// the usage monitor page and /api/usage treat all of them alike.
+// the Amsterdam Monitor page and /api/usage treat all of them alike.
 // Adding an orchestrator = one entry in SOURCES with a read(env) that
 // returns { models, totalUsd, sessionCount } or null when unavailable.
 import { readSpend } from './spend.js';

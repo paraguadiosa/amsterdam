@@ -185,6 +185,7 @@ export function renderUsageReport(options = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pi usage — spend per 5 min</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23101828'/%3E%3Cg%20stroke='%23c8102e'%20stroke-width='6'%20stroke-linecap='square'%3E%3Cline%20x1='22'%20y1='9'%20x2='42'%20y2='23'/%3E%3Cline%20x1='42'%20y1='9'%20x2='22'%20y2='23'/%3E%3Cline%20x1='22'%20y1='25'%20x2='42'%20y2='39'/%3E%3Cline%20x1='42'%20y1='25'%20x2='22'%20y2='39'/%3E%3Cline%20x1='22'%20y1='41'%20x2='42'%20y2='55'/%3E%3Cline%20x1='42'%20y1='41'%20x2='22'%20y2='55'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   body { background:#0d1117; color:#e6edf3; font-family:system-ui,sans-serif; margin:2rem; }
   h1 { font-size:1.25rem; }

@@ -1,6 +1,6 @@
 # Amsterdam Console
 
-> **Amsterdam:** the LLM river held by a HTML dam. Run `amsterdam` to open the gates.
+> **Amsterdam:** every LLM billing console in one place. Run `amsterdam` to open the gates.
 
 [![CI](https://github.com/paraguadiosa/amsterdam/actions/workflows/ci.yml/badge.svg)](https://github.com/paraguadiosa/amsterdam/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -9,7 +9,11 @@
 A static panel to open all LLM billing consoles from one place — with
 live balance and usage numbers fetched straight from provider APIs.
 
-<img width="1468" height="677" alt="Amsterdam Console dashboard" src="https://github.com/user-attachments/assets/aeaac237-1cc4-4afa-9771-7dc28f1bda9a" />
+**Live demo:** [Amsterdam demo](https://evecoronel.com/amsterdam/?demo) — sample data, no keys, no signup. Served from the [`astrocronopio.github.io`](https://github.com/paraguadiosa/astrocronopio.github.io) repository (custom domain `evecoronel.com`).
+
+**Monitor demo:** [Amsterdam Monitor](https://evecoronel.com/amsterdam/usage.html?demo) — per-orchestrator usage chart and table, same sample data.
+
+<img width="1440" height="820" alt="Amsterdam Console demo dashboard" src="docs/amsterdam-demo.png" />
 
 ## Features
 
@@ -26,7 +30,7 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Spend by model** — side-by-side cost tables from the Hermes agent
   state database (estimated) and Pi session logs (actual billed USD).
   Sortable, with a column picker.
-- **Usage monitor page** — `/usage.html`, one row per orchestrator, model,
+- **Amsterdam Monitor page** — `/usage.html`, one row per orchestrator, model,
   and provider. Pi and Hermes today; a new orchestrator is one registry
   entry. Auto-refreshes every 60 seconds.
 - **Two serving modes** — live local daemon with an HTTP API, or a static
@@ -84,7 +88,7 @@ When the daemon is already running, `amsterdam` opens the live monitor
 in your browser instead. Use `amsterdam serve` for a foreground debug
 daemon (Ctrl+C to stop).
 
-The landing page (`/`) is the **usage monitor**. The classic billing
+The landing page (`/`) is the **Amsterdam Monitor**. The classic billing
 console still lives at `/index.html` (or `/console`) and is linked from
 the monitor header.
 
@@ -193,29 +197,39 @@ it must never be committed.
 ## Demo mode — show it to other people
 
 Add `?demo` to the URL and the dashboard runs on the sample fixture in
-`demo/billing.js` instead of real data. No keys, no daemon, no Hermes or
-Pi data — nothing leaves the visitor's browser. A **Sample data** badge
-marks the page, live polling is off, and a seven-step onboarding tour
-auto-starts on the first visit (once per browser; **Replay tour** in the
-status line brings it back).
+`demo/billing.js` instead of real data. The **Amsterdam Monitor** does the
+same with `usage.html?demo` and `demo/usage.js`. No keys, no daemon, no
+Hermes or Pi data — nothing leaves the visitor's browser. A **Sample
+data** badge marks each page, live polling is off, and the dashboard's
+seven-step onboarding tour auto-starts on the first visit.
 
 ```bash
-amsterdam demo    # open the demo locally
+amsterdam demo    # open the dashboard demo locally
 ```
 
-To publish the demo on a static host (for example your own domain), copy
-three things to the web root — no server code needed:
+Live copies are published at
+<https://evecoronel.com/amsterdam/?demo> (dashboard) and
+<https://evecoronel.com/amsterdam/usage.html?demo> (monitor), served
+from the `amsterdam/` directory of the
+[astrocronopio.github.io](https://github.com/paraguadiosa/astrocronopio.github.io)
+repository (its Pages custom domain is `evecoronel.com`).
+
+To publish the demos on a static host (for example your own domain),
+copy these files to the web root — no server code needed:
 
 ```
 index.html
-src/      # themes + provider catalog
-demo/     # the sample fixture
+usage.html
+src/      # themes, provider catalog, and chart builders
+demo/     # the sample fixtures
 ```
 
-Then link visitors to `https://your-domain.example/?demo`. The fixture
-contains only made-up numbers, so it is safe to publish; the test suite
-(`tests/demo.test.js`) asserts it carries no key-shaped strings. Without
-`?demo` the same files render the normal empty state.
+Then link visitors to `https://your-domain.example/?demo` and
+`https://your-domain.example/usage.html?demo`. The fixtures contain only
+made-up numbers, so they are safe to publish; the test suites
+(`tests/demo.test.js`, `tests/usage-demo.test.js`) assert they carry no
+key-shaped strings. Without `?demo` the same files render the normal
+empty state.
 
 ## Live mode vs static mode
 
@@ -340,20 +354,22 @@ Point your BI tool at `data/usage.db` (override with `USAGE_DB`). Hermes
 estimated spend needs no export — it already lives in SQLite at
 `~/.hermes/state.db`; attach it directly if the tool allows.
 
-### Usage monitor page
+### Amsterdam Monitor page
 
 `/` (the landing page; also reachable at `/usage.html`) shows usage per
 orchestrator — it replaced the console as the default view because it
 is the monitoring surface. The console stays at `/index.html`. It is
 linked from the dashboard footer and shows usage per orchestrator — the platform that spends the money: Pi
-and Hermes today, more tomorrow. The **Credits used by time** chart is
-a stacked-bar SVG of actual billed USD from Pi session logs (UTC),
-with a Grafana-style **time range picker**: quick ranges (1h, 6h, 24h,
-7d, All) or a custom from/to. The bucket size scales with the visible
-span on **Auto** (up to 6 h → 5 minutes, up to 48 h → hour, beyond →
-day); a manual 5-minute/hour/day override is one click away. The y-axis
-rescales to the range in view. Hermes has no per-call timestamps, so
-it cannot join that chart. The page shares the dashboard's theme
+and Hermes today, more tomorrow. The **Credits used by time** chart
+is an SVG of actual billed USD from Pi session logs (UTC), with a
+Grafana-style **time range picker**: quick ranges (1h, 6h, 24h,
+7d, All) or a custom from/to. The bucket size defaults to **5 minutes**
+and is independent of the time range; hour/day are one click away.
+Changing the bucket size rebins the same fixed range — it never rescales
+the window. The chart defaults to a **time series**: one thin line per
+model+provider plus an emphasized **total** line, and a **Chart** toggle
+swaps it to stacked bars. The y-axis rescales to the range in view.
+Hermes has no per-call timestamps, so it cannot join that chart. The page shares the dashboard's theme
 registry (`src/themes.js`, same `amsterdam.theme` storage key) and has
 its own picker in the header. The table below the chart stays: one row
 per orchestrator+model+provider. One summary card per orchestrator
@@ -396,7 +412,7 @@ src/
   spend.js           # Read-only per-model spend from the Hermes state DB
   pi-spend.js        # Read-only spend from Pi session logs
   usage-sources.js   # Orchestrator registry — unified usage for /api/usage
-  usage-charts.js    # SVG builders for the usage-monitor time chart
+  usage-charts.js    # SVG builders for the Amsterdam Monitor time chart
   usage-db.js        # Full-refresh SQLite export of Pi usage for BI
   usage-report.js    # 5-minute spend chart renderer (static HTML + SVG)
   manual-credits.js  # Server-side manual credit store (node:sqlite)
@@ -408,7 +424,7 @@ data/
 demo/
   billing.js         # Sample fixture for demo mode (?demo) — safe to publish
 index.html           # Dashboard — reads data/billing.js and /api/billing
-usage.html           # Usage monitor — per-orchestrator view over /api/usage
+usage.html           # Amsterdam Monitor — per-orchestrator view over /api/usage
 Dockerfile           # Container build (node:22-alpine, runs as non-root)
 .dockerignore        # Keeps the build context small
 scripts/

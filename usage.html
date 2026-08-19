@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Usage Monitor — Amsterdam Console</title>
+<title>Amsterdam Monitor</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23101828'/%3E%3Cg%20stroke='%23c8102e'%20stroke-width='6'%20stroke-linecap='square'%3E%3Cline%20x1='22'%20y1='9'%20x2='42'%20y2='23'/%3E%3Cline%20x1='42'%20y1='9'%20x2='22'%20y2='23'/%3E%3Cline%20x1='22'%20y1='25'%20x2='42'%20y2='39'/%3E%3Cline%20x1='42'%20y1='25'%20x2='22'%20y2='39'/%3E%3Cline%20x1='22'%20y1='41'%20x2='42'%20y2='55'/%3E%3Cline%20x1='42'%20y1='41'%20x2='22'%20y2='55'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   :root {
     /* Fallbacks only. The theme registry (src/themes.js) injects the
@@ -120,6 +121,8 @@
   svg { display: block; }
   .grid { stroke: var(--line); stroke-width: 1; }
   .axis { fill: var(--muted); font-size: 10px; font-family: system-ui, sans-serif; }
+  .total-line { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .total-dot { fill: var(--accent); }
   .note { color: var(--muted); font-size: .85rem; }
   .theme-pick { color: var(--muted); font-size: .85rem; margin-left: auto; }
 </style>
@@ -148,10 +151,16 @@
     window.__amsTheme = { apply: apply };
   })();
 </script>
+<script>
+  /* Demo mode: ?demo loads the sample fixture instead of /api/usage. */
+  var AMS_MONITOR_DEMO = /[?&]demo([=&]|$)/.test(location.search);
+  if (AMS_MONITOR_DEMO) document.write('<script src="demo/usage.js"><\/script>');
+</script>
 </head>
 <body>
 <header>
-  <h1>Usage Monitor</h1>
+  <h1>Amsterdam Monitor</h1>
+  <span class="badge" id="demo-badge" hidden>Sample data</span>
   <nav aria-label="Console"><a href="index.html">&larr; back to the console</a></nav>
   <label class="theme-pick">Theme
     <select id="theme-select"></select>
@@ -182,10 +191,14 @@
   </fieldset>
   <fieldset class="grain">
     <legend>Bucket size</legend>
-    <label><input type="radio" name="grain" value="auto" checked> Auto</label>
-    <label><input type="radio" name="grain" value="5min"> 5 minutes</label>
+    <label><input type="radio" name="grain" value="5min" checked> 5 minutes</label>
     <label><input type="radio" name="grain" value="hour"> Hour</label>
     <label><input type="radio" name="grain" value="day"> Day</label>
+  </fieldset>
+  <fieldset class="grain">
+    <legend>Chart</legend>
+    <label><input type="radio" name="view" value="lines" checked> Time series</label>
+    <label><input type="radio" name="view" value="stacks"> Stacks</label>
   </fieldset>
   <div class="legend" id="timeline-legend"></div>
   <div class="chart-scroll" id="timeline-chart"></div>
@@ -213,13 +226,13 @@
 
 <script type="module">
 import {
-  autoGrain,
   bucketLabelToMs,
   filterTimelineRange,
+  lineSeriesSvg,
   msToBucketLabel,
   rollupTimeline,
   stackedBarsSvg,
-} from '/src/usage-charts.js';
+} from './src/usage-charts.js';
 
 const REFRESH_MS = 60000;
 const COLUMNS = [
@@ -238,7 +251,8 @@ const PRESET_MS = { '1h': 3600e3, '6h': 6 * 3600e3, '24h': 24 * 3600e3, '7d': 7 
 
 let payload = null;
 let sort = { key: 'costUsd', dir: -1 };
-let grain = 'auto';
+let grain = '5min';
+let viewMode = 'lines';
 let rangePreset = '24h';
 let customRange = null; // { fromMs, toMs } when the user applies from/to
 
@@ -341,6 +355,17 @@ function renderFilter(data) {
 }
 
 async function load() {
+  if (window.AMS_MONITOR_DEMO && window.AMS_USAGE) {
+    payload = window.AMS_USAGE;
+    $('error').hidden = true;
+    $('demo-badge').hidden = false;
+    renderCards(payload);
+    renderFilter(payload);
+    renderTimeline();
+    renderRows();
+    $('status').textContent = 'Sample data · demo mode · no daemon needed';
+    return;
+  }
   try {
     const res = await fetch('/api/usage');
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -395,17 +420,18 @@ function renderTimeline() {
     range.fromMs != null ? msToBucketLabel(range.fromMs) : null,
     range.toMs != null ? msToBucketLabel(range.toMs) : null,
   );
-  const effectiveGrain = grain === 'auto'
-    ? autoGrain(range.fromMs != null && range.toMs != null ? range.toMs - range.fromMs : Infinity)
-    : grain;
-  const rows = rollupTimeline(inRange, effectiveGrain);
+  const rows = rollupTimeline(inRange, grain);
   const total = rows.reduce((sum, r) => sum + r.costUsd, 0);
-  const drawn = stackedBarsSvg(rows, { width: chart.clientWidth || 720 });
+  const width = chart.clientWidth || 720;
+  const drawn = viewMode === 'stacks'
+    ? stackedBarsSvg(rows, { width })
+    : lineSeriesSvg(rows, { width });
   legend.innerHTML = drawn.legend || '';
   chart.innerHTML = drawn.svg;
   note.textContent = 'Actual billed USD from Pi session logs · range ' + range.label
-    + ' · ' + drawn.buckets.length + ' ' + effectiveGrain + ' buckets · $'
-    + total.toFixed(4) + ' in view · UTC · Hermes has no per-call timestamps';
+    + ' · ' + (viewMode === 'stacks' ? 'stacked ' : 'time series ') + grain
+    + ' buckets · $' + total.toFixed(4) + ' in view · total line sums all series · UTC'
+    + ' · Hermes has no per-call timestamps';
 }
 
 function setPreset(preset) {
@@ -441,6 +467,12 @@ document.querySelectorAll('input[name="grain"]').forEach((input) => {
     renderTimeline();
   });
 });
+document.querySelectorAll('input[name="view"]').forEach((input) => {
+  input.addEventListener('change', () => {
+    viewMode = input.value;
+    renderTimeline();
+  });
+});
 document.querySelectorAll('.presets button').forEach((button) => {
   button.addEventListener('click', () => setPreset(button.dataset.range));
 });
@@ -463,7 +495,7 @@ $('range-apply').addEventListener('click', applyCustomRange);
 
 renderHead();
 load();
-setInterval(load, REFRESH_MS);
+if (!window.AMS_MONITOR_DEMO) setInterval(load, REFRESH_MS);
 </script>
 </body>
 </html>

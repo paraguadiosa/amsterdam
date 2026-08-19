@@ -71,6 +71,7 @@ describe('usage report', () => {
     const html = readFileSync(outPath, 'utf8');
     assert.ok(html.includes('<svg'));
     assert.ok(html.includes('role="img"'));
+    assert.ok(html.includes('rel="icon" type="image/svg+xml"'));
     assert.ok(html.includes('gpt-5 · openai'));
     assert.ok(html.includes('deepseek-v4-flash · deepseek'));
     assert.ok(html.includes('2026-08-08 00:00')); // bucket label in a segment title
