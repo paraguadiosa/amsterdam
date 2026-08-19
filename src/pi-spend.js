@@ -64,69 +64,31 @@ function numOr(value, fallback) {
   return typeof value === 'number' ? value : fallback;
 }
 
-// Count one counted assistant message into the per-model and per-project
-// accumulators. The message event carries provider/model/usage/timestamp.
-function addMessage(file, state, event, msg) {
+// One record per counted assistant message. The message event carries
+// provider/model/usage/timestamp; the project comes from the session cwd.
+function callFromMessage(msg, event, file) {
   const model = typeof msg.model === 'string' && msg.model ? msg.model : 'unknown';
   const provider = typeof msg.provider === 'string' && msg.provider ? msg.provider : 'unknown';
   const usage = msg.usage;
   const cost = usage.cost && typeof usage.cost === 'object' ? usage.cost : {};
-  const costUsd = numOr(cost.total, 0);
-  const project = projectFromCwd(file.cwd);
-  const timestamp = typeof event.timestamp === 'string' ? event.timestamp : null;
-
-  const key = model + '\u0000' + provider;
-  let m = state.models.get(key);
-  if (!m) {
-    m = {
-      model,
-      provider,
-      sessions: new Set(),
-      calls: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-      cacheReadTokens: 0,
-      reasoningTokens: 0,
-      totalTokens: 0,
-      costUsd: 0,
-      lastSeen: null,
-      projects: new Map(),
-    };
-    state.models.set(key, m);
-  }
-  m.sessions.add(file.sessionId);
-  m.calls += 1;
-  m.inputTokens += numOr(usage.input, 0);
-  m.outputTokens += numOr(usage.output, 0);
-  m.cacheReadTokens += numOr(usage.cacheRead, 0);
-  m.reasoningTokens += numOr(usage.reasoning, 0);
-  m.totalTokens += numOr(usage.totalTokens, 0);
-  m.costUsd += costUsd;
-  if (timestamp && (!m.lastSeen || timestamp > m.lastSeen)) m.lastSeen = timestamp;
-
-  let p = m.projects.get(project);
-  if (!p) {
-    p = { project, calls: 0, costUsd: 0 };
-    m.projects.set(project, p);
-  }
-  p.calls += 1;
-  p.costUsd += costUsd;
-
-  let proj = state.projects.get(project);
-  if (!proj) {
-    proj = { project, sessions: new Set(), calls: 0, costUsd: 0 };
-    state.projects.set(project, proj);
-  }
-  proj.sessions.add(file.sessionId);
-  proj.calls += 1;
-  proj.costUsd += costUsd;
-
-  state.sessions.add(file.sessionId);
-  state.totalTokens += numOr(usage.totalTokens, 0);
-  state.totalUsd += costUsd;
+  return {
+    timestamp: typeof event.timestamp === 'string' ? event.timestamp : null,
+    sessionId: file.sessionId,
+    project: projectFromCwd(file.cwd),
+    model,
+    provider,
+    inputTokens: numOr(usage.input, 0),
+    outputTokens: numOr(usage.output, 0),
+    cacheReadTokens: numOr(usage.cacheRead, 0),
+    reasoningTokens: numOr(usage.reasoning, 0),
+    totalTokens: numOr(usage.totalTokens, 0),
+    costUsd: numOr(cost.total, 0),
+  };
 }
 
-function processFile(filePath, dirName, state) {
+// Parse one session file and yield one record per counted assistant
+// message. Malformed lines are counted into stats and skipped.
+function* callsFromFile(filePath, dirName, stats) {
   let content;
   try {
     content = readFileSync(filePath, 'utf8');
@@ -143,7 +105,7 @@ function processFile(filePath, dirName, state) {
     try {
       obj = JSON.parse(line);
     } catch {
-      state.malformedLines += 1;
+      stats.malformedLines += 1;
       continue;
     }
     if (typeof obj !== 'object' || obj === null) continue;
@@ -159,8 +121,68 @@ function processFile(filePath, dirName, state) {
     const usage = msg.usage;
     if (typeof usage !== 'object' || usage === null) continue;
     if (usage.input == null && usage.cost == null) continue;
-    addMessage(file, state, obj, msg);
+    yield callFromMessage(msg, obj, file);
   }
+}
+
+// Walk every session file under dir and yield its call records.
+function* iterCalls(dir, stats) {
+  for (const filePath of listJsonlFiles(dir)) {
+    yield* callsFromFile(filePath, basename(dirname(filePath)), stats);
+  }
+}
+
+// Fold one call record into the per-model and per-project accumulators.
+function foldCall(state, call) {
+  const key = call.model + '\u0000' + call.provider;
+  let m = state.models.get(key);
+  if (!m) {
+    m = {
+      model: call.model,
+      provider: call.provider,
+      sessions: new Set(),
+      calls: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      reasoningTokens: 0,
+      totalTokens: 0,
+      costUsd: 0,
+      lastSeen: null,
+      projects: new Map(),
+    };
+    state.models.set(key, m);
+  }
+  m.sessions.add(call.sessionId);
+  m.calls += 1;
+  m.inputTokens += call.inputTokens;
+  m.outputTokens += call.outputTokens;
+  m.cacheReadTokens += call.cacheReadTokens;
+  m.reasoningTokens += call.reasoningTokens;
+  m.totalTokens += call.totalTokens;
+  m.costUsd += call.costUsd;
+  if (call.timestamp && (!m.lastSeen || call.timestamp > m.lastSeen)) m.lastSeen = call.timestamp;
+
+  let p = m.projects.get(call.project);
+  if (!p) {
+    p = { project: call.project, calls: 0, costUsd: 0 };
+    m.projects.set(call.project, p);
+  }
+  p.calls += 1;
+  p.costUsd += call.costUsd;
+
+  let proj = state.projects.get(call.project);
+  if (!proj) {
+    proj = { project: call.project, sessions: new Set(), calls: 0, costUsd: 0 };
+    state.projects.set(call.project, proj);
+  }
+  proj.sessions.add(call.sessionId);
+  proj.calls += 1;
+  proj.costUsd += call.costUsd;
+
+  state.sessions.add(call.sessionId);
+  state.totalTokens += call.totalTokens;
+  state.totalUsd += call.costUsd;
 }
 
 function buildResult(dir, state) {
@@ -214,13 +236,8 @@ function buildResult(dir, state) {
 // zero totals. Accepts either a plain path or an env-like object with
 // PI_SESSIONS_DIR.
 export function readPiSpend(arg) {
-  const env = typeof arg === 'string' ? process.env : arg;
-  const dir = typeof arg === 'string' ? arg : resolvePiSessionsDir(arg);
-  try {
-    readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return null;
-  }
+  const dir = resolveDir(arg);
+  if (!sessionsDirExists(dir)) return null;
   const state = {
     models: new Map(),
     projects: new Map(),
@@ -229,8 +246,32 @@ export function readPiSpend(arg) {
     totalTokens: 0,
     totalUsd: 0,
   };
-  for (const file of listJsonlFiles(dir)) {
-    processFile(file, basename(dirname(file)), state);
-  }
+  for (const call of iterCalls(dir, state)) foldCall(state, call);
   return buildResult(dir, state);
+}
+
+// Read the raw per-call records from Pi session logs, one per counted
+// assistant message, sorted by timestamp. Same contract as readPiSpend:
+// a plain path or an env-like object, null when the dir is missing.
+export function readPiCalls(arg) {
+  const dir = resolveDir(arg);
+  if (!sessionsDirExists(dir)) return null;
+  const stats = { malformedLines: 0 };
+  const calls = [];
+  for (const call of iterCalls(dir, stats)) calls.push(call);
+  calls.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+  return { sessionsDir: dir, calls, malformedLines: stats.malformedLines };
+}
+
+function resolveDir(arg) {
+  return typeof arg === 'string' ? arg : resolvePiSessionsDir(arg);
+}
+
+function sessionsDirExists(dir) {
+  try {
+    readdirSync(dir, { withFileTypes: true });
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -53,6 +53,8 @@ commands:
   status  Show whether the host daemon is running
   stop    Stop the background host daemon
   dump    Fetch billing data once (open the floodgates)
+  export-usage  Export Pi session usage to data/usage.db for BI tools
+  usage-report  Render a 5-minute spend chart to data/usage-report.html
   serve   Start a local server in the foreground (Ctrl+C to stop)
   open    Open the dashboard in a browser
   demo    Open the dashboard with sample data and the onboarding tour
@@ -161,6 +163,28 @@ case "${1:-}" in
         fi
         node "$REPO_DIR/src/dam.js"
         ;;
+    export-usage|export)
+        if ! command -v node >/dev/null 2>&1; then
+            echo "Error: node is required for export-usage" >&2
+            exit 1
+        fi
+        if [ -z "$REPO_DIR" ]; then
+            echo "Error: cannot find repo root" >&2
+            exit 1
+        fi
+        node "$REPO_DIR/src/usage-db.js"
+        ;;
+    usage-report|report)
+        if ! command -v node >/dev/null 2>&1; then
+            echo "Error: node is required for usage-report" >&2
+            exit 1
+        fi
+        if [ -z "$REPO_DIR" ]; then
+            echo "Error: cannot find repo root" >&2
+            exit 1
+        fi
+        node "$REPO_DIR/src/usage-report.js"
+        ;;
     serve)
         if ! command -v node >/dev/null 2>&1; then
             echo "Error: node is required for serve" >&2
@@ -186,7 +210,7 @@ case "${1:-}" in
         ;;
     demo)
         if daemon_up; then
-            "$OPEN" "$URL/?demo"
+            "$OPEN" "$URL/index.html?demo"
         else
             "$OPEN" "$HTML?demo"
         fi

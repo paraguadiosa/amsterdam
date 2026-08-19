@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createApp } from '../src/server.js';
+import { openManualStore, closeManualStore } from '../src/manual-credits.js';
 
 function mockFetch(body, status = 200) {
   return async () => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -20,32 +21,87 @@ function baseUrl(server) {
   return `http://127.0.0.1:${addr.port}`;
 }
 
+// A fresh manual-credit store in a tmp dir, so tests never touch the
+// real data/manual-credits.db.
+function tmpStore() {
+  const dir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-store-'));
+  return { store: openManualStore(join(dir, 'manual-credits.db')), dir };
+}
+
 describe('server', () => {
   let server;
   let base;
+  let storeDir;
+  let store;
 
   before(async () => {
-    server = await listen(createApp({ env: {}, fetchFn: mockFetch({}), loadEnv: false }));
+    storeDir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-main-'));
+    store = openManualStore(join(storeDir, 'manual-credits.db'));
+    server = await listen(createApp({
+      env: {
+        PI_SESSIONS_DIR: join(storeDir, 'no-sessions'),
+        HERMES_STATE_DB: join(storeDir, 'no-state.db'),
+        AMSTERDAM_LOCAL_MODELS_DIR: join(storeDir, 'no-models'),
+      },
+      fetchFn: mockFetch({}),
+      loadEnv: false,
+      manualStore: store,
+    }));
     base = baseUrl(server);
   });
 
-  after(() => server.close());
+  after(() => {
+    server.close();
+    closeManualStore(store);
+    rmSync(storeDir, { recursive: true, force: true });
+  });
 
-  it('serves index.html at /', async () => {
+  it('serves the usage monitor at /', async () => {
     const res = await fetch(`${base}/`);
     assert.equal(res.status, 200);
     const text = await res.text();
-    assert.ok(text.includes('Amsterdam Console'));
+    assert.ok(text.includes('Usage Monitor'));
   });
 
-  it('serves index.html at /index.html', async () => {
-    const res = await fetch(`${base}/index.html`);
-    assert.equal(res.status, 200);
+  it('serves the billing console at /index.html and /console', async () => {
+    for (const path of ['/index.html', '/console']) {
+      const res = await fetch(`${base}${path}`);
+      assert.equal(res.status, 200);
+      const text = await res.text();
+      assert.ok(text.includes('Amsterdam Console'));
+    }
   });
 
   it('returns 404 for unknown paths', async () => {
     const res = await fetch(`${base}/nope`);
     assert.equal(res.status, 404);
+  });
+
+  it('serves the usage monitor page at /usage.html and /usage', async () => {
+    for (const path of ['/usage.html', '/usage']) {
+      const res = await fetch(`${base}${path}`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('content-type'), 'text/html');
+      const text = await res.text();
+      assert.ok(text.includes('Usage Monitor'));
+    }
+  });
+
+  it('returns unified usage at /api/usage with unavailable sources', async () => {
+    const res = await fetch(`${base}/api/usage`);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.source, 'usage-sources');
+    assert.deepEqual(data.sources.map((s) => s.id), ['pi', 'hermes']);
+    // This fixture has no session logs and no state DB: both sources
+    // must report unavailable instead of breaking the endpoint.
+    for (const src of data.sources) {
+      assert.equal(src.available, false);
+      assert.deepEqual(src.models, []);
+    }
+    assert.equal(data.totalUsd, 0);
+    assert.equal(data.timeline.available, false);
+    assert.deepEqual(data.timeline.rows, []);
   });
 
   it('returns billing JSON at /api/billing', async () => {
@@ -103,6 +159,169 @@ describe('server', () => {
   });
 });
 
+describe('server manual credits', () => {
+  let server;
+  let base;
+  let storeDir;
+  let store;
+
+  before(async () => {
+    storeDir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-manual-'));
+    store = openManualStore(join(storeDir, 'manual-credits.db'));
+    server = await listen(createApp({
+      env: { PI_SESSIONS_DIR: join(storeDir, 'no-sessions') },
+      fetchFn: mockFetch({}),
+      loadEnv: false,
+      manualStore: store,
+    }));
+    base = baseUrl(server);
+  });
+
+  after(() => {
+    server.close();
+    closeManualStore(store);
+    rmSync(storeDir, { recursive: true, force: true });
+  });
+
+  function post(body) {
+    return fetch(`${base}/api/manual-credits`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+    });
+  }
+
+  it('starts empty', async () => {
+    const res = await fetch(`${base}/api/manual-credits`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), {});
+  });
+
+  it('sets, updates, and deletes a credit', async () => {
+    let res = await post({ provider: 'pi', amount: 50 });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { pi: 50 });
+
+    res = await fetch(`${base}/api/manual-credits`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { pi: 50 });
+
+    res = await post({ provider: 'pi', amount: 25 });
+    assert.deepEqual(await res.json(), { pi: 25 });
+
+    res = await post({ provider: 'anthropic', amount: 10 });
+    assert.deepEqual(await res.json(), { pi: 25, anthropic: 10 });
+
+    res = await post({ provider: 'pi', amount: null });
+    assert.deepEqual(await res.json(), { anthropic: 10 });
+
+    res = await post({ provider: 'anthropic', amount: null });
+    assert.deepEqual(await res.json(), {});
+  });
+
+  it('rejects invalid bodies with 400', async () => {
+    const cases = [
+      ['not json', 'invalid JSON body'],
+      ['', 'empty request body'],
+      [JSON.stringify([]), 'body must be a JSON object'],
+      [JSON.stringify({ provider: 'nope', amount: 5 }), 'unknown provider "nope"'],
+      [JSON.stringify({ provider: 'Pi', amount: 5 }), 'unknown provider "Pi"'],
+      [JSON.stringify({ provider: 'pi', amount: -5 }), 'amount must be a finite number >= 0 or null'],
+      [JSON.stringify({ provider: 'pi', amount: '50' }), 'amount must be a finite number >= 0 or null'],
+      [JSON.stringify({ provider: '', amount: 5 }), 'provider must be a non-empty string matching /^[a-z0-9-]+$/i'],
+      [JSON.stringify({ provider: 'pi has spaces', amount: 5 }), 'provider must be a non-empty string matching /^[a-z0-9-]+$/i'],
+    ];
+    for (const [body, error] of cases) {
+      const res = await post(body);
+      assert.equal(res.status, 400, `body: ${body}`);
+      const data = await res.json();
+      assert.equal(data.error, error);
+    }
+  });
+
+  it('rejects methods other than GET and POST', async () => {
+    const res = await fetch(`${base}/api/manual-credits`, { method: 'PUT' });
+    assert.equal(res.status, 405);
+  });
+
+  it('rejects an oversized body with 400', async () => {
+    const res = await post({ provider: 'pi', amount: 1, pad: 'x'.repeat(2_000_000) });
+    assert.equal(res.status, 400);
+    const data = await res.json();
+    assert.equal(data.error, 'request body too large');
+  });
+});
+
+describe('server manual credits feed billing', () => {
+  it('adds a pi provider with credit minus real spend and invalidates the cache', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-pi-'));
+    const sessionsDir = join(dir, 'sessions');
+    mkdirSync(sessionsDir, { recursive: true });
+    writeFileSync(join(sessionsDir, '2026-08-07T00-00-00-000Z_sess.jsonl'),
+      '{"type":"session","version":3,"id":"s1","timestamp":"2026-08-07T00:00:00Z","cwd":"/home/eve/Coding_Projects/amsterdam"}\n' +
+      '{"type":"message","id":"m1","timestamp":"2026-08-07T00:01:00Z","message":{"role":"assistant","provider":"deepseek","model":"deepseek-v4-flash","usage":{"input":100,"output":50,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":150,"cost":{"total":1.23}},"stopReason":"toolUse"}}\n');
+    const store = openManualStore(join(dir, 'manual-credits.db'));
+    const app = await listen(createApp({
+      env: { PI_SESSIONS_DIR: sessionsDir },
+      fetchFn: mockFetch({}),
+      loadEnv: false,
+      manualStore: store,
+    }));
+    const base = baseUrl(app);
+    try {
+      // First call primes the cache: pi is visible (real spend) but
+      // has no credit yet.
+      const before = await (await fetch(`${base}/api/billing`)).json();
+      assert.ok(before.providers.pi);
+      assert.equal(before.providers.pi.kind, 'manual');
+      assert.equal(before.providers.pi.credit, null);
+      assert.equal(before.providers.pi.remaining, null);
+
+      // The POST must invalidate the billing cache.
+      const postRes = await fetch(`${base}/api/manual-credits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'pi', amount: 50 }),
+      });
+      assert.equal(postRes.status, 200);
+
+      const data = await (await fetch(`${base}/api/billing`)).json();
+      assert.ok(data.providers.pi);
+      assert.equal(data.providers.pi.detected, true);
+      assert.equal(data.providers.pi.credit, 50);
+      assert.equal(data.providers.pi.spend, 1.23);
+      assert.equal(data.providers.pi.remaining, 48.77);
+
+      // Manual credits for catalog providers ride along in the payload.
+      await fetch(`${base}/api/manual-credits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'xai', amount: 7 }),
+      });
+      const fresh = await (await fetch(`${base}/api/billing?fresh=1`)).json();
+      assert.equal(fresh.providers.xai.credit, 7);
+      assert.equal(fresh.providers.xai.detected, false);
+      assert.equal(fresh.providers.pi.remaining, 48.77);
+
+      // Deleting the credit keeps pi (spend still exists) but nulls
+      // credit and remaining.
+      await fetch(`${base}/api/manual-credits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'pi', amount: null }),
+      });
+      const after = await (await fetch(`${base}/api/billing?fresh=1`)).json();
+      assert.equal(after.providers.pi.credit, null);
+      assert.equal(after.providers.pi.remaining, null);
+      assert.equal(after.providers.pi.spend, 1.23);
+    } finally {
+      app.close();
+      closeManualStore(store);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('server caching', () => {
   it('caches /api/billing within TTL', async () => {
     let calls = 0;
@@ -114,14 +333,19 @@ describe('server caching', () => {
       };
     };
     const env = { DEEPSEEK_API_KEY: 'sk-test' };
-    const app = await listen(createApp({ env, fetchFn: countingFetch, loadEnv: false }));
+    const { store, dir } = tmpStore();
+    const app = await listen(createApp({ env, fetchFn: countingFetch, loadEnv: false, manualStore: store }));
     const base = baseUrl(app);
 
-    await fetch(`${base}/api/billing`);
-    await fetch(`${base}/api/billing`);
-    assert.equal(calls, 1);
-
-    app.close();
+    try {
+      await fetch(`${base}/api/billing`);
+      await fetch(`${base}/api/billing`);
+      assert.equal(calls, 1);
+    } finally {
+      app.close();
+      closeManualStore(store);
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('bypasses cache with ?fresh=1', async () => {
@@ -134,14 +358,19 @@ describe('server caching', () => {
       };
     };
     const env = { DEEPSEEK_API_KEY: 'sk-test' };
-    const app = await listen(createApp({ env, fetchFn: countingFetch, loadEnv: false }));
+    const { store, dir } = tmpStore();
+    const app = await listen(createApp({ env, fetchFn: countingFetch, loadEnv: false, manualStore: store }));
     const base = baseUrl(app);
 
-    await fetch(`${base}/api/billing`);
-    await fetch(`${base}/api/billing?fresh=1`);
-    assert.equal(calls, 2);
-
-    app.close();
+    try {
+      await fetch(`${base}/api/billing`);
+      await fetch(`${base}/api/billing?fresh=1`);
+      assert.equal(calls, 2);
+    } finally {
+      app.close();
+      closeManualStore(store);
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -159,8 +388,14 @@ describe('server credential reload', () => {
     process.chdir(tmp);
 
     let app;
+    const { store, dir: storeDir } = tmpStore();
     try {
-      app = await listen(createApp({ env: {}, fetchFn: mockFetch({}), loadEnv: true }));
+      app = await listen(createApp({
+        env: { PI_SESSIONS_DIR: join(tmp, 'no-sessions') },
+        fetchFn: mockFetch({}),
+        loadEnv: true,
+        manualStore: store,
+      }));
       const base = baseUrl(app);
 
       const before = await (await fetch(`${base}/api/billing`)).json();
@@ -175,6 +410,8 @@ describe('server credential reload', () => {
       assert.equal(after.providers.openai.detected, true);
     } finally {
       if (app) app.close();
+      closeManualStore(store);
+      rmSync(storeDir, { recursive: true, force: true });
       process.env.HOME = prevHome;
       process.chdir(prevCwd);
       rmSync(tmp, { recursive: true, force: true });

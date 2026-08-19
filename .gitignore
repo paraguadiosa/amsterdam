@@ -18,6 +18,10 @@ Desktop.ini
 # Generated billing data and daemon state
 data/billing.js
 data/amsterdam.pid
+data/amsterdam.log
+data/manual-credits.db
+data/usage.db
+data/usage-report.html
 
 # Node
 node_modules/

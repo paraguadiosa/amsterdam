@@ -206,11 +206,11 @@ count_listeners() {
     [[ "$(cat "$OPEN_LOG")" == "open:$HTML" ]]
 }
 
-@test "demo opens the live URL with ?demo when the daemon is running" {
+@test "demo opens the live console with ?demo when the daemon is running" {
     "$AMSTER" start
     run "$AMSTER" demo
     [ "$status" -eq 0 ]
-    [[ "$(cat "$OPEN_LOG")" == "open:http://localhost:$TEST_PORT/?demo" ]]
+    [[ "$(cat "$OPEN_LOG")" == "open:http://localhost:$TEST_PORT/index.html?demo" ]]
 }
 
 @test "demo falls back to the static file with ?demo when stopped" {
