@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
-import { readPiSpend, resolvePiSessionsDir } from '../src/pi-spend.js';
+import { readPiCalls, readPiSpend, resolvePiSessionsDir } from '../src/pi-spend.js';
 
 // sess-a: cwd /home/eve/Coding_Projects/amsterdam (project amsterdam).
 // Includes a user message, an assistant message without usage, a
@@ -175,6 +175,58 @@ describe('pi spend', () => {
     assert.equal(viaEnv.sessionCount, 3);
     assert.equal(viaEnv.totalUsd, viaPath.totalUsd);
     assert.equal(viaEnv.sessionsDir, sessionsDir);
+  });
+});
+
+describe('readPiCalls', () => {
+  let dir;
+  let sessionsDir;
+
+  before(() => {
+    dir = mkdtempSync(join(tmpdir(), 'amsterdam-pi-calls-'));
+    sessionsDir = join(dir, 'sessions');
+    buildFixture(sessionsDir);
+  });
+
+  after(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('returns one record per counted message, sorted by timestamp', () => {
+    const found = readPiCalls({ PI_SESSIONS_DIR: sessionsDir });
+    assert.equal(found.sessionsDir, sessionsDir);
+    assert.equal(found.calls.length, 6); // m1, m2, m4, m5, m6, m7
+    assert.equal(found.malformedLines, 1);
+    const stamps = found.calls.map((c) => c.timestamp);
+    const sorted = [...stamps].sort();
+    assert.deepEqual(stamps, sorted);
+  });
+
+  it('carries session, project, model, tokens, and cost per call', () => {
+    const found = readPiCalls(sessionsDir);
+    const m1 = found.calls.find((c) => c.timestamp === '2026-08-07T00:01:00Z');
+    assert.deepEqual(m1, {
+      timestamp: '2026-08-07T00:01:00Z',
+      sessionId: 'sess-a',
+      project: 'amsterdam',
+      model: 'deepseek-v4-flash',
+      provider: 'deepseek',
+      inputTokens: 1000,
+      outputTokens: 200,
+      cacheReadTokens: 50,
+      reasoningTokens: 30,
+      totalTokens: 1290,
+      costUsd: 0.0003,
+    });
+  });
+
+  it('falls back to the filename id and dir-name cwd without a header', () => {
+    const found = readPiCalls(sessionsDir);
+    const m7 = found.calls.find((c) => c.timestamp === '2026-08-09T00:01:00Z');
+    assert.equal(m7.sessionId, 'sess-c');
+    assert.equal(m7.project, 'deeper');
+  });
+
+  it('returns null when the sessions dir is missing', () => {
+    assert.equal(readPiCalls(join(dir, 'missing')), null);
   });
 });
 

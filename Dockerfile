@@ -12,6 +12,7 @@ WORKDIR /app
 COPY src/ ./src/
 COPY demo/ ./demo/
 COPY index.html ./
+COPY usage.html ./
 COPY scripts/amster ./scripts/amster
 COPY package.json ./
 

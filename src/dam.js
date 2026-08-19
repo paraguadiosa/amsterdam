@@ -7,6 +7,7 @@ import { loadDefaults } from './env.js';
 import { readSpend } from './spend.js';
 import { readPiSpend } from './pi-spend.js';
 import { formatBillingJs, formatConsoleLine, formatSpendLine, formatPiSpendLine } from './format.js';
+import { getManualCredits, openDefaultManualStore, closeManualStore } from './manual-credits.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = resolve(__dirname, '..', 'data');
@@ -24,7 +25,32 @@ export async function withTimeout(promise, ms) {
   }
 }
 
-export async function openFloodgates(env = process.env, fetchFn = globalThis.fetch) {
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+// Read the manual-credit map, opening the default store when none is
+// passed. Never throws: an unavailable store reads as an empty map.
+function readManualCredits(store) {
+  if (store) {
+    try {
+      return getManualCredits(store) || {};
+    } catch {
+      return {};
+    }
+  }
+  let opened = null;
+  try {
+    opened = openDefaultManualStore();
+    return getManualCredits(opened) || {};
+  } catch {
+    return {};
+  } finally {
+    if (opened) closeManualStore(opened);
+  }
+}
+
+export async function openFloodgates(env = process.env, fetchFn = globalThis.fetch, manualStore) {
   const results = {};
 
   const tasks = providers.map(async (provider) => {
@@ -47,11 +73,33 @@ export async function openFloodgates(env = process.env, fetchFn = globalThis.fet
 
   await Promise.allSettled(tasks);
 
+  const manualCredits = readManualCredits(manualStore);
+  const piSpend = readPiSpend(env);
+
+  // Pi has no catalog entry: it is a manual budget minus the real
+  // billed spend from the pi session logs.
+  if (manualCredits.pi != null || piSpend) {
+    const credit = manualCredits.pi != null ? Number(manualCredits.pi) : null;
+    const spend = piSpend && Number.isFinite(piSpend.totalUsd)
+      ? Math.round(piSpend.totalUsd * 10000) / 10000
+      : null;
+    const remaining = credit != null && spend != null ? round2(credit - spend) : null;
+    results.pi = { detected: true, kind: 'manual', spend, credit, remaining };
+  }
+
+  // Other manual credits ride along on their provider result so the
+  // dashboard reads them from the payload instead of localStorage.
+  for (const [id, amount] of Object.entries(manualCredits)) {
+    if (id === 'pi') continue;
+    if (!results[id]) results[id] = { detected: false };
+    results[id].credit = Number(amount);
+  }
+
   return {
     timestamp: new Date().toISOString(),
     providers: results,
     spend: readSpend(env),
-    piSpend: readPiSpend(env),
+    piSpend,
   };
 }
 

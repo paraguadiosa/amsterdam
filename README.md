@@ -26,6 +26,9 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Spend by model** — side-by-side cost tables from the Hermes agent
   state database (estimated) and Pi session logs (actual billed USD).
   Sortable, with a column picker.
+- **Usage monitor page** — `/usage.html`, one row per orchestrator, model,
+  and provider. Pi and Hermes today; a new orchestrator is one registry
+  entry. Auto-refreshes every 60 seconds.
 - **Two serving modes** — live local daemon with an HTTP API, or a static
   `file://` snapshot with no server at all.
 - **Demo mode with onboarding** — `?demo` in the URL loads sample data and
@@ -77,9 +80,13 @@ amsterdam                     # start the daemon in the background, print the UR
 The first `amsterdam` starts the host daemon in the background (the
 command returns to the prompt immediately) and prints the live URL
 (<http://localhost:3131>). It does not open a browser on that first call.
-When the daemon is already running, `amsterdam` opens the live dashboard
+When the daemon is already running, `amsterdam` opens the live monitor
 in your browser instead. Use `amsterdam serve` for a foreground debug
 daemon (Ctrl+C to stop).
+
+The landing page (`/`) is the **usage monitor**. The classic billing
+console still lives at `/index.html` (or `/console`) and is linked from
+the monitor header.
 
 No API keys yet? The dashboard still works — chips show `unverified`
 until a key is found. Want to look around first? `amsterdam demo` opens
@@ -117,6 +124,8 @@ amsterdam stop          # Stop the background container
 amsterdam build         # Build the Docker image
 amsterdam run           # Run Docker in the foreground (Ctrl+C to stop)
 amsterdam dump          # Fetch billing data once (open the floodgates)
+amsterdam export-usage  # Export Pi session usage to data/usage.db for BI tools
+amsterdam usage-report  # Render a 5-minute spend chart to data/usage-report.html
 amsterdam link          # Show the file:// URL
 amsterdam path          # Show the absolute path
 amsterdam help          # Show help
@@ -151,6 +160,8 @@ output. `amster stop` reads the pidfile and kills exactly that process.
 | `AMSTERDAM_OPEN` | `xdg-open` | Browser opener command (set to `echo` for headless use) |
 | `HERMES_STATE_DB` | `~/.hermes/state.db` | Hermes spend database path |
 | `PI_SESSIONS_DIR` | `~/.pi/agent/sessions` | Pi session log directory |
+| `USAGE_DB` | `data/usage.db` | SQLite export target for `export-usage` |
+| `USAGE_REPORT` | `data/usage-report.html` | Chart output for `usage-report` |
 | `AMSTERDAM_BIN_DIR` | `~/.local/bin` | Install target for `amsterdam-install` |
 
 ## Configuration — credentials in one place
@@ -230,9 +241,34 @@ so the number on screen is always how much money is left in the accounts.
 Providers without a billing API (the verified-only providers) cannot
 report a balance — the API simply has no public credits endpoint (this is
 why Anthropic was purged from the console). For those, click **edit** on
-the chip and type the remaining amount once; it is stored in the browser,
-shown as a USD value, and added to the total (marked *manual* in the
-split).
+the chip and type the remaining amount once; it is stored server-side in
+a small SQLite database at `data/manual-credits.db` (live mode), shown
+as a USD value, and added to the total (marked *manual* in the split).
+Because the store is server-side, every browser on the machine (the
+Dell, the phone, the Win Mini) shares the same manual balances.
+localStorage under `amsterdam.manualCredits` remains only as a fallback
+when the server is unreachable, or in static/demo mode.
+
+The store is a plain key-value table (`provider` → `amount`). The
+daemon exposes it over HTTP:
+
+- `GET /api/manual-credits` — the whole map as JSON, e.g. `{"pi": 50}`.
+- `POST /api/manual-credits` with `{"provider": "pi", "amount": 50}` —
+  upsert a credit (provider must be a catalog id or `pi`; amount a
+  finite number ≥ 0). Sending `"amount": null` deletes the entry.
+  Invalid bodies get `400` with an `error` message.
+
+### Pi chip
+
+The dashboard shows a **Pi** chip in the summary row whenever there is
+real billed spend in the Pi session logs or a manual Pi credit. Pi has
+no balance API, so the chip is a budget: set the credit once via the
+chip's **edit** button and the chip shows
+`remaining = credit − actual spend`, where the spend is the real billed
+USD total parsed from `~/.pi/agent/sessions`. The remaining value is
+excluded from the HUD credits total — Pi is a budget, not a wallet
+balance. A POST to `/api/manual-credits` invalidates the 60-second
+billing cache so the chip updates immediately.
 
 ### Spend by model
 
@@ -273,6 +309,76 @@ Anthropic is purged at the data layer: rows from the `anthropic` billing
 provider and any `claude-*` model are dropped from the aggregation, the
 totals, and the CLI output — wherever the spend data goes.
 
+### SQLite export for BI
+
+`amster export-usage` rebuilds `data/usage.db` (gitignored) from the Pi
+session logs. The JSONL logs stay the source of truth; the database is a
+full-refresh replica written in one transaction, so re-running never
+duplicates rows and a reader never sees a half-written snapshot. The
+grain is one row per counted assistant message in the `calls` table —
+timestamp, session id, project, model, provider, token splits, and real
+billed `cost_usd` — so BI tools can slice by any dimension. Two views
+ship with the export: `daily_model_spend` (cost per day, model, and
+project) and `spend_5min` (cost per 5-minute bucket, model, and
+provider; buckets are UTC). `amster usage-report` renders `spend_5min`
+into a self-contained `data/usage-report.html` — a stacked-bar SVG, one
+series per model+provider, no JavaScript, no dependencies. It shows the
+last 240 non-empty buckets; the top 6 series keep their own color and
+the rest merge into `other`.
+The export is **not** purged: it keeps every provider, including the
+Claude rows the dashboard hides, because a BI copy must match the logs.
+
+```sql
+-- spend per day, last 7 days
+SELECT date(timestamp) AS day, COUNT(*) AS calls, ROUND(SUM(cost_usd), 4) AS usd
+FROM calls
+WHERE timestamp >= date('now', '-7 days')
+GROUP BY day ORDER BY day DESC;
+```
+
+Point your BI tool at `data/usage.db` (override with `USAGE_DB`). Hermes
+estimated spend needs no export — it already lives in SQLite at
+`~/.hermes/state.db`; attach it directly if the tool allows.
+
+### Usage monitor page
+
+`/` (the landing page; also reachable at `/usage.html`) shows usage per
+orchestrator — it replaced the console as the default view because it
+is the monitoring surface. The console stays at `/index.html`. It is
+linked from the dashboard footer and shows usage per orchestrator — the platform that spends the money: Pi
+and Hermes today, more tomorrow. The **Credits used by time** chart is
+a stacked-bar SVG of actual billed USD from Pi session logs (UTC),
+with a Grafana-style **time range picker**: quick ranges (1h, 6h, 24h,
+7d, All) or a custom from/to. The bucket size scales with the visible
+span on **Auto** (up to 6 h → 5 minutes, up to 48 h → hour, beyond →
+day); a manual 5-minute/hour/day override is one click away. The y-axis
+rescales to the range in view. Hermes has no per-call timestamps, so
+it cannot join that chart. The page shares the dashboard's theme
+registry (`src/themes.js`, same `amsterdam.theme` storage key) and has
+its own picker in the header. The table below the chart stays: one row
+per orchestrator+model+provider. One summary card per orchestrator
+(total spend, calls, tokens, models, last activity, and an
+`unavailable` badge when its data source is missing), a combined total,
+and a table with one row per orchestrator+model+provider. The table
+sorts by any column and filters by orchestrator or search text. The
+page polls `GET /api/usage` every 60 seconds; it needs the daemon.
+
+Orchestrators live in a registry in `src/usage-sources.js`. Each entry
+normalizes its own data into one shape (model, provider, calls,
+sessions, tokens, costUsd, costStatus, lastSeen — epochs are converted
+to ISO). Adding an orchestrator is one entry with a `read(env)`
+function; the API and the page pick it up without further edits. A
+broken or missing source reports `available: false` instead of taking
+the endpoint down — monitoring must degrade, never disappear.
+
+Like the BI export, the monitor shows what each orchestrator records:
+Pi logs appear as-is (Claude included), while Hermes data inherits the
+rules baked into its reader.
+
+Study material: [docs/examen-usage-api.md](docs/examen-usage-api.md) is
+a 100-point exam (with answer key) over this API — endpoints, data
+shapes, design decisions, and hands-on curl/SQL exercises.
+
 ## Architecture
 
 ```
@@ -289,13 +395,20 @@ src/
   env.js             # Credential loader (.env files + hermes pool)
   spend.js           # Read-only per-model spend from the Hermes state DB
   pi-spend.js        # Read-only spend from Pi session logs
+  usage-sources.js   # Orchestrator registry — unified usage for /api/usage
+  usage-charts.js    # SVG builders for the usage-monitor time chart
+  usage-db.js        # Full-refresh SQLite export of Pi usage for BI
+  usage-report.js    # 5-minute spend chart renderer (static HTML + SVG)
+  manual-credits.js  # Server-side manual credit store (node:sqlite)
   themes.js          # Palette registry — one entry per theme, no CSS per theme
   format.js          # Output formatters (JS file + console)
 data/
   billing.js         # Auto-generated (gitignored)
+  manual-credits.db  # Manual credit store, created on first use
 demo/
   billing.js         # Sample fixture for demo mode (?demo) — safe to publish
 index.html           # Dashboard — reads data/billing.js and /api/billing
+usage.html           # Usage monitor — per-orchestrator view over /api/usage
 Dockerfile           # Container build (node:22-alpine, runs as non-root)
 .dockerignore        # Keeps the build context small
 scripts/

@@ -6,6 +6,7 @@ setup() {
     HTML_CONTENT="$(cat "$HTML")"
     CATALOG="$REPO_DIR/src/providers/catalog.js"
     CATALOG_CONTENT="$(cat "$CATALOG")"
+    USAGE_CONTENT="$(cat "$REPO_DIR/usage.html")"
 }
 
 # ── language ──────────────────────────────────────
@@ -81,6 +82,25 @@ setup() {
 @test "manual credits are stored per browser" {
     [[ "$HTML_CONTENT" == *"amsterdam.manualCredits"* ]]
     [[ "$HTML_CONTENT" == *"saveManualCredits"* ]]
+}
+
+@test "manual credits sync with the server store" {
+    [[ "$HTML_CONTENT" == *"api/manual-credits"* ]]
+}
+
+@test "manual credits keep a local bootstrap fallback" {
+    [[ "$HTML_CONTENT" == *"readLocalManualCredits"* ]]
+    [[ "$HTML_CONTENT" == *"localStorage.getItem(MANUAL_STORAGE)"* ]]
+}
+
+@test "pi chip shows remaining manual credit" {
+    [[ "$HTML_CONTENT" == *'data.kind === "manual"'* ]]
+    [[ "$HTML_CONTENT" == *"data.remaining"* ]]
+    [[ "$HTML_CONTENT" == *"left"* ]]
+}
+
+@test "manual budgets are excluded from the credits total" {
+    [[ "$HTML_CONTENT" == *'p.kind === "manual"'* ]]
 }
 
 @test "verified chips offer a manual credits editor" {
@@ -596,4 +616,41 @@ setup() {
 
 @test "JavaScript uses querySelectorAll for cards" {
     [[ "$HTML_CONTENT" == *'querySelectorAll(".card")'* ]]
+}
+
+# ── usage monitor page ────────────────────────
+
+@test "usage page has the monitor title" {
+    [[ "$USAGE_CONTENT" == *'<title>Usage Monitor'* ]]
+}
+
+@test "usage page polls the usage API" {
+    [[ "$USAGE_CONTENT" == *'/api/usage'* ]]
+}
+
+@test "usage page links back to the console" {
+    [[ "$USAGE_CONTENT" == *'href="index.html"'* ]]
+}
+
+@test "dashboard footer links to the usage monitor" {
+    [[ "$HTML_CONTENT" == *'href="usage.html"'* ]]
+}
+
+@test "usage page has a time chart section" {
+    [[ "$USAGE_CONTENT" == *'Credits used by time'* ]]
+    [[ "$USAGE_CONTENT" == *'name="grain"'* ]]
+    [[ "$USAGE_CONTENT" == *'usage-charts.js'* ]]
+}
+
+@test "usage page has a grafana-style time range picker" {
+    [[ "$USAGE_CONTENT" == *'Time range'* ]]
+    [[ "$USAGE_CONTENT" == *'data-range="24h"'* ]]
+    [[ "$USAGE_CONTENT" == *'id="range-from"'* ]]
+    [[ "$USAGE_CONTENT" == *'id="range-apply"'* ]]
+}
+
+@test "usage page uses the shared theme registry" {
+    [[ "$USAGE_CONTENT" == *'src="src/themes.js"'* ]]
+    [[ "$USAGE_CONTENT" == *'amsterdam.theme'* ]]
+    [[ "$USAGE_CONTENT" == *'id="theme-select"'* ]]
 }

@@ -1851,7 +1851,7 @@
   </aside>
 
   <footer>
-    <p>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets</p>
+    <p>Amsterdam Console &middot; Offline &middot; No tracking &middot; No secrets &middot; <a href="usage.html">Usage monitor</a></p>
   </footer>
 </div>
 
@@ -1917,21 +1917,72 @@
 
   /* ── manual credits ─────────────────────────────────────────── */
   // Verified-only providers have no billing API, so the user can
-  // type a balance in. It is stored per browser and feeds the
-  // credits total like a live balance.
+  // type a balance in. In live mode the numbers live in a small
+  // server-side SQLite store (data/manual-credits.db) so every
+  // browser on the machine shares them; localStorage is only the
+  // fallback when the server is unreachable.
   var MANUAL_STORAGE = 'amsterdam.manualCredits';
 
-  function loadManualCredits() {
+  function readLocalManualCredits() {
     var manual = {};
     try { manual = JSON.parse(localStorage.getItem(MANUAL_STORAGE)) || {}; } catch (e) { manual = {}; }
     return manual;
   }
 
-  function saveManualCredits(manual) {
-    try { localStorage.setItem(MANUAL_STORAGE, JSON.stringify(manual)); } catch (e) {}
+  // Module-level cache: bootstrapped from localStorage, replaced by
+  // the server copy on the first live refresh.
+  var manualCredits = readLocalManualCredits();
+
+  function normalizeManualCredits(data) {
+    var out = {};
+    if (data && typeof data === 'object') {
+      Object.keys(data).forEach(function (id) {
+        var v = Number(data[id]);
+        if (isFinite(v) && v >= 0) out[id] = v;
+      });
+    }
+    return out;
   }
 
-  var manualCredits = loadManualCredits();
+  function loadManualCredits() {
+    if (!live) {
+      manualCredits = readLocalManualCredits();
+      return Promise.resolve(manualCredits);
+    }
+    return fetch('/api/manual-credits')
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        manualCredits = normalizeManualCredits(data);
+        return manualCredits;
+      })
+      .catch(function () {
+        manualCredits = readLocalManualCredits();
+        return manualCredits;
+      });
+  }
+
+  // Live mode POSTs the single changed entry to the server; on
+  // failure the entry falls back to localStorage.
+  function saveManualCredits(manual, changedId) {
+    if (!live) {
+      try { localStorage.setItem(MANUAL_STORAGE, JSON.stringify(manual)); } catch (e) {}
+      return;
+    }
+    var amount = manual && manual[changedId] != null ? Number(manual[changedId]) : null;
+    fetch('/api/manual-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: changedId, amount: amount }),
+    })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        manualCredits = normalizeManualCredits(data);
+        applyBilling(window.BILLING);
+      })
+      .catch(function () {
+        try { localStorage.setItem(MANUAL_STORAGE, JSON.stringify(manual)); } catch (e) {}
+      });
+  }
 
   function manualValue(id) {
     var v = manualCredits[id];
@@ -1950,10 +2001,17 @@
       return { cls: "usage", value: "$" + data.usage.toFixed(2) + " used" + limit };
     }
     if (data.username)       return { cls: "verified", value: data.username };
+    // Manual budget chip (Pi): remaining = credit minus real spend.
+    if (data.kind === "manual" && data.spend != null) {
+      if (data.remaining != null) {
+        return { cls: "balance", value: "$" + data.remaining.toFixed(2) + " left", editable: true };
+      }
+      return { cls: "usage", value: "$" + data.spend.toFixed(2) + " spent - edit to set credit", editable: true };
+    }
     // Verified-only providers (no billing API): a manually tracked
     // balance overrides the badge; the chip stays editable.
     if (data.verified) {
-      var manual = manualValue(id);
+      var manual = data.credit != null ? Number(data.credit) : manualValue(id);
       if (manual != null) {
         return { cls: "balance", value: "$" + manual.toFixed(2), editable: true };
       }
@@ -1969,6 +2027,7 @@
     Object.keys(billing.providers).forEach(function (id) {
       var p = billing.providers[id];
       if (!p || !p.detected) return;
+      if (p.kind === "manual") return; // pi is a budget, not a wallet balance
       if (p.balance != null) {
         ids.push(id);
         total += p.balance;
@@ -2464,8 +2523,11 @@
       return;
     }
     if (manual) setStatus('Refreshing…');
-    fetch('/api/billing')
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    loadManualCredits()
+      .then(function () {
+        return fetch('/api/billing')
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+      })
       .then(function (data) {
         window.BILLING = data;
         applyBilling(data);
@@ -2499,7 +2561,7 @@
       } else {
         manualCredits[id] = value;
       }
-      saveManualCredits(manualCredits);
+      saveManualCredits(manualCredits, id);
       applyBilling(window.BILLING);
     }
   });
