@@ -33,18 +33,15 @@ setup() {
     [[ "$HTML_CONTENT" == *'class="hero-copy"'* ]]
 }
 
-@test "banner references the Amstel dam" {
-    [[ "$HTML_CONTENT" == *"a dam on the Amstel"* ]]
+@test "banner dropped the dam wordplay" {
+    [[ "$HTML_CONTENT" != *"a dam on the Amstel"* ]]
+    [[ "$HTML_CONTENT" != *"HTML dam"* ]]
+    [[ "$HTML_CONTENT" != *"The Amstel's dam"* ]]
 }
 
 @test "banner shows the amsterdam flag badge" {
     [[ "$HTML_CONTENT" == *'class="flag-badge"'* ]]
     [[ "$HTML_CONTENT" == *"#c8102e"* ]]
-}
-
-@test "banner carries the dam metaphor" {
-    [[ "$HTML_CONTENT" == *"HTML dam"* ]]
-    [[ "$HTML_CONTENT" == *"The Amstel's dam once made this town"* ]]
 }
 
 @test "top flag stripe is present" {
@@ -655,6 +652,13 @@ setup() {
     [[ "$USAGE_CONTENT" == *'value="stacks"'* ]]
     [[ "$USAGE_CONTENT" == *'lineSeriesSvg'* ]]
     [[ "$USAGE_CONTENT" == *'stackedBarsSvg'* ]]
+}
+
+@test "usage page has a monitor demo mode" {
+    [[ "$USAGE_CONTENT" == *'AMS_MONITOR_DEMO'* ]]
+    [[ "$USAGE_CONTENT" == *'demo/usage.js'* ]]
+    [[ "$USAGE_CONTENT" == *'id="demo-badge"'* ]]
+    [[ "$USAGE_CONTENT" == *'./src/usage-charts.js'* ]]
 }
 
 @test "usage page has a grafana-style time range picker" {

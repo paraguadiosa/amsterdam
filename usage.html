@@ -151,10 +151,16 @@
     window.__amsTheme = { apply: apply };
   })();
 </script>
+<script>
+  /* Demo mode: ?demo loads the sample fixture instead of /api/usage. */
+  var AMS_MONITOR_DEMO = /[?&]demo([=&]|$)/.test(location.search);
+  if (AMS_MONITOR_DEMO) document.write('<script src="demo/usage.js"><\/script>');
+</script>
 </head>
 <body>
 <header>
   <h1>Amsterdam Monitor</h1>
+  <span class="badge" id="demo-badge" hidden>Sample data</span>
   <nav aria-label="Console"><a href="index.html">&larr; back to the console</a></nav>
   <label class="theme-pick">Theme
     <select id="theme-select"></select>
@@ -226,7 +232,7 @@ import {
   msToBucketLabel,
   rollupTimeline,
   stackedBarsSvg,
-} from '/src/usage-charts.js';
+} from './src/usage-charts.js';
 
 const REFRESH_MS = 60000;
 const COLUMNS = [
@@ -349,6 +355,17 @@ function renderFilter(data) {
 }
 
 async function load() {
+  if (window.AMS_MONITOR_DEMO && window.AMS_USAGE) {
+    payload = window.AMS_USAGE;
+    $('error').hidden = true;
+    $('demo-badge').hidden = false;
+    renderCards(payload);
+    renderFilter(payload);
+    renderTimeline();
+    renderRows();
+    $('status').textContent = 'Sample data · demo mode · no daemon needed';
+    return;
+  }
   try {
     const res = await fetch('/api/usage');
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -478,7 +495,7 @@ $('range-apply').addEventListener('click', applyCustomRange);
 
 renderHead();
 load();
-setInterval(load, REFRESH_MS);
+if (!window.AMS_MONITOR_DEMO) setInterval(load, REFRESH_MS);
 </script>
 </body>
 </html>

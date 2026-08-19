@@ -1,6 +1,6 @@
 # Amsterdam Console
 
-> **Amsterdam:** the LLM river held by a HTML dam. Run `amsterdam` to open the gates.
+> **Amsterdam:** every LLM billing console in one place. Run `amsterdam` to open the gates.
 
 [![CI](https://github.com/paraguadiosa/amsterdam/actions/workflows/ci.yml/badge.svg)](https://github.com/paraguadiosa/amsterdam/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -10,6 +10,8 @@ A static panel to open all LLM billing consoles from one place — with
 live balance and usage numbers fetched straight from provider APIs.
 
 **Live demo:** [Amsterdam demo](https://evecoronel.com/amsterdam/?demo) — sample data, no keys, no signup. Served from the [`astrocronopio.github.io`](https://github.com/paraguadiosa/astrocronopio.github.io) repository (custom domain `evecoronel.com`).
+
+**Monitor demo:** [Amsterdam Monitor](https://evecoronel.com/amsterdam/usage.html?demo) — per-orchestrator usage chart and table, same sample data.
 
 <img width="1440" height="820" alt="Amsterdam Console demo dashboard" src="docs/amsterdam-demo.png" />
 
@@ -195,35 +197,39 @@ it must never be committed.
 ## Demo mode — show it to other people
 
 Add `?demo` to the URL and the dashboard runs on the sample fixture in
-`demo/billing.js` instead of real data. No keys, no daemon, no Hermes or
-Pi data — nothing leaves the visitor's browser. A **Sample data** badge
-marks the page, live polling is off, and a seven-step onboarding tour
-auto-starts on the first visit (once per browser; **Replay tour** in the
-status line brings it back).
+`demo/billing.js` instead of real data. The **Amsterdam Monitor** does the
+same with `usage.html?demo` and `demo/usage.js`. No keys, no daemon, no
+Hermes or Pi data — nothing leaves the visitor's browser. A **Sample
+data** badge marks each page, live polling is off, and the dashboard's
+seven-step onboarding tour auto-starts on the first visit.
 
 ```bash
-amsterdam demo    # open the demo locally
+amsterdam demo    # open the dashboard demo locally
 ```
 
-A live copy is published at
-<https://evecoronel.com/amsterdam/?demo>, served from the `amsterdam/`
-directory of the
+Live copies are published at
+<https://evecoronel.com/amsterdam/?demo> (dashboard) and
+<https://evecoronel.com/amsterdam/usage.html?demo> (monitor), served
+from the `amsterdam/` directory of the
 [astrocronopio.github.io](https://github.com/paraguadiosa/astrocronopio.github.io)
 repository (its Pages custom domain is `evecoronel.com`).
 
-To publish the demo on a static host (for example your own domain), copy
-three things to the web root — no server code needed:
+To publish the demos on a static host (for example your own domain),
+copy these files to the web root — no server code needed:
 
 ```
 index.html
-src/      # themes + provider catalog
-demo/     # the sample fixture
+usage.html
+src/      # themes, provider catalog, and chart builders
+demo/     # the sample fixtures
 ```
 
-Then link visitors to `https://your-domain.example/?demo`. The fixture
-contains only made-up numbers, so it is safe to publish; the test suite
-(`tests/demo.test.js`) asserts it carries no key-shaped strings. Without
-`?demo` the same files render the normal empty state.
+Then link visitors to `https://your-domain.example/?demo` and
+`https://your-domain.example/usage.html?demo`. The fixtures contain only
+made-up numbers, so they are safe to publish; the test suites
+(`tests/demo.test.js`, `tests/usage-demo.test.js`) assert they carry no
+key-shaped strings. Without `?demo` the same files render the normal
+empty state.
 
 ## Live mode vs static mode
 
