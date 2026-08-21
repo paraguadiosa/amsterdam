@@ -6,7 +6,6 @@ setup() {
     HTML_CONTENT="$(cat "$HTML")"
     CATALOG="$REPO_DIR/src/providers/catalog.js"
     CATALOG_CONTENT="$(cat "$CATALOG")"
-    USAGE_CONTENT="$(cat "$REPO_DIR/usage.html")"
 }
 
 # ── language ──────────────────────────────────────
@@ -615,69 +614,15 @@ setup() {
     [[ "$HTML_CONTENT" == *'querySelectorAll(".card")'* ]]
 }
 
-# ── Amsterdam Monitor page ────────────────────────
+# ── Grafana link ─────────────────────────────────
 
-@test "usage page has the monitor title" {
-    [[ "$USAGE_CONTENT" == *'<title>Amsterdam Monitor'* ]]
-}
-
-@test "usage page polls the usage API" {
-    [[ "$USAGE_CONTENT" == *'/api/usage'* ]]
-}
-
-@test "usage page links back to the console" {
-    [[ "$USAGE_CONTENT" == *'href="index.html"'* ]]
-}
-
-@test "console links to Amsterdam Monitoring at the top" {
+@test "console links to Grafana at the top" {
     [[ "$HTML_CONTENT" == *'class="hero-nav"'* ]]
-    [[ "$HTML_CONTENT" == *'Amsterdam Monitoring'* ]]
-    [[ "$HTML_CONTENT" == *'href="usage.html"'* ]]
+    [[ "$HTML_CONTENT" == *'Grafana'* ]]
+    [[ "$HTML_CONTENT" == *'id="grafana-link"'* ]]
+    [[ "$HTML_CONTENT" == *'href="http://amster.tail66290a.ts.net:3005/d/agent-telemetry"'* ]]
 }
 
-@test "usage page has a time chart section" {
-    [[ "$USAGE_CONTENT" == *'Credits used by time'* ]]
-    [[ "$USAGE_CONTENT" == *'name="grain"'* ]]
-    [[ "$USAGE_CONTENT" == *'usage-charts.js'* ]]
-}
-
-@test "usage page defaults to 5-minute buckets with no auto grain" {
-    [[ "$USAGE_CONTENT" == *'value="5min" checked'* ]]
-    [[ "$USAGE_CONTENT" != *'name="grain" value="auto"'* ]]
-}
-
-@test "usage page toggles between stacks and time series" {
-    [[ "$USAGE_CONTENT" == *'name="view"'* ]]
-    [[ "$USAGE_CONTENT" == *'value="lines" checked'* ]]
-    [[ "$USAGE_CONTENT" == *'value="stacks"'* ]]
-    [[ "$USAGE_CONTENT" == *'lineSeriesSvg'* ]]
-    [[ "$USAGE_CONTENT" == *'stackedBarsSvg'* ]]
-}
-
-@test "usage page has a monitor demo mode" {
-    [[ "$USAGE_CONTENT" == *'AMS_MONITOR_DEMO'* ]]
-    [[ "$USAGE_CONTENT" == *'demo/usage.js'* ]]
-    [[ "$USAGE_CONTENT" == *'id="demo-badge"'* ]]
-    [[ "$USAGE_CONTENT" == *'./src/usage-charts.js'* ]]
-}
-
-@test "usage page has a grafana-style time range picker" {
-    [[ "$USAGE_CONTENT" == *'Time range'* ]]
-    [[ "$USAGE_CONTENT" == *'data-range="24h"'* ]]
-    [[ "$USAGE_CONTENT" == *'id="range-from"'* ]]
-    [[ "$USAGE_CONTENT" == *'id="range-apply"'* ]]
-}
-
-@test "usage page uses the shared theme registry" {
-    [[ "$USAGE_CONTENT" == *'src="src/themes.js"'* ]]
-    [[ "$USAGE_CONTENT" == *'amsterdam.theme'* ]]
-    [[ "$USAGE_CONTENT" == *'id="theme-select"'* ]]
-}
-
-@test "all pages share the same favicon" {
-    local html_icon usage_icon
-    html_icon="$(grep -o 'rel="icon"[^>]*' "$HTML" | head -1)"
-    usage_icon="$(grep -o 'rel="icon"[^>]*' "$REPO_DIR/usage.html" | head -1)"
-    [[ -n "$html_icon" ]]
-    [[ "$html_icon" == "$usage_icon" ]]
+@test "usage page is gone" {
+    [[ ! -f "$REPO_DIR/usage.html" ]]
 }

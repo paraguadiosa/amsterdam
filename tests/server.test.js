@@ -42,6 +42,7 @@ describe('server', () => {
         PI_SESSIONS_DIR: join(storeDir, 'no-sessions'),
         HERMES_STATE_DB: join(storeDir, 'no-state.db'),
         AMSTERDAM_LOCAL_MODELS_DIR: join(storeDir, 'no-models'),
+        DSH_SESSIONS_DIR: join(storeDir, 'no-dsh'),
       },
       fetchFn: mockFetch({}),
       loadEnv: false,
@@ -56,11 +57,11 @@ describe('server', () => {
     rmSync(storeDir, { recursive: true, force: true });
   });
 
-  it('serves the Amsterdam Monitor at /', async () => {
+  it('serves the billing console at /', async () => {
     const res = await fetch(`${base}/`);
     assert.equal(res.status, 200);
     const text = await res.text();
-    assert.ok(text.includes('Amsterdam Monitor'));
+    assert.ok(text.includes('Amsterdam Console'));
   });
 
   it('serves the billing console at /index.html and /console', async () => {
@@ -75,33 +76,6 @@ describe('server', () => {
   it('returns 404 for unknown paths', async () => {
     const res = await fetch(`${base}/nope`);
     assert.equal(res.status, 404);
-  });
-
-  it('serves the Amsterdam Monitor page at /usage.html and /usage', async () => {
-    for (const path of ['/usage.html', '/usage']) {
-      const res = await fetch(`${base}${path}`);
-      assert.equal(res.status, 200);
-      assert.equal(res.headers.get('content-type'), 'text/html');
-      const text = await res.text();
-      assert.ok(text.includes('Amsterdam Monitor'));
-    }
-  });
-
-  it('returns unified usage at /api/usage with unavailable sources', async () => {
-    const res = await fetch(`${base}/api/usage`);
-    assert.equal(res.status, 200);
-    const data = await res.json();
-    assert.equal(data.source, 'usage-sources');
-    assert.deepEqual(data.sources.map((s) => s.id), ['pi', 'hermes']);
-    // This fixture has no session logs and no state DB: both sources
-    // must report unavailable instead of breaking the endpoint.
-    for (const src of data.sources) {
-      assert.equal(src.available, false);
-      assert.deepEqual(src.models, []);
-    }
-    assert.equal(data.totalUsd, 0);
-    assert.equal(data.timeline.available, false);
-    assert.deepEqual(data.timeline.rows, []);
   });
 
   it('returns billing JSON at /api/billing', async () => {

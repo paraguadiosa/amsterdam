@@ -11,8 +11,6 @@ live balance and usage numbers fetched straight from provider APIs.
 
 **Live demo:** [Amsterdam demo](https://evecoronel.com/amsterdam/?demo) — sample data, no keys, no signup. Served from the [`astrocronopio.github.io`](https://github.com/paraguadiosa/astrocronopio.github.io) repository (custom domain `evecoronel.com`).
 
-**Monitor demo:** [Amsterdam Monitor](https://evecoronel.com/amsterdam/usage.html?demo) — per-orchestrator usage chart and table, same sample data.
-
 <img width="1440" height="820" alt="Amsterdam Console demo dashboard" src="docs/amsterdam-demo.png" />
 
 ## Features
@@ -30,9 +28,12 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Spend by model** — side-by-side cost tables from the Hermes agent
   state database (estimated) and Pi session logs (actual billed USD).
   Sortable, with a column picker.
-- **Amsterdam Monitor page** — `/usage.html`, one row per orchestrator, model,
-  and provider. Pi and Hermes today; a new orchestrator is one registry
-  entry. Auto-refreshes every 60 seconds.
+- **Monitoring via Grafana** — the header links to the Agent Telemetry
+  dashboard (Prometheus-backed,
+  `http://amster.tail66290a.ts.net:3005/d/agent-telemetry`, override with
+  `?grafana=URL`). The old in-repo Amsterdam Monitor page
+  was removed: per-orchestrator cost, tokens and sessions live in Grafana
+  now. The link is hidden in public demo mode (`?demo`).
 - **Two serving modes** — live local daemon with an HTTP API, or a static
   `file://` snapshot with no server at all.
 - **Demo mode with onboarding** — `?demo` in the URL loads sample data and
@@ -84,13 +85,13 @@ amsterdam                     # start the daemon in the background, print the UR
 The first `amsterdam` starts the host daemon in the background (the
 command returns to the prompt immediately) and prints the live URL
 (<http://localhost:3131>). It does not open a browser on that first call.
-When the daemon is already running, `amsterdam` opens the live monitor
+When the daemon is already running, `amsterdam` opens the dashboard
 in your browser instead. Use `amsterdam serve` for a foreground debug
 daemon (Ctrl+C to stop).
 
-The landing page (`/`) is the **Amsterdam Monitor**. The classic billing
-console still lives at `/index.html` (or `/console`) and is linked from
-the monitor header.
+The landing page (`/`) is the billing console. Per-orchestrator
+monitoring lives in Grafana — the header links to the Agent Telemetry
+dashboards.
 
 No API keys yet? The dashboard still works — chips show `unverified`
 until a key is found. Want to look around first? `amsterdam demo` opens
@@ -128,8 +129,6 @@ amsterdam stop          # Stop the background container
 amsterdam build         # Build the Docker image
 amsterdam run           # Run Docker in the foreground (Ctrl+C to stop)
 amsterdam dump          # Fetch billing data once (open the floodgates)
-amsterdam export-usage  # Export Pi session usage to data/usage.db for BI tools
-amsterdam usage-report  # Render a 5-minute spend chart to data/usage-report.html
 amsterdam link          # Show the file:// URL
 amsterdam path          # Show the absolute path
 amsterdam help          # Show help
@@ -164,8 +163,6 @@ output. `amster stop` reads the pidfile and kills exactly that process.
 | `AMSTERDAM_OPEN` | `xdg-open` | Browser opener command (set to `echo` for headless use) |
 | `HERMES_STATE_DB` | `~/.hermes/state.db` | Hermes spend database path |
 | `PI_SESSIONS_DIR` | `~/.pi/agent/sessions` | Pi session log directory |
-| `USAGE_DB` | `data/usage.db` | SQLite export target for `export-usage` |
-| `USAGE_REPORT` | `data/usage-report.html` | Chart output for `usage-report` |
 | `AMSTERDAM_BIN_DIR` | `~/.local/bin` | Install target for `amsterdam-install` |
 
 ## Configuration — credentials in one place
@@ -197,10 +194,9 @@ it must never be committed.
 ## Demo mode — show it to other people
 
 Add `?demo` to the URL and the dashboard runs on the sample fixture in
-`demo/billing.js` instead of real data. The **Amsterdam Monitor** does the
-same with `usage.html?demo` and `demo/usage.js`. No keys, no daemon, no
-Hermes or Pi data — nothing leaves the visitor's browser. A **Sample
-data** badge marks each page, live polling is off, and the dashboard's
+`demo/billing.js` instead of real data. No keys, no daemon, no Hermes
+or Pi data — nothing leaves the visitor's browser. A **Sample data**
+badge marks the page, live polling is off, and the dashboard's
 seven-step onboarding tour auto-starts on the first visit.
 
 ```bash
@@ -208,9 +204,8 @@ amsterdam demo    # open the dashboard demo locally
 ```
 
 Live copies are published at
-<https://evecoronel.com/amsterdam/?demo> (dashboard) and
-<https://evecoronel.com/amsterdam/usage.html?demo> (monitor), served
-from the `amsterdam/` directory of the
+<https://evecoronel.com/amsterdam/?demo>, served from the `amsterdam/`
+directory of the
 [astrocronopio.github.io](https://github.com/paraguadiosa/astrocronopio.github.io)
 repository (its Pages custom domain is `evecoronel.com`).
 
@@ -219,17 +214,14 @@ copy these files to the web root — no server code needed:
 
 ```
 index.html
-usage.html
-src/      # themes, provider catalog, and chart builders
-demo/     # the sample fixtures
+src/      # themes, provider catalog
+ demo/     # the sample fixture
 ```
 
-Then link visitors to `https://your-domain.example/?demo` and
-`https://your-domain.example/usage.html?demo`. The fixtures contain only
-made-up numbers, so they are safe to publish; the test suites
-(`tests/demo.test.js`, `tests/usage-demo.test.js`) assert they carry no
-key-shaped strings. Without `?demo` the same files render the normal
-empty state.
+Then link visitors to `https://your-domain.example/?demo`. The fixtures
+contain only made-up numbers, so they are safe to publish; the test suite
+(`tests/demo.test.js`) asserts they carry no key-shaped strings. Without
+`?demo` the same files render the normal empty state.
 
 ## Live mode vs static mode
 
@@ -323,77 +315,17 @@ Anthropic is purged at the data layer: rows from the `anthropic` billing
 provider and any `claude-*` model are dropped from the aggregation, the
 totals, and the CLI output — wherever the spend data goes.
 
-### SQLite export for BI
+### Monitoring via Grafana
 
-`amster export-usage` rebuilds `data/usage.db` (gitignored) from the Pi
-session logs. The JSONL logs stay the source of truth; the database is a
-full-refresh replica written in one transaction, so re-running never
-duplicates rows and a reader never sees a half-written snapshot. The
-grain is one row per counted assistant message in the `calls` table —
-timestamp, session id, project, model, provider, token splits, and real
-billed `cost_usd` — so BI tools can slice by any dimension. Two views
-ship with the export: `daily_model_spend` (cost per day, model, and
-project) and `spend_5min` (cost per 5-minute bucket, model, and
-provider; buckets are UTC). `amster usage-report` renders `spend_5min`
-into a self-contained `data/usage-report.html` — a stacked-bar SVG, one
-series per model+provider, no JavaScript, no dependencies. It shows the
-last 240 non-empty buckets; the top 6 series keep their own color and
-the rest merge into `other`.
-The export is **not** purged: it keeps every provider, including the
-Claude rows the dashboard hides, because a BI copy must match the logs.
-
-```sql
--- spend per day, last 7 days
-SELECT date(timestamp) AS day, COUNT(*) AS calls, ROUND(SUM(cost_usd), 4) AS usd
-FROM calls
-WHERE timestamp >= date('now', '-7 days')
-GROUP BY day ORDER BY day DESC;
-```
-
-Point your BI tool at `data/usage.db` (override with `USAGE_DB`). Hermes
-estimated spend needs no export — it already lives in SQLite at
-`~/.hermes/state.db`; attach it directly if the tool allows.
-
-### Amsterdam Monitor page
-
-`/` (the landing page; also reachable at `/usage.html`) shows usage per
-orchestrator — it replaced the console as the default view because it
-is the monitoring surface. The console stays at `/index.html`. It is
-linked from the dashboard footer and shows usage per orchestrator — the platform that spends the money: Pi
-and Hermes today, more tomorrow. The **Credits used by time** chart
-is an SVG of actual billed USD from Pi session logs (UTC), with a
-Grafana-style **time range picker**: quick ranges (1h, 6h, 24h,
-7d, All) or a custom from/to. The bucket size defaults to **5 minutes**
-and is independent of the time range; hour/day are one click away.
-Changing the bucket size rebins the same fixed range — it never rescales
-the window. The chart defaults to a **time series**: one thin line per
-model+provider plus an emphasized **total** line, and a **Chart** toggle
-swaps it to stacked bars. The y-axis rescales to the range in view.
-Hermes has no per-call timestamps, so it cannot join that chart. The page shares the dashboard's theme
-registry (`src/themes.js`, same `amsterdam.theme` storage key) and has
-its own picker in the header. The table below the chart stays: one row
-per orchestrator+model+provider. One summary card per orchestrator
-(total spend, calls, tokens, models, last activity, and an
-`unavailable` badge when its data source is missing), a combined total,
-and a table with one row per orchestrator+model+provider. The table
-sorts by any column and filters by orchestrator or search text. The
-page polls `GET /api/usage` every 60 seconds; it needs the daemon.
-
-Orchestrators live in a registry in `src/usage-sources.js`. Each entry
-normalizes its own data into one shape (model, provider, calls,
-sessions, tokens, costUsd, costStatus, lastSeen — epochs are converted
-to ISO). Adding an orchestrator is one entry with a `read(env)`
-function; the API and the page pick it up without further edits. A
-broken or missing source reports `available: false` instead of taking
-the endpoint down — monitoring must degrade, never disappear.
-
-Like the BI export, the monitor shows what each orchestrator records:
-Pi logs appear as-is (Claude included), while Hermes data inherits the
-rules baked into its reader.
-
-Study material: [docs/examen-usage-api.md](docs/examen-usage-api.md) is
-a 100-point exam (with answer key) over this API — endpoints, data
-shapes, design decisions, and hands-on curl/SQL exercises.
+The in-repo per-orchestrator monitor (`usage.html`, `/api/usage`, the
+`usage-*` sources and the BI exports) was removed: the observability
+stack (Prometheus + Pushgateway + Grafana, see `~/repos/observability`)
+is the monitoring surface now. Every agent pushes full accumulated
+totals to the Pushgateway; Grafana renders cost, tokens and sessions
+per orchestrator. The console header links to the Agent Telemetry
+dashboard (`http://amster.tail66290a.ts.net:3005/d/agent-telemetry`);
+override with
+`?grafana=URL` when Grafana lives elsewhere.
 
 ## Architecture
 
@@ -411,10 +343,6 @@ src/
   env.js             # Credential loader (.env files + hermes pool)
   spend.js           # Read-only per-model spend from the Hermes state DB
   pi-spend.js        # Read-only spend from Pi session logs
-  usage-sources.js   # Orchestrator registry — unified usage for /api/usage
-  usage-charts.js    # SVG builders for the Amsterdam Monitor time chart
-  usage-db.js        # Full-refresh SQLite export of Pi usage for BI
-  usage-report.js    # 5-minute spend chart renderer (static HTML + SVG)
   manual-credits.js  # Server-side manual credit store (node:sqlite)
   themes.js          # Palette registry — one entry per theme, no CSS per theme
   format.js          # Output formatters (JS file + console)
@@ -424,7 +352,6 @@ data/
 demo/
   billing.js         # Sample fixture for demo mode (?demo) — safe to publish
 index.html           # Dashboard — reads data/billing.js and /api/billing
-usage.html           # Amsterdam Monitor — per-orchestrator view over /api/usage
 Dockerfile           # Container build (node:22-alpine, runs as non-root)
 .dockerignore        # Keeps the build context small
 scripts/
