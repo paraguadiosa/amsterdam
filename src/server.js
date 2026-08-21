@@ -7,7 +7,6 @@ import { openFloodgates } from './dam.js';
 import { loadDefaults } from './env.js';
 import { formatBillingJs } from './format.js';
 import { openDefaultManualStore, getManualCredits, setManualCredit } from './manual-credits.js';
-import { readUsageSources } from './usage-sources.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -58,15 +57,6 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
       return;
     }
 
-    if (pathname === '/api/usage') {
-      try {
-        sendJson(res, 200, readUsageSources(env));
-      } catch (err) {
-        sendJson(res, 500, { error: err.message });
-      }
-      return;
-    }
-
     if (pathname === '/api/manual-credits') {
       if (req.method === 'GET') {
         sendJson(res, 200, getManualCredits(store));
@@ -97,20 +87,16 @@ export function createApp({ env = process.env, fetchFn = globalThis.fetch, loadE
       return;
     }
 
-    // Amsterdam Monitor is the landing page; the classic billing console
-    // stays available at /index.html (and /console for humans).
+    // The billing console is the landing page. The Amsterdam Monitor
+    // was removed: Grafana is the monitoring surface (see the console
+    // header link).
     if (pathname === '/') {
-      await sendFile(res, resolve(ROOT, 'usage.html'), 'text/html');
+      await sendFile(res, resolve(ROOT, 'index.html'), 'text/html');
       return;
     }
 
     if (pathname === '/index.html' || pathname === '/console') {
       await sendFile(res, resolve(ROOT, 'index.html'), 'text/html');
-      return;
-    }
-
-    if (pathname === '/usage' || pathname === '/usage.html') {
-      await sendFile(res, resolve(ROOT, 'usage.html'), 'text/html');
       return;
     }
 

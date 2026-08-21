@@ -1310,7 +1310,7 @@
 
   <!-- ── hero banner: Amsterdam ecopunk city ────────────────── -->
   <header class="hero">
-    <nav class="hero-nav" aria-label="Console"><a href="usage.html">Amsterdam Monitoring</a></nav>
+    <nav class="hero-nav" aria-label="Console"><a id="grafana-link" href="http://amster.tail66290a.ts.net:3005/d/agent-telemetry" target="_blank" rel="noopener">Grafana</a></nav>
     <svg class="hero-scene hero-art--night" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -1910,6 +1910,17 @@
      app script below runs. */
   var AMS_DEMO = /[?&]demo([=&]|$)/.test(location.search);
   document.write('<script src="' + (AMS_DEMO ? 'demo/billing.js' : 'data/billing.js') + '"><\/script>');
+  /* The Amsterdam Monitor page is gone: Grafana is the monitoring
+     surface. The header link points at the Agent Telemetry dashboard
+     (Prometheus-backed). Override with ?grafana=URL. In public demo
+     mode (?demo) the link is hidden: localhost means nothing to a
+     visitor. */
+  var grafanaLink = document.getElementById('grafana-link');
+  if (grafanaLink) {
+    var grafanaOverride = new URLSearchParams(location.search).get('grafana');
+    if (grafanaOverride) grafanaLink.href = grafanaOverride;
+    if (AMS_DEMO) grafanaLink.hidden = true;
+  }
 </script>
 <script>
   /* ── provider cards ──────────────────────────────────────────── */
