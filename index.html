@@ -85,7 +85,7 @@
     --bp-lg: 1024px;
   }
 
-  /* All palettes (night, day, dusk, aurora, retro) live in
+  /* All palettes (dusk, neon, alien, solar) live in
      src/themes.js and are injected as :root overrides at runtime.
      :root above stays as the no-JS night fallback. */
 
@@ -1096,6 +1096,18 @@
   [data-scene="day"] .hero-art--night { opacity: 0; }
   [data-scene="day"] .hero-art--day { opacity: 1; }
 
+  /* ── per-theme hero details ────────────────────────────────── */
+  /* Small scene flourishes hidden in every theme but their own:  */
+  /* a UFO over the canal houses (Alien Green), a grove on the    */
+  /* dike for the EcoPunk day scene.                              */
+  .hero-detail { opacity: 0; transition: opacity .6s ease; }
+  [data-theme="alien"] .hero-ufo { opacity: 1; }
+  [data-theme="solar"] .hero-grove { opacity: 1; }
+
+  .hero-ufo { animation: ufo-bob 7s ease-in-out infinite alternate; }
+  @keyframes ufo-bob { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
+  @media (prefers-reduced-motion: reduce) { .hero-ufo { animation: none; } }
+
   /* ── theme picker ──────────────────────────────────────────── */
   .theme-wrap {
     position: absolute;
@@ -1295,8 +1307,14 @@
 
     var pref = 'auto';
     try {
-      var saved = localStorage.getItem('amsterdam.theme');
-      if (saved === 'auto' || T.THEMES[saved]) pref = saved;
+      var forced = new URLSearchParams(window.location.search).get('theme');
+      if (forced === 'auto' || (forced && T.THEMES[forced])) {
+        pref = forced;
+        try { localStorage.setItem('amsterdam.theme', forced); } catch (e2) {}
+      } else {
+        var saved = localStorage.getItem('amsterdam.theme');
+        if (saved === 'auto' || T.THEMES[saved]) pref = saved;
+      }
     } catch (e) {}
     apply(T.effectiveTheme(pref, new Date()));
     window.__amsTheme = { apply: apply };
@@ -1334,6 +1352,10 @@
     <linearGradient id="refl" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#8dffd0" stop-opacity="0.4"/>
       <stop offset="1" stop-color="#8dffd0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ufoBeam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5aff3d" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#5aff3d" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
@@ -1607,6 +1629,19 @@
     <ellipse cx="1000" cy="380" rx="5" ry="2.9"/>
     <circle cx="1005" cy="377" r="2.1"/>
   </g>
+
+  <!-- UFO over the canal houses — shown only in the Alien Green theme -->
+  <g class="hero-detail hero-ufo" transform="translate(296 96)" aria-hidden="true">
+    <path d="M-15 8 L0 48 L15 8 Z" fill="url(#ufoBeam)" opacity="0.55"/>
+    <ellipse cx="0" cy="3" rx="35" ry="9" fill="#0e1610"/>
+    <ellipse cx="0" cy="1" rx="35" ry="9" fill="#1c2f24" stroke="rgba(90,255,61,.55)" stroke-width="1.2"/>
+    <path d="M-22 1 L-7 -15 L7 -15 L22 1 Z" fill="#e4fff1"/>
+    <circle cx="-8" cy="-10" r="2.4" fill="#5aff3d"/>
+    <circle cx="0" cy="-13" r="2.4" fill="#5aff3d"/>
+    <circle cx="8" cy="-10" r="2.4" fill="#5aff3d"/>
+    <line x1="-35" y1="1" x2="-47" y2="-4" stroke="#8dffd0" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="35" y1="1" x2="47" y2="-4" stroke="#8dffd0" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
 </svg>
 
     
@@ -1710,6 +1745,24 @@
       <line x1="36" y1="190" x2="50" y2="176"/>
       <line x1="72" y1="216" x2="86" y2="202"/>
       <line x1="108" y1="242" x2="122" y2="228"/>
+    </g>
+  </g>
+
+  <!-- Grove on the dike — shown only in the EcoPunk day theme -->
+  <g class="hero-detail hero-grove" aria-hidden="true">
+    <g transform="translate(70 300)">
+      <path d="M0 0 L3 -48 L8 -48 L11 0 Z" fill="#6d5736"/>
+      <path d="M-15 -48 Q-15 -86 5 -86 Q25 -86 25 -48 Z" fill="#3e6b4a"/>
+      <path d="M-9 -52 Q-9 -80 5 -80 Q19 -80 19 -52 Z" fill="#4c7a55" opacity="0.9"/>
+    </g>
+    <g transform="translate(138 302)">
+      <path d="M0 0 L3 -38 L7 -38 L10 0 Z" fill="#77603c"/>
+      <path d="M-13 -38 Q-13 -68 4 -68 Q21 -68 21 -38 Z" fill="#46774f"/>
+    </g>
+    <g transform="translate(196 300)">
+      <path d="M0 0 L3 -52 L8 -52 L11 0 Z" fill="#6d5736"/>
+      <path d="M-16 -52 Q-16 -92 5 -92 Q26 -92 26 -52 Z" fill="#376241"/>
+      <path d="M-10 -56 Q-10 -85 5 -85 Q20 -85 20 -56 Z" fill="#45734d" opacity="0.9"/>
     </g>
   </g>
 </svg>
@@ -2854,7 +2907,7 @@
         text: 'One dashboard for every LLM billing console, with live balances and spend per model. You are looking at sample data — no keys, no accounts, nothing leaves your browser.' },
       { target: '#theme-select',
         title: 'Pick a theme',
-        text: 'Four bio-luminescent palettes. Auto follows the clock: solar by day, canal-city night after 20:00.' },
+        text: 'Four bio-luminescent palettes. Auto follows the clock: EcoPunk day in the Bos, canal-city night after 20:00.' },
       { target: '#credits',
         title: 'Credits remaining',
         text: 'The live sum of all provider balances, refreshed every 2.5 minutes. The split below shows where the money sits.' },
