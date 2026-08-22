@@ -169,7 +169,7 @@
   /* ── hero banner ─────────────────────────────────────────────── */
   .hero {
     position: relative;
-    height: clamp(168px, 22vw, 228px);
+    height: clamp(150px, 20vw, 200px);
     border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--border);
@@ -306,9 +306,7 @@
     align-items: stretch;
     gap: 0;
     margin-bottom: 16px;
-    background:
-      var(--credits-fade),
-      var(--card);
+    background: var(--card);
     border: 1px solid var(--border-hi);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -399,6 +397,11 @@
     color: var(--amber);
     text-shadow: 0 0 22px var(--warn-bg);
   }
+  /* Collapsed spend summaries are compact strips: the credits
+     panel stays the single hero number on the page. */
+  .spend-blob { margin-bottom: 12px; }
+  .spend-blob .credits-body { padding: 12px 18px 12px 22px; gap: 0; }
+  .spend-blob .credits-value { font-size: clamp(1.3rem, 3vw, 1.8rem); }
 
   /* ── warning banner ──────────────────────────────────────────── */
   .warning {
@@ -657,6 +660,16 @@
   #spend-table .cost,
   #pi-spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
   #spend-table .cost.na { color: var(--faint); }
+
+  .cell-sub {
+    display: block;
+    font-family: var(--font);
+    font-size: 0.72em;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--faint);
+    margin-top: 2px;
+  }
 
   #pi-summary {
     font-size: 0.875rem;
@@ -1076,15 +1089,80 @@
   }
 
   @media (max-width: 640px) {
-    .wrap { padding: 16px 14px 56px; }
-    .hero { height: 168px; }
+    .wrap { padding: 14px 12px 56px; }
+    .hero { height: 150px; }
     .verse { display: none; }
-    .flag-badge { top: 10px; right: 10px; transform: scale(.85); }
+    .flag-badge { top: 10px; right: 10px; transform: none; }
     .cards { grid-template-columns: 1fr; }
     #billing-summary { grid-template-columns: repeat(2, 1fr); }
     .credits-note { display: none; }
     .credits { flex-direction: column; }
     .kicker { margin-bottom: 6px; }
+
+    /* touch targets at or above 44px */
+    .btn { min-height: 44px; }
+    .cards[data-group="detected"] .card .btn,
+    .cards[data-group="extra"] .card .btn { min-height: 44px; padding: 10px 12px; }
+    .chip .chip-edit { padding: 9px 12px; }
+    #search { padding: 13px 14px; margin: 18px 0 12px; }
+    h2.toggle { padding: 10px 4px; }
+    .table-tools { flex-wrap: wrap; }
+    .model-filter { max-width: 100%; flex: 1 1 160px; }
+    .credits-split { overflow-wrap: anywhere; }
+
+    /* spend tables reflow into stacked cards */
+    #spend-section, #pi-spend-content { overflow-x: visible; padding: 10px 10px 2px; }
+    #spend-table, #pi-spend-table { min-width: 0; font-size: 0.875rem; }
+    #spend-table thead, #pi-spend-table > thead { display: none; }
+    #spend-table tbody, #pi-spend-table tbody { display: block; }
+    #spend-table tbody tr, #pi-spend-table tbody tr {
+      display: block;
+      margin-bottom: 10px;
+      padding: 4px 12px 8px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    #spend-table tbody tr:hover, #pi-spend-table tbody tr:hover { background: var(--bg-soft); }
+    #spend-table td, #pi-spend-table td {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 14px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    #spend-table td:last-child, #pi-spend-table td:last-child { border-bottom: 0; }
+    #spend-table td::before, #pi-spend-table td::before {
+      content: attr(data-label);
+      font-family: var(--font);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    #spend-table td.model, #pi-spend-table td.model {
+      display: block;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    #spend-table td.model::before, #pi-spend-table td.model::before { display: none; }
+    .cell-sub { margin-top: 2px; }
+
+    /* provider rows wrap instead of clipping */
+    .cards[data-group="detected"] .card,
+    .cards[data-group="extra"] .card { flex-wrap: wrap; padding: 10px 4px; }
+    .cards[data-group="detected"] .card h3,
+    .cards[data-group="extra"] .card h3 { min-width: 0; flex: 1 1 auto; }
+    .cards[data-group="detected"] .card .envs,
+    .cards[data-group="extra"] .card .envs { flex-basis: 100%; }
+  }
+  @media (max-width: 380px) {
+    #billing-summary { grid-template-columns: 1fr; }
   }
 
   /* ── hero artwork: day/night crossfade ─────────────────────── */
@@ -1156,48 +1234,33 @@
   }
 
   @media (max-width: 640px) {
-    .theme-wrap { top: 10px; right: 72px; transform: scale(.85); }
-    .hero-nav { top: 10px; left: 10px; transform: scale(.85); }
+    .theme-wrap { top: 10px; right: 66px; transform: none; }
+    .theme-picker { padding: 6px 6px 6px 8px; }
+    .theme-picker-label { display: none; }
+    .hero-nav { top: 10px; left: 10px; transform: none; }
   }
 
-  /* ── bio-luminescent HUD: glass, glow, scanlines, cursor ──── */
+  /* ── surfaces ────────────────────────────────────────────── */
   [hidden] { display: none !important; }
 
-  .hero {
-    border-color: var(--glass-border);
-    box-shadow: var(--panel-glow);
-  }
-
+  /* Calmer surfaces: panels use the plain theme card color. The
+     glass blur and neon panel glows are gone; colors are intact. */
   .credits,
   .card,
   #spend-section,
   #pi-spend-content,
   .columns-panel {
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    backdrop-filter: blur(var(--glass-blur));
-    border-color: var(--glass-border);
+    background: var(--card);
   }
 
-  .credits,
-  .card,
-  #spend-section,
-  #pi-spend-content {
-    box-shadow: var(--panel-glow);
-  }
-
-  .card:hover {
-    box-shadow: var(--panel-glow-hover);
-  }
-
-  /* micro sparklines layered behind the HUD totals */
+  /* micro sparklines behind the totals */
   .sparkline {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
-    opacity: .45;
+    opacity: .3;
     z-index: 0;
   }
 
@@ -1207,19 +1270,10 @@
     z-index: 1;
   }
 
-  /* CRT scanlines over tables and provider lists */
-  #spend-section,
-  #pi-spend-content {
-    background-color: var(--glass-bg);
-    background-image: var(--scanline);
-  }
+  /* No CRT scanlines: tables and provider lists sit on the plain
+     theme background for a quieter, more legible console. */
 
-  .cards[data-group="detected"],
-  .cards[data-group="extra"] {
-    background-image: var(--scanline);
-  }
-
-  /* monospace HUD tables with glowing hover rows */
+  /* monospace tables */
   #spend-table,
   #pi-spend-table {
     font-family: var(--font-mono);
@@ -1228,14 +1282,12 @@
 
   #spend-table tbody tr,
   #pi-spend-table tbody tr {
-    transition: background var(--t-fast), box-shadow var(--t-fast);
+    transition: background var(--t-fast);
   }
 
   #spend-table tbody tr:hover,
   #pi-spend-table tbody tr:hover {
     background: var(--row-glow);
-    box-shadow: inset 0 0 12px var(--row-glow);
-    text-shadow: 0 0 6px var(--row-glow);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2278,17 +2330,28 @@
     });
   }
 
+  /* Column labels drive the stacked mobile rows (data-label). */
+  var COLUMN_LABELS = {
+    model: 'Model', provider: 'Provider', sessions: 'Sessions', calls: 'Calls',
+    inputTokens: 'Tokens in', outputTokens: 'Tokens out',
+    estimatedCostUsd: 'Est. cost', costStatus: 'Status'
+  };
+
   function spendCell(m, key, known) {
+    var label = ' data-label="' + COLUMN_LABELS[key] + '"';
     switch (key) {
-      case 'model':        return '<td class="model">' + escapeHtml(m.model) + '</td>';
-      case 'provider':     return '<td>' + escapeHtml(m.provider || '—') + '</td>';
-      case 'sessions':     return '<td class="num">' + (m.sessions == null ? '—' : m.sessions) + '</td>';
-      case 'calls':        return '<td class="num">' + (m.calls == null ? '—' : m.calls) + '</td>';
-      case 'inputTokens':  return '<td class="num">' + formatTokens(m.inputTokens) + '</td>';
-      case 'outputTokens': return '<td class="num">' + formatTokens(m.outputTokens) + '</td>';
+      case 'model':
+        var modelHtml = escapeHtml(m.model);
+        if (m.lastSeen) modelHtml += '<span class="cell-sub">Last seen ' + escapeHtml(m.lastSeen) + '</span>';
+        return '<td class="model"' + label + '>' + modelHtml + '</td>';
+      case 'provider':     return '<td' + label + '>' + escapeHtml(m.provider || '—') + '</td>';
+      case 'sessions':     return '<td class="num"' + label + '>' + (m.sessions == null ? '—' : m.sessions) + '</td>';
+      case 'calls':        return '<td class="num"' + label + '>' + (m.calls == null ? '—' : m.calls) + '</td>';
+      case 'inputTokens':  return '<td class="num"' + label + '>' + formatTokens(m.inputTokens) + '</td>';
+      case 'outputTokens': return '<td class="num"' + label + '>' + formatTokens(m.outputTokens) + '</td>';
       case 'estimatedCostUsd':
-        return '<td class="cost' + (known ? '' : ' na') + '">' + formatSpendCost(m) + '</td>';
-      case 'costStatus':   return '<td>' + escapeHtml(m.costStatus || 'unknown') + '</td>';
+        return '<td class="cost' + (known ? '' : ' na') + '"' + label + '>' + formatSpendCost(m) + '</td>';
+      case 'costStatus':   return '<td' + label + '>' + escapeHtml(m.costStatus || 'unknown') + '</td>';
     }
     return '';
   }
@@ -2519,13 +2582,13 @@
       var title = m.lastSeen ? ' title="Last seen ' + escapeHtml(m.lastSeen) + '"' : '';
       var tokens = m.totalTokens == null ? '—' : formatTokens(m.totalTokens);
       return '<tr' + title + '>'
-        + '<td class="model">' + escapeHtml(m.model) + '</td>'
-        + '<td>' + escapeHtml(m.provider || '—') + '</td>'
-        + '<td class="num">' + m.sessions + '</td>'
-        + '<td class="num">' + m.calls + '</td>'
-        + '<td class="num">' + tokens + '</td>'
-        + '<td class="cost">' + formatPiCost(m) + '</td>'
-        + '<td>' + (m.lastSeen ? escapeHtml(m.lastSeen) : '—') + '</td>'
+        + '<td class="model" data-label="Model">' + escapeHtml(m.model) + '</td>'
+        + '<td data-label="Provider">' + escapeHtml(m.provider || '—') + '</td>'
+        + '<td class="num" data-label="Sessions">' + m.sessions + '</td>'
+        + '<td class="num" data-label="Calls">' + m.calls + '</td>'
+        + '<td class="num" data-label="Tokens">' + tokens + '</td>'
+        + '<td class="cost" data-label="Cost">' + formatPiCost(m) + '</td>'
+        + '<td data-label="Last seen">' + (m.lastSeen ? escapeHtml(m.lastSeen) : '—') + '</td>'
         + '</tr>';
     }).join('');
     document.getElementById('pi-spend-body').innerHTML = rows;
@@ -2724,10 +2787,7 @@
     for (var j = 1; j < n; j++) ctx.lineTo(x(j), y(series[j]));
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 6;
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }
 
   function recordSpark(key, value) {
