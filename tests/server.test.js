@@ -153,6 +153,29 @@ describe('server', () => {
     assert.equal(res.status, 200);
   });
 
+  it('accepts requests with a Host listed in AMS_HOST', async () => {
+    // fetch() refuses to override Host, so use raw http to send one.
+    const { request } = await import('node:http');
+    const app = await listen(createApp({
+      env: { AMS_HOST: 'amster.tail66290a.ts.net,ignored.example' },
+      fetchFn: mockFetch({}),
+      loadEnv: false,
+    }));
+    const status = await new Promise((resolve, reject) => {
+      const req = request(
+        { host: '127.0.0.1', port: app.address().port, path: '/api/billing', headers: { Host: 'amster.tail66290a.ts.net' } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode);
+        },
+      );
+      req.on('error', reject);
+      req.end();
+    });
+    app.close();
+    assert.equal(status, 200);
+  });
+
   it('serves demo/billing.js as the sample fixture', async () => {
     const res = await fetch(`${base}/demo/billing.js`);
     assert.equal(res.status, 200);

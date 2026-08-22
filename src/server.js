@@ -167,11 +167,20 @@ function sendJson(res, status, data) {
 }
 
 // Local hostnames the daemon answers to, plus an optional AMS_HOST
-// override so an explicitly exposed instance still works.
+// override so an explicitly exposed instance still works. AMS_HOST may
+// be comma-separated: the first entry is the bind address, every entry
+// is added to the Host allowlist.
+function amsHosts(env) {
+  return String(env.AMS_HOST || '')
+    .toLowerCase()
+    .split(',')
+    .map((h) => h.trim())
+    .filter(Boolean);
+}
+
 function allowedHostnames(env) {
   const allowed = new Set(LOCAL_HOSTNAMES);
-  const custom = String(env.AMS_HOST || '').toLowerCase().trim();
-  if (custom) allowed.add(custom);
+  for (const host of amsHosts(env)) allowed.add(host);
   return allowed;
 }
 
@@ -263,6 +272,7 @@ async function sendFile(res, filePath, type) {
 }
 
 export function start(port = DEFAULT_PORT, host = process.env.AMS_HOST || DEFAULT_HOST) {
+  const bindHost = host.split(',')[0].trim() || DEFAULT_HOST;
   const app = createApp();
   app.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
@@ -273,7 +283,7 @@ export function start(port = DEFAULT_PORT, host = process.env.AMS_HOST || DEFAUL
     }
     throw err;
   });
-  app.listen(port, host, () => {
+  app.listen(port, bindHost, () => {
     console.log(`Amsterdam Console — http://localhost:${port}`);
     console.log(`   PID ${process.pid} — Ctrl+C to stop, auto-refresh every 2.5 min.`);
   });
