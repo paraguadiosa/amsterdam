@@ -1918,7 +1918,9 @@
   var grafanaLink = document.getElementById('grafana-link');
   if (grafanaLink) {
     var grafanaOverride = new URLSearchParams(location.search).get('grafana');
-    if (grafanaOverride) grafanaLink.href = grafanaOverride;
+    // Only real http(s) URLs may override the Grafana link; anything
+    // else (javascript:, data:) is ignored.
+    if (grafanaOverride && /^https?:\/\//i.test(grafanaOverride)) grafanaLink.href = grafanaOverride;
     if (AMS_DEMO) grafanaLink.hidden = true;
   }
 </script>
@@ -2382,7 +2384,7 @@
     syncColumnCheckboxes();
     var visible = COLUMN_KEYS.filter(function (key) { return columnState[key]; });
     var rows = sortSpendModels(models).map(function (m) {
-      var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
+      var title = m.lastSeen ? ' title="Last seen ' + escapeHtml(m.lastSeen) + '"' : '';
       var known = (m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null;
       var cells = visible.map(function (key) { return spendCell(m, key, known); }).join('');
       return '<tr' + title + '>' + cells + '</tr>';
@@ -2461,7 +2463,7 @@
 
     table.style.display = 'table';
     var rows = models.map(function (m) {
-      var title = m.lastSeen ? ' title="Last seen ' + m.lastSeen + '"' : '';
+      var title = m.lastSeen ? ' title="Last seen ' + escapeHtml(m.lastSeen) + '"' : '';
       var tokens = m.totalTokens == null ? '—' : formatTokens(m.totalTokens);
       return '<tr' + title + '>'
         + '<td class="model">' + escapeHtml(m.model) + '</td>'
@@ -2500,8 +2502,8 @@
     liveIds.forEach(function (id) {
       var chip = formatChip(id, billing.providers[id]);
       html += '<div class="chip ' + chip.cls + '" data-provider="' + id + '">'
-            + '<span class="chip-name">' + id + '</span>'
-            + '<span class="chip-value">' + chip.value + '</span>';
+            + '<span class="chip-name">' + escapeHtml(id) + '</span>'
+            + '<span class="chip-value">' + escapeHtml(chip.value) + '</span>';
       if (chip.editable) {
         html += '<button class="chip-edit" type="button">edit</button>'
               + '<span class="chip-editor" hidden>'

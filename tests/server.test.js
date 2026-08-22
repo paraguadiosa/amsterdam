@@ -119,6 +119,40 @@ describe('server', () => {
     assert.equal(res.status, 404);
   });
 
+  it('rejects absolute-path traversal in /src/', async () => {
+    const res = await fetch(`${base}/src//etc/passwd.js`);
+    assert.equal(res.status, 404);
+  });
+
+  it('rejects absolute-path traversal in /demo/', async () => {
+    const res = await fetch(`${base}/demo//etc/passwd.js`);
+    assert.equal(res.status, 404);
+  });
+
+  it('rejects requests with a foreign Host header', async () => {
+    // fetch() refuses to override Host, so use raw http to send one.
+    const { request } = await import('node:http');
+    const status = await new Promise((resolve, reject) => {
+      const req = request(
+        { host: '127.0.0.1', port: server.address().port, path: '/api/billing', headers: { Host: 'evil-attacker.com' } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode);
+        },
+      );
+      req.on('error', reject);
+      req.end();
+    });
+    assert.equal(status, 403);
+  });
+
+  it('accepts requests with a local Host header', async () => {
+    const res = await fetch(`${base}/api/billing`, {
+      headers: { Host: 'localhost' },
+    });
+    assert.equal(res.status, 200);
+  });
+
   it('serves demo/billing.js as the sample fixture', async () => {
     const res = await fetch(`${base}/demo/billing.js`);
     assert.equal(res.status, 200);
@@ -157,10 +191,10 @@ describe('server manual credits', () => {
     rmSync(storeDir, { recursive: true, force: true });
   });
 
-  function post(body) {
+  function post(body, extraHeaders = {}) {
     return fetch(`${base}/api/manual-credits`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
       body: typeof body === 'string' ? body : JSON.stringify(body),
     });
   }
@@ -216,6 +250,29 @@ describe('server manual credits', () => {
   it('rejects methods other than GET and POST', async () => {
     const res = await fetch(`${base}/api/manual-credits`, { method: 'PUT' });
     assert.equal(res.status, 405);
+  });
+
+  it('rejects cross-origin POSTs', async () => {
+    const res = await post({ provider: 'pi', amount: 5 }, { Origin: 'https://evil.example' });
+    assert.equal(res.status, 403);
+    const data = await res.json();
+    assert.equal(data.error, 'cross-origin request denied');
+    // Nothing was written.
+    const state = await (await fetch(`${base}/api/manual-credits`)).json();
+    assert.deepEqual(state, {});
+  });
+
+  it('rejects POSTs with a javascript: origin', async () => {
+    const res = await post({ provider: 'pi', amount: 5 }, { Origin: 'javascript:alert(1)' });
+    assert.equal(res.status, 403);
+  });
+
+  it('accepts same-origin POSTs', async () => {
+    const res = await post({ provider: 'pi', amount: 5 }, { Origin: base });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { pi: 5 });
+    // Clean up so other tests start from an empty store.
+    await post({ provider: 'pi', amount: null });
   });
 
   it('rejects an oversized body with 400', async () => {
@@ -333,11 +390,44 @@ describe('server caching', () => {
     };
     const env = { DEEPSEEK_API_KEY: 'sk-test' };
     const { store, dir } = tmpStore();
-    const app = await listen(createApp({ env, fetchFn: countingFetch, loadEnv: false, manualStore: store }));
+    const app = await listen(createApp({
+      env, fetchFn: countingFetch, loadEnv: false, manualStore: store, freshMinIntervalMs: 0,
+    }));
     const base = baseUrl(app);
 
     try {
       await fetch(`${base}/api/billing`);
+      await fetch(`${base}/api/billing?fresh=1`);
+      assert.equal(calls, 2);
+    } finally {
+      app.close();
+      closeManualStore(store);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('debounces ?fresh=1 within the min interval', async () => {
+    let calls = 0;
+    const countingFetch = async () => {
+      calls++;
+      return {
+        ok: true,
+        json: async () => ({ balance_infos: [{ currency: 'CNY', total_balance: '10' }], is_available: true }),
+      };
+    };
+    const env = { DEEPSEEK_API_KEY: 'sk-test' };
+    const { store, dir } = tmpStore();
+    const app = await listen(createApp({
+      env, fetchFn: countingFetch, loadEnv: false, manualStore: store, freshMinIntervalMs: 60_000,
+    }));
+    const base = baseUrl(app);
+
+    try {
+      // First request primes the cache; the first fresh always passes
+      // (lastForceAt starts at 0); the second fresh must hit the
+      // debounce and serve the cache instead of re-fetching.
+      await fetch(`${base}/api/billing`);
+      await fetch(`${base}/api/billing?fresh=1`);
       await fetch(`${base}/api/billing?fresh=1`);
       assert.equal(calls, 2);
     } finally {

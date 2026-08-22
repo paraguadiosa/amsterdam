@@ -447,6 +447,15 @@ be rotated immediately.
 - Spend data reads are strictly read-only: Amsterdam never writes to
   `~/.hermes/state.db` or `~/.pi/agent/sessions`, and neither is mounted
   into the container.
+- The daemon binds to `127.0.0.1` only and rejects requests with a
+  foreign `Host` header, so LAN peers and DNS-rebinding websites cannot
+  read billing data or write credits. `POST /api/manual-credits` also
+  rejects cross-origin requests. Set `AMS_HOST` to expose the daemon on
+  another interface explicitly.
+- `?fresh` refreshes are throttled (5 s minimum) so the daemon cannot be
+  used to hammer your provider accounts.
+- Generated data files (`data/billing.js`, `data/manual-credits.db`)
+  are created owner-only.
 
 To report a vulnerability, open a GitHub issue with the label `security`
 or contact the maintainers privately. Do not open a public issue that

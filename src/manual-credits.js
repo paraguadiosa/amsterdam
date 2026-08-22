@@ -4,7 +4,7 @@
 // machine shares the same numbers. localStorage in the dashboard is
 // only a fallback when the server is unreachable.
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, chmodSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +22,11 @@ export function openManualStore(dbPath) {
   try {
     mkdirSync(dirname(dbPath), { recursive: true });
     const db = new DatabaseSync(dbPath);
+    try {
+      chmodSync(dbPath, 0o600);
+    } catch {
+      // Permission hardening is best-effort; the store still works.
+    }
     db.exec(`
       CREATE TABLE IF NOT EXISTS manual_credits (
         provider TEXT PRIMARY KEY,

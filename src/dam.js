@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, chmodSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import providers from './providers/index.js';
@@ -140,6 +140,8 @@ async function main() {
   mkdirSync(DATA_DIR, { recursive: true });
   const outPath = resolve(DATA_DIR, 'billing.js');
   writeFileSync(outPath, formatBillingJs(billing));
+  // Billing figures are private: keep the snapshot owner-only.
+  chmodSync(outPath, 0o600);
   console.log(`\nSaved ${outPath}`);
 }
 
