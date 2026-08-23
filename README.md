@@ -45,11 +45,16 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Secrets safe by default** — keys live in environment variables or the
   Hermes credential pool, never in git. Gitleaks hooks block accidental
   commits and pushes of secrets.
-- **Four bio-luminescent themes** — Dusk, Acid Green, Cyber Neon, and
-  Ecopunk Solar palettes over glassmorphism panels, HUD glow, and CRT
+- **Four bio-luminescent themes** — Dusk, Cyber Neon, Alien Green, and
+  EcoPunk palettes over glassmorphism panels, HUD glow, and CRT
   scanlines, with the Amsterdam canal-city hero (gabled houses and
-  windmills by night, green polder by day). The picker in the hero
-  remembers your choice; `auto` follows the clock (solar 07:00-19:59).
+  windmills by night, green polder by day). Alien Green brings a UFO
+  over the canal houses (the Green Light District); EcoPunk sets the day
+  scene in the Amsterdamse Bos with a grove on the dike. The picker in
+  the hero remembers your choice; `auto` follows the clock (EcoPunk day
+  in the Bos 07:00-19:59). Deep-link a palette with `?theme=alien` or
+  `?theme=solar` — the choice is applied before first paint and
+  remembered like any other picker choice.
 
 ## Requirements
 
@@ -202,6 +207,11 @@ seven-step onboarding tour auto-starts on the first visit.
 ```bash
 amsterdam demo    # open the dashboard demo locally
 ```
+
+Pin a palette on any demo URL with `?theme=`, for example
+`?demo&theme=solar` (EcoPunk day in the Bos) or `?demo&theme=alien`
+(the Green Light District). The choice is applied before first paint and
+saved, so the picker in the hero shows it on the next visit.
 
 Live copies are published at
 <https://evecoronel.com/amsterdam/?demo>, served from the `amsterdam/`

@@ -6,7 +6,7 @@ const T = globalThis.AMS_THEMES;
 
 describe('theme registry', () => {
   it('exposes the four named palettes', () => {
-    assert.deepEqual(T.listThemes(), ['dusk', 'acid', 'neon', 'solar']);
+    assert.deepEqual(T.listThemes(), ['dusk', 'neon', 'alien', 'solar']);
   });
 
   it('every theme defines exactly the required variables', () => {
@@ -32,9 +32,21 @@ describe('theme registry', () => {
 
   it('palette labels match the redesign spec', () => {
     assert.equal(T.THEMES.dusk.label, 'Dusk');
-    assert.equal(T.THEMES.acid.label, 'Acid Green');
     assert.equal(T.THEMES.neon.label, 'Cyber Neon');
-    assert.equal(T.THEMES.solar.label, 'Ecopunk Solar');
+    assert.equal(T.THEMES.alien.label, 'Alien Green');
+    assert.equal(T.THEMES.solar.label, 'EcoPunk');
+  });
+
+  it('alien is a night scene and solar is a day scene', () => {
+    assert.equal(T.THEMES.alien.scene, 'night');
+    assert.equal(T.THEMES.solar.scene, 'day');
+  });
+
+  it('the merged palettes stay distinct from their neighbours', () => {
+    assert.notEqual(T.THEMES.alien.vars.accent, T.THEMES.dusk.vars.accent);
+    assert.notEqual(T.THEMES.alien.vars.accent, T.THEMES.neon.vars.accent);
+    assert.notEqual(T.THEMES.solar.vars.bg, T.THEMES.dusk.vars.bg);
+    assert.notEqual(T.THEMES.solar.vars.accent, T.THEMES.alien.vars.accent);
   });
 
   it('the auto option is not a real palette', () => {
@@ -70,7 +82,7 @@ describe('theme selection', () => {
     const noon = new Date(2024, 0, 1, 12);
     const midnight = new Date(2024, 0, 1, 0);
     assert.equal(T.effectiveTheme('solar', midnight), 'solar');
-    assert.equal(T.effectiveTheme('acid', noon), 'acid');
+    assert.equal(T.effectiveTheme('alien', noon), 'alien');
     assert.equal(T.effectiveTheme('auto', noon), 'solar');
     assert.equal(T.effectiveTheme('auto', midnight), 'dusk');
   });
