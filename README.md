@@ -30,7 +30,7 @@ live balance and usage numbers fetched straight from provider APIs.
   Sortable, with a column picker.
 - **Monitoring via Grafana** — the header links to the Agent Telemetry
   dashboard (Prometheus-backed,
-  `http://amster.tail66290a.ts.net:3005/d/agent-telemetry`, override with
+  `http://mini.tail66290a.ts.net:3005/d/agent-telemetry`, override with
   `?grafana=URL`). The old in-repo Amsterdam Monitor page
   was removed: per-orchestrator cost, tokens and sessions live in Grafana
   now. The link is hidden in public demo mode (`?demo`).
@@ -333,7 +333,7 @@ stack (Prometheus + Pushgateway + Grafana, see `~/repos/observability`)
 is the monitoring surface now. Every agent pushes full accumulated
 totals to the Pushgateway; Grafana renders cost, tokens and sessions
 per orchestrator. The console header links to the Agent Telemetry
-dashboard (`http://amster.tail66290a.ts.net:3005/d/agent-telemetry`);
+dashboard (`http://mini.tail66290a.ts.net:3005/d/agent-telemetry`);
 override with
 `?grafana=URL` when Grafana lives elsewhere.
 

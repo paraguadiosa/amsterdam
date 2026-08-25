@@ -157,13 +157,13 @@ describe('server', () => {
     // fetch() refuses to override Host, so use raw http to send one.
     const { request } = await import('node:http');
     const app = await listen(createApp({
-      env: { AMS_HOST: 'amster.tail66290a.ts.net,ignored.example' },
+      env: { AMS_HOST: 'mini.tail66290a.ts.net,ignored.example' },
       fetchFn: mockFetch({}),
       loadEnv: false,
     }));
     const status = await new Promise((resolve, reject) => {
       const req = request(
-        { host: '127.0.0.1', port: app.address().port, path: '/api/billing', headers: { Host: 'amster.tail66290a.ts.net' } },
+        { host: '127.0.0.1', port: app.address().port, path: '/api/billing', headers: { Host: 'mini.tail66290a.ts.net' } },
         (res) => {
           res.resume();
           resolve(res.statusCode);
