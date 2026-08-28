@@ -620,7 +620,7 @@ setup() {
     [[ "$HTML_CONTENT" == *'class="hero-nav"'* ]]
     [[ "$HTML_CONTENT" == *'Grafana'* ]]
     [[ "$HTML_CONTENT" == *'id="grafana-link"'* ]]
-    [[ "$HTML_CONTENT" == *'href="http://amster.tail66290a.ts.net:3005/d/agent-telemetry"'* ]]
+    [[ "$HTML_CONTENT" == *'href="http://mini.tail66290a.ts.net:3005/d/agent-telemetry"'* ]]
 }
 
 @test "usage page is gone" {
