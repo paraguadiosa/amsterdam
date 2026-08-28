@@ -25,9 +25,11 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Credits remaining panel** — the live sum of all provider balances,
   with a per-provider split. Manual balances are supported for providers
   without an API.
-- **Spend by model** — side-by-side cost tables from the Hermes agent
-  state database (estimated) and Pi session logs (actual billed USD).
-  Sortable, with a column picker.
+- **Spend table** — one sortable table merges the Hermes agent state
+  database (estimated) and Pi session logs (actual billed USD) per
+  provider and model: in/out/cache tokens, sessions, est. cost, and
+  price per 1M tokens. Amsterdam does not render charts: the section
+  header links to Grafana's Agent Telemetry dashboard instead.
 - **Monitoring via Grafana** — the header links to the Agent Telemetry
   dashboard (Prometheus-backed,
   `http://mini.tail66290a.ts.net:3005/d/agent-telemetry`, override with
@@ -286,18 +288,19 @@ excluded from the HUD credits total — Pi is a budget, not a wallet
 balance. A POST to `/api/manual-credits` invalidates the 60-second
 billing cache so the chip updates immediately.
 
-### Spend by model
+### Spend table
 
-The dashboard shows spend from two sources, side by side:
+The dashboard shows one **Spend** table that merges the two sources by
+provider + model, so the question "where does the money go" has a
+single answer:
 
 **Hermes — estimated.** The local Hermes agent state database at
 `~/.hermes/state.db` (read-only, host daemon only). Amsterdam never writes
 to that database. The data is aggregated per `(model, billing_provider)`:
-sessions, calls, tokens, and estimated/actual cost. Only rows whose cost
-status is `estimated` count toward the Hermes total; untrusted snapshots
-(for example a bad pricing row marked `unknown`) are excluded from the
-total and shown as `n/a`. Override the database path with
-`HERMES_STATE_DB`.
+sessions, tokens, and estimated/actual cost. Only rows whose cost status
+is `estimated` count toward the Hermes total; untrusted snapshots (for
+example a bad pricing row marked `unknown`) are excluded from the total
+and shown as `n/a`. Override the database path with `HERMES_STATE_DB`.
 
 **Pi sessions — actual.** Pi (pi.dev CLI) writes one JSONL file per
 session under `~/.pi/agent/sessions`. Every assistant message carries the
@@ -305,21 +308,26 @@ provider, model, tokens, and real USD cost. Amsterdam aggregates per
 `(model, provider)` and per project (the basename of the session working
 directory; home-directory sessions count as `home`). Override the sessions
 directory with `PI_SESSIONS_DIR`. Pi costs are billed amounts, so they
-always show as USD — never `n/a`. When the directory is missing, the
-section is hidden.
+always show as USD — never `n/a`.
+
+Where a (provider, model) pair appears in both sources, the row sums the
+tokens, sessions, and cost. The table renders eight columns — Provider,
+Model, In tok, Out tok, Cache tok, Sessions, Est. cost, $/1M — and every
+column header sorts (default: est. cost descending, with the sort
+direction shown via `aria-sort`). The $/1M price comes from the `/api/billing`
+payload (`usdPerM`, rounded to 4 decimals; `null` when a group has no
+tokens or no trusted cost); merged rows are recomputed from their summed
+totals so all rows sort on the same basis. The section header carries an
+**Open in Grafana** link.
 
 In Docker there is no Hermes state DB and no Pi sessions, so the spend
-sections stay empty — run `amster serve` on the host to see spend data.
+table stays empty — run `amster serve` on the host to see spend data.
 
-The table is sortable by clicking any column header (default: est. cost
-desc). A **model dropdown** next to the Columns button filters the
-table to one model — the choice is saved per browser and re-applied on
-the next load. Click **Columns** to choose which columns are visible —
-the choice is saved per browser too. Local GGUF files in `~/models` appear in the table
-even without recorded usage, marked with status `no usage`. Groups with
-usage but no recorded cost get a token-based estimate when the model has
-an authoritative rate (deepseek-v4-flash, deepseek-v4-pro); local GGUF
-runs show as `free`. Models without a known rate keep `n/a`.
+Local GGUF files in `~/models` appear in the table even without recorded
+usage, marked with status `no usage`. Groups with usage but no recorded
+cost get a token-based estimate when the model has an authoritative rate
+(deepseek-v4-flash, deepseek-v4-pro); local GGUF runs show as `free`.
+Models without a known rate keep `n/a`.
 
 Anthropic is purged at the data layer: rows from the `anthropic` billing
 provider and any `claude-*` model are dropped from the aggregation, the
@@ -327,14 +335,16 @@ totals, and the CLI output — wherever the spend data goes.
 
 ### Monitoring via Grafana
 
-The in-repo per-orchestrator monitor (`usage.html`, `/api/usage`, the
-`usage-*` sources and the BI exports) was removed: the observability
-stack (Prometheus + Pushgateway + Grafana, see `~/repos/observability`)
-is the monitoring surface now. Every agent pushes full accumulated
-totals to the Pushgateway; Grafana renders cost, tokens and sessions
-per orchestrator. The console header links to the Agent Telemetry
-dashboard (`http://mini.tail66290a.ts.net:3005/d/agent-telemetry`);
-override with
+Amsterdam renders no spend charts: the in-repo per-orchestrator monitor
+(`usage.html`, `/api/usage`, the `usage-*` sources and the BI exports)
+was removed, and the observability stack (Prometheus + Pushgateway +
+Grafana, see `~/repos/observability`) is the monitoring surface now.
+Every agent pushes full accumulated totals to the Pushgateway; Grafana
+renders cost, tokens and sessions per orchestrator. The console header
+links to the Agent Telemetry dashboard
+(`http://mini.tail66290a.ts.net:3005/d/agent-telemetry`), and the Spend
+section header carries the same **Open in Grafana** link for handoff
+right at the table; override with
 `?grafana=URL` when Grafana lives elsewhere.
 
 ## Architecture
@@ -478,7 +488,7 @@ contains real keys.
 ## Related projects
 
 - **Hermes** — the local agent whose state database (`~/.hermes/state.db`)
-  and credential pool (`~/.hermes/auth.json`) feed the estimated spend
-  table. Amsterdam reads both read-only.
+  and credential pool (`~/.hermes/auth.json`) feed the estimated side of
+  the spend table. Amsterdam reads both read-only.
 - [Pi](https://pi.dev) — the CLI whose session logs (`~/.pi/agent/sessions`)
-  feed the actual spend table.
+  feed the actual side of the spend table.
