@@ -297,8 +297,8 @@ describe('anthropic auth', () => {
 // ── registry ─────────────────────────────────────
 
 describe('provider registry', () => {
-  it('exports all key-backed providers (12)', () => {
-    assert.equal(providers.length, 12);
+  it('exports all key-backed providers (13)', () => {
+    assert.equal(providers.length, 13);
   });
 
   it('has unique ids', () => {
