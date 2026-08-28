@@ -391,17 +391,8 @@
     border-radius: var(--radius-sm);
   }
 
-  /* Collapsed spend summary: same panel, amber value to mark spend. */
-  .spend-blob { cursor: pointer; }
-  .spend-blob .credits-value {
-    color: var(--amber);
-    text-shadow: 0 0 22px var(--warn-bg);
-  }
-  /* Collapsed spend summaries are compact strips: the credits
-     panel stays the single hero number on the page. */
-  .spend-blob { margin-bottom: 12px; }
-  .spend-blob .credits-body { padding: 12px 18px 12px 22px; gap: 0; }
-  .spend-blob .credits-value { font-size: clamp(1.3rem, 3vw, 1.8rem); }
+  /* Collapsed spend summary blobs were removed with the old
+     toggle-based spend sections; the table is first-class now. */
 
   /* ── warning banner ──────────────────────────────────────────── */
   .warning {
@@ -584,9 +575,8 @@
     letter-spacing: 0.2px;
   }
 
-  /* ── spend by model ─────────────────────────────────────────── */
-  #spend-section,
-  #pi-spend-content {
+  /* ── spend table ────────────────────────────────────────────── */
+  #spend-section {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--card);
@@ -596,12 +586,34 @@
     box-shadow: var(--shadow-sm);
   }
 
-  .table-tools {
-    padding: 0 4px;
+  .spend-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
-  #spend-table,
-  #pi-spend-table {
+  .spend-head h2 { margin: 22px 0 12px; }
+
+  .grafana-link {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-2);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .grafana-link:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
+  }
+
+  #spend-table {
     width: 100%;
     min-width: 640px;
     border-collapse: collapse;
@@ -609,8 +621,7 @@
     margin-bottom: 20px;
   }
 
-  #spend-table th,
-  #pi-spend-table th {
+  #spend-table th {
     text-align: left;
     font-size: 0.6875rem;
     font-weight: 600;
@@ -624,8 +635,6 @@
     user-select: none;
   }
 
-  #pi-spend-table th { cursor: default; }
-
   #spend-table th.active { color: var(--text); }
 
   #spend-table th .sort-indicator {
@@ -636,8 +645,7 @@
     line-height: 1;
   }
 
-  #spend-table td,
-  #pi-spend-table td {
+  #spend-table td {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text);
@@ -645,120 +653,17 @@
     word-break: break-word;
   }
 
-  #spend-table tbody tr:hover,
-  #pi-spend-table tbody tr:hover { background: var(--bg-soft); }
+  #spend-table tbody tr:hover { background: var(--bg-soft); }
 
-  #spend-table .num,
-  #pi-spend-table .num {
+  #spend-table .num {
     text-align: right;
     font-family: var(--font-mono);
     white-space: nowrap;
   }
 
-  #spend-table .model,
-  #pi-spend-table .model { font-family: var(--font-mono); }
-  #spend-table .cost,
-  #pi-spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
+  #spend-table .model { font-family: var(--font-mono); }
+  #spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
   #spend-table .cost.na { color: var(--faint); }
-
-  .cell-sub {
-    display: block;
-    font-family: var(--font);
-    font-size: 0.72em;
-    font-weight: 400;
-    letter-spacing: 0;
-    color: var(--faint);
-    margin-top: 2px;
-  }
-
-  #pi-summary {
-    font-size: 0.875rem;
-    color: var(--muted);
-    line-height: 1.5;
-    margin: 0 0 14px;
-  }
-
-  /* ── column picker ─────────────────────────────────────────── */
-  .table-tools { margin: 0 0 12px; display: flex; gap: 8px; align-items: flex-start; padding: 0 4px; }
-
-  .model-filter {
-    padding: 8px 12px;
-    font-family: var(--font);
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--accent-2);
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    max-width: 260px;
-  }
-
-  .model-filter:hover:not(:disabled) {
-    border-color: var(--border-hi);
-    color: var(--text);
-  }
-
-  .model-filter:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .model-filter:disabled {
-    opacity: 0.55;
-    cursor: default;
-  }
-
-  .columns-wrap { position: relative; display: inline-block; }
-
-  .columns-panel {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 10;
-    min-width: 220px;
-    padding: 14px;
-    background: var(--card);
-    border: 1px solid var(--border-hi);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-hover);
-  }
-
-  .columns-panel[hidden] { display: none; }
-
-  .columns-panel fieldset {
-    border: 0;
-    padding: 0;
-    margin: 0;
-  }
-
-  .columns-panel legend {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .columns-panel label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 6px;
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    color: var(--text);
-    cursor: pointer;
-  }
-
-  .columns-panel label:hover { background: var(--bg-soft); }
-
-  .columns-panel input[type="checkbox"] {
-    accent-color: var(--accent);
-    width: 15px;
-    height: 15px;
-  }
 
   /* ── section headings ────────────────────────────────────────── */
   h2 {
@@ -841,8 +746,6 @@
   }
 
   #extra-cards.collapsed { display: none; }
-  #spend-section.collapsed,
-  #pi-spend-content.collapsed { display: none; }
   .card.hidden     { display: none; }
 
   /* ── provider card ───────────────────────────────────────────── */
@@ -1106,16 +1009,14 @@
     .chip .chip-edit { padding: 9px 12px; }
     #search { padding: 13px 14px; margin: 18px 0 12px; }
     h2.toggle { padding: 10px 4px; }
-    .table-tools { flex-wrap: wrap; }
-    .model-filter { max-width: 100%; flex: 1 1 160px; }
     .credits-split { overflow-wrap: anywhere; }
 
-    /* spend tables reflow into stacked cards */
-    #spend-section, #pi-spend-content { overflow-x: visible; padding: 10px 10px 2px; }
-    #spend-table, #pi-spend-table { min-width: 0; font-size: 0.875rem; }
-    #spend-table thead, #pi-spend-table > thead { display: none; }
-    #spend-table tbody, #pi-spend-table tbody { display: block; }
-    #spend-table tbody tr, #pi-spend-table tbody tr {
+    /* the spend table reflows into stacked cards */
+    #spend-section { overflow-x: visible; padding: 10px 10px 2px; }
+    #spend-table { min-width: 0; font-size: 0.875rem; }
+    #spend-table thead { display: none; }
+    #spend-table tbody { display: block; }
+    #spend-table tbody tr {
       display: block;
       margin-bottom: 10px;
       padding: 4px 12px 8px;
@@ -1123,8 +1024,8 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
     }
-    #spend-table tbody tr:hover, #pi-spend-table tbody tr:hover { background: var(--bg-soft); }
-    #spend-table td, #pi-spend-table td {
+    #spend-table tbody tr:hover { background: var(--bg-soft); }
+    #spend-table td {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
@@ -1132,8 +1033,8 @@
       padding: 7px 0;
       border-bottom: 1px solid var(--border);
     }
-    #spend-table td:last-child, #pi-spend-table td:last-child { border-bottom: 0; }
-    #spend-table td::before, #pi-spend-table td::before {
+    #spend-table td:last-child { border-bottom: 0; }
+    #spend-table td::before {
       content: attr(data-label);
       font-family: var(--font);
       font-size: 0.6875rem;
@@ -1142,7 +1043,7 @@
       letter-spacing: 1px;
       color: var(--muted);
     }
-    #spend-table td.model, #pi-spend-table td.model {
+    #spend-table td.model {
       display: block;
       padding: 8px 0;
       border-bottom: 1px solid var(--border);
@@ -1150,8 +1051,7 @@
       font-weight: 700;
       letter-spacing: -0.2px;
     }
-    #spend-table td.model::before, #pi-spend-table td.model::before { display: none; }
-    .cell-sub { margin-top: 2px; }
+    #spend-table td.model::before { display: none; }
 
     /* provider rows wrap instead of clipping */
     .cards[data-group="detected"] .card,
@@ -1247,9 +1147,7 @@
      glass blur and neon panel glows are gone; colors are intact. */
   .credits,
   .card,
-  #spend-section,
-  #pi-spend-content,
-  .columns-panel {
+  #spend-section {
     background: var(--card);
   }
 
@@ -1274,19 +1172,16 @@
      theme background for a quieter, more legible console. */
 
   /* monospace tables */
-  #spend-table,
-  #pi-spend-table {
+  #spend-table {
     font-family: var(--font-mono);
     font-size: 0.78rem;
   }
 
-  #spend-table tbody tr,
-  #pi-spend-table tbody tr {
+  #spend-table tbody tr {
     transition: background var(--t-fast);
   }
 
-  #spend-table tbody tr:hover,
-  #pi-spend-table tbody tr:hover {
+  #spend-table tbody tr:hover {
     background: var(--row-glow);
   }
 
@@ -1875,96 +1770,35 @@
   <div id="billing-summary"></div>
 
 
-  <!-- spend by Pi — populated from data/billing.js and /api/billing -->
-  <div id="pi-spend-section">
-    <h2 class="toggle" id="pi-spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="pi-spend-content">
-      <span class="dot" aria-hidden="true"></span>Spend by Pi
-      <span class="chevron" aria-hidden="true">&#9658;</span>
-    </h2>
-    <section class="credits spend-blob" id="pi-spend-blob" aria-label="Total Pi spend" hidden>
-      <canvas class="sparkline" id="pi-spark" aria-hidden="true"></canvas>
-      <div class="credits-body">
-        <p class="credits-label">Total spend (actual) <span class="live-dot" aria-hidden="true"></span></p>
-        <p class="credits-value" id="pi-spend-blob-total">&mdash;</p>
-        <p class="credits-split" id="pi-spend-blob-split">&mdash;</p>
-      </div>
-      <p class="credits-note">Actual billed spend from Pi session logs. Click <b>Spend by Pi</b> to expand the full table.</p>
-    </section>
-    <div id="pi-spend-content">
-      <div id="pi-summary"></div>
-      <table id="pi-spend-table" aria-label="Spend by Pi">
+  <!-- spend — populated from data/billing.js and /api/billing.
+       One table merges the Hermes state-DB spend with the Pi
+       session-log spend by provider + model. Charts live in Grafana
+       (Agent Telemetry), not here. -->
+  <section id="spend" aria-label="Spend by provider and model">
+    <div class="spend-head">
+      <h2><span class="dot" aria-hidden="true"></span>Spend</h2>
+      <a class="grafana-link" href="http://mini.tail66290a.ts.net:3005/d/agent-telemetry" target="_blank" rel="noopener noreferrer">Open in Grafana</a>
+    </div>
+    <div id="spend-section">
+      <table id="spend-table" aria-label="Spend by provider and model">
         <thead>
           <tr>
-            <th scope="col">Model</th>
-            <th scope="col">Provider</th>
-            <th scope="col">Sessions</th>
-            <th scope="col">Calls</th>
-            <th scope="col">Tokens</th>
-            <th scope="col">Cost</th>
-            <th scope="col">Last seen</th>
+            <th scope="col" data-sort="provider">Provider<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="model">Model<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="inputTokens">In tok<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="outputTokens">Out tok<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="cacheReadTokens">Cache tok<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="sessions">Sessions<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="costUsd">Est. cost<span class="sort-indicator" aria-hidden="true"></span></th>
+            <th scope="col" data-sort="usdPerM">$/1M<span class="sort-indicator" aria-hidden="true"></span></th>
           </tr>
         </thead>
-        <tbody id="pi-spend-body"></tbody>
+        <tbody id="spend-body"></tbody>
       </table>
-      <div class="hint" id="pi-spend-empty">No Pi usage recorded yet.</div>
+      <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB or Pi session logs (host daemon mode). Run <code>amster serve</code> on the host.</div>
+      <div class="hint" id="spend-empty">No usage recorded yet.</div>
     </div>
-  </div>
-
-  <!-- spend by model — populated from data/billing.js and /api/billing -->
-  <h2 class="toggle" id="spend-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="spend-section">
-    <span class="dot" aria-hidden="true"></span>Spend by model
-    <span class="chevron" aria-hidden="true">&#9658;</span>
-  </h2>
-  <section class="credits spend-blob" id="spend-blob" aria-label="Total estimated spend" hidden>
-    <canvas class="sparkline" id="spend-spark" aria-hidden="true"></canvas>
-    <div class="credits-body">
-      <p class="credits-label">Total spend (est.) <span class="live-dot" aria-hidden="true"></span></p>
-      <p class="credits-value" id="spend-blob-total">&mdash;</p>
-      <p class="credits-split" id="spend-blob-split">&mdash;</p>
-    </div>
-    <p class="credits-note">Estimated spend from the Hermes state DB. Click <b>Spend by model</b> to expand the full table.</p>
   </section>
-  <div id="spend-section">
-    <div class="table-tools">
-    <label class="sr-only" for="model-filter">Filter spend by model</label>
-    <select id="model-filter" class="model-filter" aria-label="Filter spend by model">
-      <option value="">All models</option>
-    </select>
-    <div class="columns-wrap">
-      <button id="columns-btn" class="btn ghost" type="button" aria-expanded="false" aria-controls="columns-panel">Columns</button>
-      <div id="columns-panel" class="columns-panel" hidden>
-        <fieldset>
-          <legend>Show columns</legend>
-          <label><input type="checkbox" data-col="model" checked> Model</label>
-          <label><input type="checkbox" data-col="provider" checked> Provider</label>
-          <label><input type="checkbox" data-col="sessions" checked> Sessions</label>
-          <label><input type="checkbox" data-col="calls" checked> Calls</label>
-          <label><input type="checkbox" data-col="inputTokens" checked> Tokens in</label>
-          <label><input type="checkbox" data-col="outputTokens" checked> Tokens out</label>
-          <label><input type="checkbox" data-col="estimatedCostUsd" checked> Est. cost</label>
-          <label><input type="checkbox" data-col="costStatus" checked> Status</label>
-        </fieldset>
-      </div>
-    </div>
-  </div>
-  <table id="spend-table" aria-label="Spend by model">
-    <thead>
-      <tr>
-        <th scope="col" data-sort-key="model">Model<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="provider">Provider<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="sessions">Sessions<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="calls">Calls<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="inputTokens">Tokens in<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="outputTokens">Tokens out<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="estimatedCostUsd">Est. cost<span class="sort-indicator" aria-hidden="true"></span></th>
-        <th scope="col" data-sort-key="costStatus">Status<span class="sort-indicator" aria-hidden="true"></span></th>
-      </tr>
-    </thead>
-    <tbody id="spend-body"></tbody>
-  </table>
-  <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB (host daemon mode). Run <code>amster serve</code> on the host.</div>
-  <div class="hint" id="spend-empty">No usage recorded yet.</div>
-  </div>
 
   </main>
 
@@ -2217,38 +2051,115 @@
     recordSpark("credits", credits.total);
   }
 
-  /* ── spend by model ─────────────────────────────────────────── */
-  // Sort state lives at module scope so the 2.5-min auto-refresh
+  /* ── spend table ────────────────────────────────────────────── */
+  // One table merges the Hermes state-DB spend (estimated) with the
+  // Pi session-log spend (actual), keyed by provider + model. Sort
+  // state lives at module scope so the 2.5-min auto-refresh
   // re-renders keep the user's chosen column and direction.
-  var sortState = { key: 'estimatedCostUsd', dir: 'desc' };
-  var TEXT_SORT_KEYS = ['model', 'provider', 'costStatus'];
+  var sortState = { key: 'costUsd', dir: 'desc' };
+  var TEXT_SORT_KEYS = ['provider', 'model'];
 
-  function spendSortValue(model, key) {
-    switch (key) {
-      case 'model':        return String(model.model || '').toLowerCase();
-      case 'provider':     return String(model.provider || '').toLowerCase();
-      case 'sessions':     return model.sessions;
-      case 'calls':        return model.calls;
-      case 'inputTokens':  return model.inputTokens;
-      case 'outputTokens': return model.outputTokens;
-      case 'estimatedCostUsd':
-        if (model.costStatus === 'local') return 0;
-        return model.costStatus === 'estimated' && model.estimatedCostUsd != null
-          ? model.estimatedCostUsd
+  // Merge spend + piSpend into one row per (provider, model).
+  // Where both sources report a group, tokens, sessions, and cost
+  // are summed; the price per 1M tokens is then recomputed from the
+  // merged totals so every row sorts on the same basis.
+  function mergeSpendRows(billing) {
+    var rows = new Map();
+
+    function keyOf(provider, model) {
+      return String(provider || 'unknown') + '\u0000' + String(model || '');
+    }
+
+    function fold(m, isPi) {
+      var key = keyOf(m.provider, m.model);
+      var row = rows.get(key);
+      if (!row) {
+        row = {
+          provider: m.provider || 'unknown',
+          model: m.model,
+          sessions: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadTokens: 0,
+          cacheCreationTokens: 0,
+          costUsd: null,
+          known: false,
+          costStatus: null,
+          lastSeen: m.lastSeen || null,
+          usdPerM: null,
+        };
+        rows.set(key, row);
+      } else {
+        row.merged = true;
+      }
+      row.sessions += m.sessions || 0;
+      row.inputTokens += m.inputTokens || 0;
+      row.outputTokens += m.outputTokens || 0;
+      row.cacheReadTokens += m.cacheReadTokens || 0;
+      row.cacheCreationTokens += isPi
+        ? (m.tokens && m.tokens.cacheCreation) || 0
+        : m.cacheWriteTokens || 0;
+      if (m.estimatedCostUsd != null) row.costUsd = (row.costUsd || 0) + m.estimatedCostUsd;
+      if (isPi && m.costUsd != null) row.costUsd = (row.costUsd || 0) + m.costUsd;
+      if (!isPi) {
+        row.costStatus = m.costStatus || row.costStatus;
+        if ((m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null) {
+          row.known = true;
+        }
+      } else if (m.costUsd != null) {
+        row.known = true; // Pi costs are actual, billed numbers
+      }
+      if (row.usdPerM == null) row.usdPerM = m.usdPerM;
+      if (m.lastSeen && (!row.lastSeen || m.lastSeen > row.lastSeen)) row.lastSeen = m.lastSeen;
+    }
+
+    var spend = billing && billing.spend;
+    var pi    = billing && billing.piSpend;
+    if (spend && spend.models) spend.models.forEach(function (m) { fold(m, false); });
+    if (pi && pi.models) pi.models.forEach(function (m) { fold(m, true); });
+
+    var out = [];
+    rows.forEach(function (row) {
+      if (row.merged) {
+        var total = row.inputTokens + row.outputTokens + row.cacheReadTokens + row.cacheCreationTokens;
+        row.usdPerM = row.costUsd != null && total > 0
+          ? Math.round(row.costUsd / total * 1e6 * 10000) / 10000
           : null;
-      case 'costStatus':   return String(model.costStatus || 'unknown').toLowerCase();
+      } else if (row.usdPerM == null && row.costUsd != null) {
+        // Old snapshots without usdPerM: derive the price from tokens.
+        var t = row.inputTokens + row.outputTokens + row.cacheReadTokens + row.cacheCreationTokens;
+        row.usdPerM = t > 0 ? Math.round(row.costUsd / t * 1e6 * 10000) / 10000 : null;
+      }
+      out.push(row);
+    });
+    return out;
+  }
+
+  function spendSortValue(row, key) {
+    switch (key) {
+      case 'provider':        return String(row.provider || '').toLowerCase();
+      case 'model':           return String(row.model || '').toLowerCase();
+      case 'sessions':        return row.sessions;
+      case 'inputTokens':     return row.inputTokens;
+      case 'outputTokens':    return row.outputTokens;
+      case 'cacheReadTokens': return row.cacheReadTokens;
+      case 'costUsd':         return row.known ? row.costUsd : null;
+      case 'usdPerM':         return row.usdPerM;
     }
     return null;
   }
 
-  function compareSpendModels(a, b) {
+  function compareSpendRows(a, b) {
     var key = sortState.key;
     var dir = sortState.dir === 'asc' ? 1 : -1;
     var av  = spendSortValue(a, key);
     var bv  = spendSortValue(b, key);
     var aNa = av == null;
     var bNa = bv == null;
-    if (aNa && bNa) return 0;
+    if (aNa && bNa) {
+      return String(a.provider).localeCompare(String(b.provider))
+        || String(a.model).localeCompare(String(b.model));
+    }
     if (aNa) return 1;  // missing values stay at the bottom, either direction
     if (bNa) return -1;
     if (typeof av === 'number' && typeof bv === 'number') {
@@ -2257,14 +2168,24 @@
     return String(av).localeCompare(String(bv)) * dir;
   }
 
-  function sortSpendModels(models) {
-    return models.slice().sort(compareSpendModels);
+  function sortSpendRows(rows) {
+    return rows.slice().sort(compareSpendRows);
+  }
+
+  function sortSpendBy(key) {
+    if (sortState.key === key) {
+      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.dir = TEXT_SORT_KEYS.indexOf(key) !== -1 ? 'asc' : 'desc';
+    }
+    renderSpend(window.BILLING);
   }
 
   function updateSortIndicator() {
     Array.from(document.querySelectorAll('#spend-table thead th')).forEach(function (th) {
       var indicator = th.querySelector('.sort-indicator');
-      var active    = th.getAttribute('data-sort-key') === sortState.key;
+      var active    = th.getAttribute('data-sort') === sortState.key;
       if (indicator) {
         indicator.textContent = active ? (sortState.dir === 'asc' ? '\u25B2' : '\u25BC') : '';
       }
@@ -2275,15 +2196,9 @@
 
   function sortHandler(event) {
     var th  = event.target.closest('th');
-    var key = th && th.getAttribute('data-sort-key');
+    var key = th && th.getAttribute('data-sort');
     if (!key) return;
-    if (sortState.key === key) {
-      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortState.key = key;
-      sortState.dir = TEXT_SORT_KEYS.indexOf(key) !== -1 ? 'asc' : 'desc';
-    }
-    renderSpend(window.BILLING);
+    sortSpendBy(key);
   }
 
   document.querySelector('#spend-table thead').addEventListener("click", sortHandler);
@@ -2304,294 +2219,71 @@
     return String(n);
   }
 
-  function formatSpendCost(model) {
-    if (model.costStatus === 'local') return 'free';
-    if (model.costStatus !== 'estimated' || model.estimatedCostUsd == null) return 'n/a';
-    return '$' + model.estimatedCostUsd.toFixed(2);
-  }
-
-  /* ── column visibility ─────────────────────────────────────── */
-  var COLUMN_KEYS = ['model', 'provider', 'sessions', 'calls', 'inputTokens', 'outputTokens', 'estimatedCostUsd', 'costStatus'];
-  var COLUMNS_STORAGE = 'amsterdam.columns';
-
-  function loadColumnState() {
-    var state = {};
-    try { state = JSON.parse(localStorage.getItem(COLUMNS_STORAGE)) || {}; } catch (e) { state = {}; }
-    COLUMN_KEYS.forEach(function (key) { state[key] = state[key] !== false; });
-    if (!COLUMN_KEYS.some(function (key) { return state[key]; })) state.model = true;
-    return state;
-  }
-
-  var columnState = loadColumnState();
-
-  function syncColumnCheckboxes() {
-    Array.from(document.querySelectorAll('#columns-panel input')).forEach(function (box) {
-      box.checked = columnState[box.getAttribute('data-col')] !== false;
-    });
+  function formatSpendCost(row) {
+    if (!row.known) return 'n/a';
+    if (row.costUsd === 0 && row.costStatus === 'local') return 'free';
+    return '$' + row.costUsd.toFixed(2);
   }
 
   /* Column labels drive the stacked mobile rows (data-label). */
+  var COLUMN_KEYS = ['provider', 'model', 'inputTokens', 'outputTokens', 'cacheReadTokens', 'sessions', 'costUsd', 'usdPerM'];
   var COLUMN_LABELS = {
-    model: 'Model', provider: 'Provider', sessions: 'Sessions', calls: 'Calls',
-    inputTokens: 'Tokens in', outputTokens: 'Tokens out',
-    estimatedCostUsd: 'Est. cost', costStatus: 'Status'
+    provider: 'Provider', model: 'Model', inputTokens: 'In tok', outputTokens: 'Out tok',
+    cacheReadTokens: 'Cache tok', sessions: 'Sessions', costUsd: 'Est. cost', usdPerM: '$/1M'
   };
 
-  function spendCell(m, key, known) {
+  function spendCell(row, key) {
     var label = ' data-label="' + COLUMN_LABELS[key] + '"';
     switch (key) {
-      case 'model':
-        var modelHtml = escapeHtml(m.model);
-        if (m.lastSeen) modelHtml += '<span class="cell-sub">Last seen ' + escapeHtml(m.lastSeen) + '</span>';
-        return '<td class="model"' + label + '>' + modelHtml + '</td>';
-      case 'provider':     return '<td' + label + '>' + escapeHtml(m.provider || '—') + '</td>';
-      case 'sessions':     return '<td class="num"' + label + '>' + (m.sessions == null ? '—' : m.sessions) + '</td>';
-      case 'calls':        return '<td class="num"' + label + '>' + (m.calls == null ? '—' : m.calls) + '</td>';
-      case 'inputTokens':  return '<td class="num"' + label + '>' + formatTokens(m.inputTokens) + '</td>';
-      case 'outputTokens': return '<td class="num"' + label + '>' + formatTokens(m.outputTokens) + '</td>';
-      case 'estimatedCostUsd':
-        return '<td class="cost' + (known ? '' : ' na') + '"' + label + '>' + formatSpendCost(m) + '</td>';
-      case 'costStatus':   return '<td' + label + '>' + escapeHtml(m.costStatus || 'unknown') + '</td>';
+      case 'provider':        return '<td' + label + '>' + escapeHtml(row.provider || '—') + '</td>';
+      case 'model':           return '<td class="model"' + label + '>' + escapeHtml(row.model) + '</td>';
+      case 'inputTokens':     return '<td class="num"' + label + '>' + formatTokens(row.inputTokens) + '</td>';
+      case 'outputTokens':    return '<td class="num"' + label + '>' + formatTokens(row.outputTokens) + '</td>';
+      case 'cacheReadTokens': return '<td class="num"' + label + '>' + formatTokens(row.cacheReadTokens) + '</td>';
+      case 'sessions':        return '<td class="num"' + label + '>' + row.sessions + '</td>';
+      case 'costUsd':
+        return '<td class="cost' + (row.known ? '' : ' na') + '"' + label + '>' + formatSpendCost(row) + '</td>';
+      case 'usdPerM':
+        return '<td class="cost"' + label + '>' + (row.usdPerM == null ? '—' : '$' + row.usdPerM.toFixed(2)) + '</td>';
     }
     return '';
   }
 
-  var columnsBtn   = document.getElementById('columns-btn');
-  var columnsPanel = document.getElementById('columns-panel');
-  var columnsWrap  = columnsBtn ? columnsBtn.closest('.columns-wrap') : null;
-  var columnsOpen  = false;
-
-  function setColumnsPanel(open) {
-    columnsOpen = open;
-    columnsPanel.hidden = !open;
-    columnsBtn.setAttribute('aria-expanded', String(open));
-  }
-
-  if (columnsBtn) {
-    columnsBtn.addEventListener('click', function () { setColumnsPanel(!columnsOpen); });
-
-    columnsPanel.addEventListener('change', function (e) {
-      var box = e.target;
-      if (!box || !box.hasAttribute('data-col')) return;
-      var next = columnState[box.dataset.col] === false;
-      var keepsOne = COLUMN_KEYS.some(function (key) {
-        return key === box.dataset.col ? next : columnState[key];
-      });
-      if (!keepsOne) { box.checked = true; return; } // at least one column stays
-      columnState[box.dataset.col] = next;
-      try { localStorage.setItem(COLUMNS_STORAGE, JSON.stringify(columnState)); } catch (err) {}
-      renderSpend(window.BILLING);
-    });
-
-    document.addEventListener('click', function (e) {
-      if (columnsOpen && columnsWrap && !columnsWrap.contains(e.target)) setColumnsPanel(false);
-    });
-
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && columnsOpen) setColumnsPanel(false);
-    });
-  }
-
-  /* ── model filter ───────────────────────────────────────────── */
-  var MODEL_FILTER_STORAGE = 'amsterdam.modelFilter';
-  var modelFilter = '';
-  try { modelFilter = localStorage.getItem(MODEL_FILTER_STORAGE) || ''; } catch (e) { modelFilter = ''; }
-
-  // Rebuild the dropdown from the current snapshot so the option list
-  // stays in sync with live data. The choice survives refreshes and
-  // resets to "All models" when the model disappears from the data.
-  function syncModelFilter(models) {
-    var filterEl = document.getElementById('model-filter');
-    if (!filterEl) return;
-    var names = [];
-    models.forEach(function (m) {
-      var n = String(m.model || '');
-      if (n && names.indexOf(n) === -1) names.push(n);
-    });
-    names.sort(function (a, b) { return a.localeCompare(b); });
-    if (names.indexOf(modelFilter) === -1) modelFilter = '';
-    var options = '<option value="">All models</option>' + names.map(function (n) {
-      return '<option value="' + escapeHtml(n) + '"' + (n === modelFilter ? ' selected' : '') + '>' + escapeHtml(n) + '</option>';
-    }).join('');
-    filterEl.innerHTML = options;
-    filterEl.disabled = names.length < 2;
-  }
-
-  var modelFilterEl = document.getElementById('model-filter');
-  if (modelFilterEl) {
-    modelFilterEl.addEventListener('change', function () {
-      modelFilter = modelFilterEl.value;
-      try { localStorage.setItem(MODEL_FILTER_STORAGE, modelFilter); } catch (err) {}
-      renderSpend(window.BILLING);
-    });
-  }
-
   function renderSpend(billing) {
-    var spend      = billing && billing.spend;
     var table      = document.getElementById('spend-table');
     var unavailable = document.getElementById('spend-unavailable');
     var empty      = document.getElementById('spend-empty');
     unavailable.classList.remove('show');
     empty.classList.remove('show');
 
-    /* Collapsed-state summary: total + per-provider split, computed
-       from the same rows the table shows (claude/anthropic purged). */
-    var blobTotal = document.getElementById('spend-blob-total');
-    var blobSplit = document.getElementById('spend-blob-split');
-    var total = 0;
-    var byProvider = {};
-    var counted = 0;
-    if (spend && spend.models) {
-      spend.models.forEach(function (m) {
-        var name = String(m.model || '').toLowerCase();
-        if (name.indexOf('claude') === 0 || (m.provider || '') === 'anthropic') return;
-        if (m.estimatedCostUsd == null) return;
-        var key = m.provider || 'unknown';
-        total += m.estimatedCostUsd;
-        byProvider[key] = (byProvider[key] || 0) + m.estimatedCostUsd;
-        counted++;
-      });
-    }
-    var providerKeys = Object.keys(byProvider);
-    if (providerKeys.length) {
-      blobTotal.textContent = '$' + total.toFixed(2);
-      blobSplit.textContent = providerKeys.map(function (k) {
-        return k + ' $' + byProvider[k].toFixed(2);
-      }).join(' + ');
-    } else if (spend && spend.models && spend.models.length) {
-      blobTotal.textContent = '$0.00';
-      blobSplit.textContent = spend.models.length + ' models \u00b7 no estimated costs';
-    } else {
-      blobTotal.textContent = 'n/a';
-      blobSplit.textContent = 'No Hermes spend data';
-    }
-
-    recordSpark("spend", spend && spend.models ? total : null);
-
-    if (!spend) {
-      table.style.display = 'none';
-      unavailable.classList.add('show');
-      syncModelFilter([]);
-      return;
-    }
     // Anthropic was purged from the console: its usage history is
     // filtered out of the spend table entirely. Anthropic models are
     // all named claude-*, whatever billing provider labels them.
     // (The data layer already purges; this guards old snapshots.)
-    var models = spend.models.filter(function (m) {
-      var name = String(m.model || '').toLowerCase();
-      return name.indexOf('claude') !== 0 && (m.provider || '') !== 'anthropic';
+    var rows = mergeSpendRows(billing).filter(function (row) {
+      var name = String(row.model || '').toLowerCase();
+      return name.indexOf('claude') !== 0 && (row.provider || '') !== 'anthropic';
     });
-    syncModelFilter(models);
-    if (modelFilter) {
-      models = models.filter(function (m) { return String(m.model || '') === modelFilter; });
-    }
-    if (models.length === 0) {
+
+    if (!billing || (!billing.spend && !billing.piSpend)) {
       table.style.display = 'none';
-      empty.textContent = modelFilter ? 'No models match the filter.' : 'No usage recorded yet.';
+      unavailable.classList.add('show');
+      return;
+    }
+    if (rows.length === 0) {
+      table.style.display = 'none';
       empty.classList.add('show');
       return;
     }
 
     table.style.display = 'table';
-    Array.from(document.querySelectorAll('#spend-table th')).forEach(function (th) {
-      th.hidden = !columnState[th.getAttribute('data-sort-key')];
-    });
-    syncColumnCheckboxes();
-    var visible = COLUMN_KEYS.filter(function (key) { return columnState[key]; });
-    var rows = sortSpendModels(models).map(function (m) {
-      var title = m.lastSeen ? ' title="Last seen ' + escapeHtml(m.lastSeen) + '"' : '';
-      var known = (m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null;
-      var cells = visible.map(function (key) { return spendCell(m, key, known); }).join('');
+    var html = sortSpendRows(rows).map(function (row) {
+      var title = row.lastSeen ? ' title="Last seen ' + escapeHtml(row.lastSeen) + '"' : '';
+      var cells = COLUMN_KEYS.map(function (key) { return spendCell(row, key); }).join('');
       return '<tr' + title + '>' + cells + '</tr>';
     }).join('');
-    document.getElementById('spend-body').innerHTML = rows;
+    document.getElementById('spend-body').innerHTML = html;
     updateSortIndicator();
-  }
-
-  /* ── spend by Pi ────────────────────────────────────────────── */
-  function formatPiCost(model) {
-    if (model.costUsd == null) return 'n/a';
-    return '$' + model.costUsd.toFixed(2);
-  }
-
-  function renderPiSpend(billing) {
-    var pi      = billing && billing.piSpend;
-    var section = document.getElementById('pi-spend-section');
-    if (!pi) {
-      section.style.display = 'none';
-      return;
-    }
-    section.style.display = '';
-
-    var table = document.getElementById('pi-spend-table');
-    var empty = document.getElementById('pi-spend-empty');
-    empty.classList.remove('show');
-
-    var hermes = billing && billing.spend;
-    var hermesTotal = hermes && hermes.totalEstimatedUsd != null
-      ? '$' + hermes.totalEstimatedUsd.toFixed(2)
-      : 'n/a';
-    var piTotal = pi.totalUsd == null ? 'n/a' : '$' + pi.totalUsd.toFixed(2);
-    document.getElementById('pi-summary').textContent =
-      'Pi total: ' + piTotal + ' (actual) · ' + pi.sessionCount
-      + ' sessions · ' + pi.modelCount + ' models — Hermes total: '
-      + hermesTotal + ' (estimated)';
-
-    /* Collapsed-state summary: total + per-provider split from the
-       same rows the table shows. */
-    var piModels = pi.models || [];
-    var blobTotal = document.getElementById('pi-spend-blob-total');
-    var blobSplit = document.getElementById('pi-spend-blob-split');
-    var total = 0;
-    var byProvider = {};
-    piModels.forEach(function (m) {
-      if (m.costUsd == null) return;
-      total += m.costUsd;
-      var key = m.provider || 'unknown';
-      byProvider[key] = (byProvider[key] || 0) + m.costUsd;
-    });
-    var providerKeys = Object.keys(byProvider);
-    if (providerKeys.length) {
-      blobTotal.textContent = '$' + total.toFixed(2);
-      blobSplit.textContent = providerKeys.map(function (k) {
-        return k + ' $' + byProvider[k].toFixed(2);
-      }).join(' + ');
-    } else if (piModels.length) {
-      blobTotal.textContent = '$0.00';
-      blobSplit.textContent = piModels.length + ' models \u00b7 no costs';
-    } else {
-      blobTotal.textContent = 'n/a';
-      blobSplit.textContent = 'No Pi session logs';
-    }
-
-    recordSpark("pi", piModels.length ? total : null);
-
-    var models = (pi.models || []).slice().sort(function (a, b) {
-      return (b.costUsd || 0) - (a.costUsd || 0)
-        || String(a.model).localeCompare(String(b.model));
-    });
-    if (models.length === 0) {
-      table.style.display = 'none';
-      empty.classList.add('show');
-      return;
-    }
-
-    table.style.display = 'table';
-    var rows = models.map(function (m) {
-      var title = m.lastSeen ? ' title="Last seen ' + escapeHtml(m.lastSeen) + '"' : '';
-      var tokens = m.totalTokens == null ? '—' : formatTokens(m.totalTokens);
-      return '<tr' + title + '>'
-        + '<td class="model" data-label="Model">' + escapeHtml(m.model) + '</td>'
-        + '<td data-label="Provider">' + escapeHtml(m.provider || '—') + '</td>'
-        + '<td class="num" data-label="Sessions">' + m.sessions + '</td>'
-        + '<td class="num" data-label="Calls">' + m.calls + '</td>'
-        + '<td class="num" data-label="Tokens">' + tokens + '</td>'
-        + '<td class="cost" data-label="Cost">' + formatPiCost(m) + '</td>'
-        + '<td data-label="Last seen">' + (m.lastSeen ? escapeHtml(m.lastSeen) : '—') + '</td>'
-        + '</tr>';
-    }).join('');
-    document.getElementById('pi-spend-body').innerHTML = rows;
   }
 
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
@@ -2659,7 +2351,6 @@
     renderCredits(billing);
     renderSummary(billing);
     renderSpend(billing);
-    renderPiSpend(billing);
     organizeCards(billing);
   }
 
@@ -2729,7 +2420,7 @@
   });
 
   /* ── micro sparklines: rolling usage history behind the HUD ── */
-  var sparkState = { credits: [], spend: [], pi: [] };
+  var sparkState = { credits: [] };
   var SPARK_MAX = 48;
 
   function cssVar(name, fallback) {
@@ -2801,8 +2492,6 @@
 
   function redrawAllSparks() {
     drawSparkline('credits');
-    drawSparkline('spend');
-    drawSparkline('pi');
   }
 
   window.addEventListener('resize', redrawAllSparks);
@@ -2837,36 +2526,6 @@
       setExtra(!extraOpen);
     }
   });
-
-  /* ── collapsible spend sections (like Available platforms) ── */
-  function makeSectionToggle(toggleId, contentId, blobId) {
-    var toggle  = document.getElementById(toggleId);
-    var content = document.getElementById(contentId);
-    var blob    = blobId ? document.getElementById(blobId) : null;
-    var open    = true;
-
-    function setOpen(state) {
-      open = state;
-      content.classList.toggle("collapsed", !open);
-      toggle.classList.toggle("expanded", open);
-      toggle.setAttribute("aria-expanded", String(open));
-      if (blob) blob.hidden = open;
-      redrawAllSparks();
-    }
-
-    toggle.addEventListener("click", function () { setOpen(!open); });
-    toggle.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        setOpen(!open);
-      }
-    });
-    if (blob) blob.addEventListener("click", function () { setOpen(true); });
-    setOpen(true);
-  }
-
-  makeSectionToggle("spend-toggle", "spend-section", "spend-blob");
-  makeSectionToggle("pi-spend-toggle", "pi-spend-content", "pi-spend-blob");
 
   /* ── card filter ────────────────────────────────────────────── */
   var search = document.getElementById("search");

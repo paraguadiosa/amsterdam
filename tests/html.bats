@@ -238,11 +238,57 @@ setup() {
     [[ "$HTML_CONTENT" == *"floodgates"* ]]
 }
 
-# ── spend by model ────────────────────────────────
+# ── spend table (merged) ─────────────────────────
 
-@test "has spend by model section" {
-    [[ "$HTML_CONTENT" == *"Spend by model"* ]]
+@test "spend section is a first-class section" {
+    [[ "$HTML_CONTENT" == *'<section id="spend"'* ]]
+    [[ "$HTML_CONTENT" == *'id="spend-table"'* ]]
 }
+
+@test "spend table lists the 8 planned column headers" {
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="provider">Provider'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="model">Model'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="inputTokens">In tok'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="outputTokens">Out tok'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="cacheReadTokens">Cache tok'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="sessions">Sessions'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="costUsd">Est. cost'* ]]
+    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="usdPerM">$/1M'* ]]
+}
+
+@test "all 8 spend columns carry a data-sort key" {
+    local count=$(grep -o 'data-sort="' "$HTML" | wc -l)
+    [ "$count" -eq 8 ]
+}
+
+@test "sortSpendBy exists and defaults to cost descending" {
+    [[ "$HTML_CONTENT" == *"function sortSpendBy"* ]]
+    [[ "$HTML_CONTENT" == *"{ key: 'costUsd', dir: 'desc' }"* ]]
+}
+
+@test "spend rows merge Hermes and Pi spend" {
+    [[ "$HTML_CONTENT" == *"mergeSpendRows"* ]]
+    [[ "$HTML_CONTENT" == *"spend.models"* ]]
+    [[ "$HTML_CONTENT" == *"pi.models"* ]]
+}
+
+@test "spend section carries an Open in Grafana link" {
+    [[ "$HTML_CONTENT" == *'Open in Grafana'* ]]
+    [[ "$HTML_CONTENT" == *'href="http://mini.tail66290a.ts.net:3005/d/agent-telemetry"'* ]]
+}
+
+# ── charts are gone, Grafana owns visualization ──
+
+@test "no donut or chart containers remain" {
+    [[ "$HTML_CONTENT" != *'donut'* ]]
+    [[ "$HTML_CONTENT" != *'id="spend-charts"'* ]]
+}
+
+@test "Open in Grafana link survives the chart removal" {
+    [[ "$HTML_CONTENT" == *'Open in Grafana'* ]]
+}
+
+# ── spend by model ────────────────────────────────
 
 @test "spend section sits between summary and search" {
     local summary_line=$(grep -n 'id="billing-summary"' "$HTML" | head -1 | cut -d: -f1)
@@ -254,18 +300,8 @@ setup() {
 
 @test "spend table lists expected columns" {
     [[ "$HTML_CONTENT" == *"Est. cost"* ]]
-    [[ "$HTML_CONTENT" == *"Tokens out"* ]]
+    [[ "$HTML_CONTENT" == *"In tok"* ]]
     [[ "$HTML_CONTENT" == *"Sessions"* ]]
-}
-
-@test "spend table has provider and model columns" {
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort-key="model">Model'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort-key="provider">Provider'* ]]
-}
-
-@test "all 8 spend columns carry a data-sort-key" {
-    local count=$(grep -o 'data-sort-key="' "$HTML" | wc -l)
-    [ "$count" -eq 8 ]
 }
 
 @test "spend sort handler is delegated on the table head" {
@@ -281,6 +317,7 @@ setup() {
 @test "spend sort indicator markup exists" {
     [[ "$HTML_CONTENT" == *'class="sort-indicator"'* ]]
     [[ "$HTML_CONTENT" == *"updateSortIndicator"* ]]
+    [[ "$HTML_CONTENT" == *"aria-sort"* ]]
 }
 
 @test "spend shows unavailable hint for missing DB" {
@@ -296,26 +333,12 @@ setup() {
     [[ "$HTML_CONTENT" == *"renderSpend"* ]]
 }
 
-@test "collapsed spend summary blob exists" {
-    [[ "$HTML_CONTENT" == *'id="spend-blob"'* ]]
-    [[ "$HTML_CONTENT" == *'id="spend-blob-total"'* ]]
-    [[ "$HTML_CONTENT" == *'id="spend-blob-split"'* ]]
-    [[ "$HTML_CONTENT" == *'makeSectionToggle("spend-toggle", "spend-section", "spend-blob")'* ]]
-}
-
-@test "collapsed Pi spend summary blob exists" {
-    [[ "$HTML_CONTENT" == *'id="pi-spend-blob"'* ]]
-    [[ "$HTML_CONTENT" == *'id="pi-spend-blob-total"'* ]]
-    [[ "$HTML_CONTENT" == *'id="pi-spend-blob-split"'* ]]
-    [[ "$HTML_CONTENT" == *'makeSectionToggle("pi-spend-toggle", "pi-spend-content", "pi-spend-blob")'* ]]
-}
-
 @test "has formatSpendCost function" {
     [[ "$HTML_CONTENT" == *"formatSpendCost"* ]]
 }
 
 @test "spend cost shows n/a for unknown status" {
-    [[ "$HTML_CONTENT" == *"costStatus !== 'estimated'"* ]]
+    [[ "$HTML_CONTENT" == *"!row.known"* ]]
     [[ "$HTML_CONTENT" == *"n/a"* ]]
 }
 
@@ -327,134 +350,6 @@ setup() {
 @test "model counts are no longer shown as chips" {
     run grep -F "10 models" "$HTML"
     [ "$status" -eq 1 ]
-}
-
-# ── spend by Pi ─────────────────────────────────
-
-@test "has spend by Pi section" {
-    [[ "$HTML_CONTENT" == *"Spend by Pi"* ]]
-}
-
-@test "pi spend table exists" {
-    [[ "$HTML_CONTENT" == *'id="pi-spend-table"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-label="Spend by Pi"'* ]]
-}
-
-@test "pi spend summary line markup exists" {
-    [[ "$HTML_CONTENT" == *'id="pi-summary"'* ]]
-    [[ "$HTML_CONTENT" == *"Pi total"* ]]
-    [[ "$HTML_CONTENT" == *"Hermes total"* ]]
-}
-
-@test "pi spend section sits before spend table" {
-    local spend_line=$(grep -n 'id="spend-empty"' "$HTML" | head -1 | cut -d: -f1)
-    local pi_line=$(grep -n 'id="pi-spend-section"' "$HTML" | head -1 | cut -d: -f1)
-    local search_line=$(grep -n '<input id="search"' "$HTML" | head -1 | cut -d: -f1)
-    [ "$pi_line" -lt "$spend_line" ]
-    [ "$pi_line" -lt "$search_line" ]
-}
-
-@test "pi spend table lists expected columns" {
-    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Last seen</th>"* ]]
-    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Tokens</th>"* ]]
-    [[ "$HTML_CONTENT" == *"<th scope=\"col\">Cost</th>"* ]]
-}
-
-@test "pi spend rows reuse mono and cost styling" {
-    [[ "$HTML_CONTENT" == *'class="cost"'* ]]
-    [[ "$HTML_CONTENT" == *'class="model"'* ]]
-}
-
-@test "renderPiSpend is called from applyBilling" {
-    [[ "$HTML_CONTENT" == *"renderPiSpend(billing)"* ]]
-}
-
-@test "pi spend table is not wired to the sort handler" {
-    run grep -F '#pi-spend-table thead' "$HTML"
-    [ "$status" -eq 1 ]
-}
-
-# ── column picker ────────────────────────────────
-
-@test "column picker button exists with aria controls" {
-    [[ "$HTML_CONTENT" == *'id="columns-btn"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-expanded="false"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-controls="columns-panel"'* ]]
-}
-
-@test "column picker has 8 checkboxes" {
-    local count=$(grep -o 'data-col="' "$HTML" | wc -l)
-    [ "$count" -eq 8 ]
-}
-
-@test "column picker shows name and price by default" {
-    [[ "$HTML_CONTENT" == *'data-col="model" checked'* ]]
-    [[ "$HTML_CONTENT" == *'data-col="estimatedCostUsd" checked'* ]]
-}
-
-@test "column choice persists in localStorage" {
-    [[ "$HTML_CONTENT" == *'amsterdam.columns'* ]]
-}
-
-@test "renderSpend toggles th visibility per column state" {
-    [[ "$HTML_CONTENT" == *'th.hidden = !columnState['* ]]
-}
-
-@test "at least one column stays visible" {
-    [[ "$HTML_CONTENT" == *'keepsOne'* ]]
-}
-
-@test "columns panel labels are in English" {
-    [[ "$HTML_CONTENT" == *'Show columns'* ]]
-}
-
-# ── model filter dropdown ────────────────────────
-
-@test "model filter select exists with a label" {
-    [[ "$HTML_CONTENT" == *'id="model-filter"'* ]]
-    [[ "$HTML_CONTENT" == *'<label class="sr-only" for="model-filter">'* ]]
-}
-
-@test "model filter defaults to all models" {
-    [[ "$HTML_CONTENT" == *'<option value="">All models</option>'* ]]
-}
-
-@test "model filter sits in the spend toolbar before the columns picker" {
-    local tools_line=$(grep -n 'class="table-tools"' "$HTML" | head -1 | cut -d: -f1)
-    local filter_line=$(grep -n 'id="model-filter"' "$HTML" | head -1 | cut -d: -f1)
-    local columns_line=$(grep -n 'id="columns-btn"' "$HTML" | head -1 | cut -d: -f1)
-    [ "$filter_line" -gt "$tools_line" ]
-    [ "$filter_line" -lt "$columns_line" ]
-}
-
-@test "model filter options are rebuilt from live data" {
-    [[ "$HTML_CONTENT" == *'syncModelFilter'* ]]
-    [[ "$HTML_CONTENT" == *'filterEl.innerHTML'* ]]
-}
-
-@test "model filter choice persists in localStorage" {
-    [[ "$HTML_CONTENT" == *'amsterdam.modelFilter'* ]]
-}
-
-@test "model filter resets when the model disappears" {
-    [[ "$HTML_CONTENT" == *'names.indexOf(modelFilter) === -1'* ]]
-}
-
-@test "model filter rows are filtered before rendering" {
-    [[ "$HTML_CONTENT" == *"String(m.model || '') === modelFilter"* ]]
-}
-
-@test "model filter shows a hint when nothing matches" {
-    [[ "$HTML_CONTENT" == *'No models match the filter.'* ]]
-}
-
-@test "model filter empties are disabled" {
-    [[ "$HTML_CONTENT" == *'filterEl.disabled'* ]]
-}
-
-@test "model filter re-renders on change" {
-    [[ "$HTML_CONTENT" == *'modelFilterEl.addEventListener'* ]]
-    [[ "$HTML_CONTENT" == *'renderSpend(window.BILLING)'* ]]
 }
 
 # ── structure ─────────────────────────────────────
@@ -553,7 +448,7 @@ setup() {
 
 @test "spend table filters purged providers" {
     [[ "$HTML_CONTENT" == *"name.indexOf('claude') !== 0"* ]]
-    [[ "$HTML_CONTENT" == *"(m.provider || '') !== 'anthropic'"* ]]
+    [[ "$HTML_CONTENT" == *"(row.provider || '') !== 'anthropic'"* ]]
 }
 
 # ── buttons ───────────────────────────────────────
