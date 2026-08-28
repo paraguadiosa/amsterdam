@@ -119,6 +119,27 @@ function dropUntrustedCosts(models) {
   return models;
 }
 
+// Expose the token totals and the price per 1M tokens on every group so
+// the console can sort and render without client-side math. The price is
+// the estimated cost over the token total, rounded to 4 decimals, and
+// null when there are no tokens (or no trusted cost) to price.
+function addPricePerToken(models) {
+  for (const m of models) {
+    const total =
+      m.inputTokens + m.outputTokens + (m.cacheReadTokens || 0) + (m.cacheWriteTokens || 0);
+    m.tokens = {
+      input: m.inputTokens,
+      output: m.outputTokens,
+      cacheRead: m.cacheReadTokens || 0,
+      cacheCreation: m.cacheWriteTokens || 0,
+    };
+    m.usdPerM = m.estimatedCostUsd != null && total > 0
+      ? Math.round((m.estimatedCostUsd / total) * 1e6 * 10000) / 10000
+      : null;
+  }
+  return models;
+}
+
 // The SQL orders by the raw recorded cost, which an untrusted snapshot can
 // pollute. Re-sort so null/unknown costs land last, matching the UI sort.
 function sortByCost(models) {
@@ -185,6 +206,7 @@ export function readSpend(arg) {
     }
     fillMissingCosts(models);
     dropUntrustedCosts(models);
+    addPricePerToken(models);
     sortByCost(models);
     return {
       source: 'hermes-state-db',

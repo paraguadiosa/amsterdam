@@ -101,6 +101,23 @@ describe('spend', () => {
     assert.equal(ds.lastSeen, '2026-08-03T00:00:00Z');
   });
 
+  it('exposes token totals and usdPerM per group', () => {
+    const spend = readFromDb();
+
+    const ds = spend.models.find((m) => m.model === 'deepseek-v4-flash');
+    assert.deepEqual(ds.tokens, { input: 3100, output: 1600, cacheRead: 300, cacheCreation: 150 });
+    assert.equal(ds.usdPerM, 647.2427); // 3.3333 / 5150 * 1e6
+
+    const kimi = spend.models.find((m) => m.model === 'kimi-k3');
+    assert.deepEqual(kimi.tokens, { input: 300, output: 150, cacheRead: 0, cacheCreation: 0 });
+    assert.equal(kimi.usdPerM, 0); // recorded zero cost prices as zero
+
+    // Unknown status with a nulled cost keeps a null price.
+    const phantom = spend.models.find((m) => m.model === 'deepseek-ai/DeepSeek-V3.2');
+    assert.deepEqual(phantom.tokens, { input: 8456, output: 1503, cacheRead: 63296, cacheCreation: 0 });
+    assert.equal(phantom.usdPerM, null);
+  });
+
   it('marks groups with any non-estimated row as unknown', () => {
     const spend = readFromDb();
 
@@ -232,6 +249,9 @@ describe('local model inventory', () => {
     assert.equal(local.calls, 0);
     assert.equal(local.costStatus, 'no usage');
     assert.equal(local.estimatedCostUsd, null);
+    // No usage means no token totals and no price per million.
+    assert.deepEqual(local.tokens, { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 });
+    assert.equal(local.usdPerM, null);
     assert.equal(spend.modelCount, 3); // 1 DB group + 2 local
   });
 
@@ -298,6 +318,12 @@ describe('cost estimation fill', () => {
     const m = read().models.find((x) => x.model === 'deepseek-v4-flash');
     assert.equal(m.costStatus, 'estimated');
     assert.equal(m.estimatedCostUsd, 0.0028); // 10k in * 0.14 + 5k out * 0.28
+  });
+
+  it('computes usdPerM from the filled estimate', () => {
+    const m = read().models.find((x) => x.model === 'deepseek-v4-flash');
+    assert.deepEqual(m.tokens, { input: 10000, output: 5000, cacheRead: 0, cacheCreation: 0 });
+    assert.equal(m.usdPerM, 0.1867); // 0.0028 / 15000 * 1e6
   });
 
   it('purges claude even when tokens would fill a cost', () => {

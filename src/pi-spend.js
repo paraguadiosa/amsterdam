@@ -80,6 +80,7 @@ function callFromMessage(msg, event, file) {
     inputTokens: numOr(usage.input, 0),
     outputTokens: numOr(usage.output, 0),
     cacheReadTokens: numOr(usage.cacheRead, 0),
+    cacheWriteTokens: numOr(usage.cacheWrite, 0),
     reasoningTokens: numOr(usage.reasoning, 0),
     totalTokens: numOr(usage.totalTokens, 0),
     costUsd: numOr(cost.total, 0),
@@ -145,6 +146,7 @@ function foldCall(state, call) {
       inputTokens: 0,
       outputTokens: 0,
       cacheReadTokens: 0,
+      cacheWriteTokens: 0,
       reasoningTokens: 0,
       totalTokens: 0,
       costUsd: 0,
@@ -158,6 +160,7 @@ function foldCall(state, call) {
   m.inputTokens += call.inputTokens;
   m.outputTokens += call.outputTokens;
   m.cacheReadTokens += call.cacheReadTokens;
+  m.cacheWriteTokens += call.cacheWriteTokens;
   m.reasoningTokens += call.reasoningTokens;
   m.totalTokens += call.totalTokens;
   m.costUsd += call.costUsd;
@@ -186,18 +189,31 @@ function foldCall(state, call) {
 }
 
 function buildResult(dir, state) {
-  const models = Array.from(state.models.values()).map((m) => ({
-    model: m.model,
-    provider: m.provider,
-    sessions: m.sessions.size,
-    calls: m.calls,
-    inputTokens: m.inputTokens,
-    outputTokens: m.outputTokens,
-    cacheReadTokens: m.cacheReadTokens,
-    reasoningTokens: m.reasoningTokens,
-    totalTokens: m.totalTokens,
-    costUsd: Math.round(m.costUsd * 10000) / 10000,
-    lastSeen: m.lastSeen,
+  const models = Array.from(state.models.values()).map((m) => {
+    const total = m.inputTokens + m.outputTokens + m.cacheReadTokens + m.cacheWriteTokens;
+    return {
+      model: m.model,
+      provider: m.provider,
+      sessions: m.sessions.size,
+      calls: m.calls,
+      inputTokens: m.inputTokens,
+      outputTokens: m.outputTokens,
+      cacheReadTokens: m.cacheReadTokens,
+      cacheWriteTokens: m.cacheWriteTokens,
+      reasoningTokens: m.reasoningTokens,
+      totalTokens: m.totalTokens,
+      costUsd: Math.round(m.costUsd * 10000) / 10000,
+      // Token totals plus the price per 1M tokens, for the console table.
+      tokens: {
+        input: m.inputTokens,
+        output: m.outputTokens,
+        cacheRead: m.cacheReadTokens,
+        cacheCreation: m.cacheWriteTokens,
+      },
+      usdPerM: m.costUsd != null && total > 0
+        ? Math.round((m.costUsd / total) * 1e6 * 10000) / 10000
+        : null,
+      lastSeen: m.lastSeen,
     projects: Array.from(m.projects.values())
       .map((p) => ({
         project: p.project,
@@ -205,7 +221,8 @@ function buildResult(dir, state) {
         costUsd: Math.round(p.costUsd * 10000) / 10000,
       }))
       .sort((a, b) => b.costUsd - a.costUsd || a.project.localeCompare(b.project)),
-  }));
+    };
+  });
   models.sort((a, b) => b.costUsd - a.costUsd || a.model.localeCompare(b.model));
 
   const projects = Array.from(state.projects.values())

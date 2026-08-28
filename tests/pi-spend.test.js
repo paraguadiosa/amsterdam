@@ -90,6 +90,23 @@ describe('pi spend', () => {
     assert.equal(claude.costUsd, 0.012);
   });
 
+  it('exposes token totals and usdPerM per group', () => {
+    const pi = read();
+
+    const ds = pi.models.find((m) => m.model === 'deepseek-v4-flash');
+    assert.deepEqual(ds.tokens, { input: 1600, output: 350, cacheRead: 50, cacheCreation: 10 });
+    assert.equal(ds.usdPerM, 0.2488); // 0.0005 / 2010 * 1e6
+
+    const gpt = pi.models.find((m) => m.model === 'gpt-5');
+    assert.deepEqual(gpt.tokens, { input: 2000, output: 500, cacheRead: 100, cacheCreation: 0 });
+    assert.equal(gpt.usdPerM, 1.1923); // 0.0031 / 2600 * 1e6
+
+    // Usage with only a total (no token breakdown) has no price.
+    const claude = pi.models.find((m) => m.model === 'claude-opus-4-6');
+    assert.deepEqual(claude.tokens, { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 });
+    assert.equal(claude.usdPerM, null);
+  });
+
   it('counts distinct sessions across files', () => {
     const pi = read();
     assert.equal(pi.sessionCount, 3); // sess-a, sess-b, sess-c
@@ -212,6 +229,7 @@ describe('readPiCalls', () => {
       inputTokens: 1000,
       outputTokens: 200,
       cacheReadTokens: 50,
+      cacheWriteTokens: 10,
       reasoningTokens: 30,
       totalTokens: 1290,
       costUsd: 0.0003,
