@@ -226,6 +226,20 @@
       tag: 'Billing',
       search: 'z.ai z ai glm zhipu',
     },
+    {
+      id: 'alibaba',
+      name: 'Alibaba / Qwen',
+      envKey: 'DASHSCOPE_API_KEY',
+      baseUrlEnv: 'DASHSCOPE_BASE_URL',
+      defaultBaseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+      kind: 'verify',
+      auth: 'bearer',
+      hermesId: 'alibaba',
+      consoleUrl: 'https://dashscope-intl.console.aliyun.com/billing',
+      note: 'Usage and billing.',
+      tag: 'Billing',
+      search: 'alibaba qwen dashscope',
+    },
   ];
 
   global.AMS_PROVIDERS = CATALOG;
