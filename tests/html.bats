@@ -274,7 +274,7 @@ setup() {
 
 @test "spend section carries an Open in Grafana link" {
     [[ "$HTML_CONTENT" == *'Open in Grafana'* ]]
-    [[ "$HTML_CONTENT" == *'href="http://mini.tail66290a.ts.net:3005/d/agent-telemetry"'* ]]
+    [[ "$HTML_CONTENT" == *'href="http://jacinto.paraguadiosa.com:3005/d/agent-telemetry"'* ]]
 }
 
 # ── charts are gone, Grafana owns visualization ──
@@ -515,7 +515,7 @@ setup() {
     [[ "$HTML_CONTENT" == *'class="hero-nav"'* ]]
     [[ "$HTML_CONTENT" == *'Grafana'* ]]
     [[ "$HTML_CONTENT" == *'id="grafana-link"'* ]]
-    [[ "$HTML_CONTENT" == *'href="http://mini.tail66290a.ts.net:3005/d/agent-telemetry"'* ]]
+    [[ "$HTML_CONTENT" == *'href="http://jacinto.paraguadiosa.com:3005/d/agent-telemetry"'* ]]
 }
 
 @test "usage page is gone" {
