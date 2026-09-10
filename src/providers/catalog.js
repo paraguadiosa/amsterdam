@@ -235,7 +235,7 @@
       kind: 'verify',
       auth: 'bearer',
       hermesId: 'alibaba',
-      consoleUrl: 'https://dashscope-intl.console.aliyun.com/billing',
+      consoleUrl: 'https://home.qwencloud.com/api-keys',
       note: 'Usage and billing.',
       tag: 'Billing',
       search: 'alibaba qwen dashscope',

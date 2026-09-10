@@ -12,7 +12,7 @@ WORKDIR /app
 COPY src/ ./src/
 COPY demo/ ./demo/
 COPY index.html ./
-COPY scripts/amster ./scripts/amster
+COPY scripts/amster ./
 COPY package.json ./
 
 # UID 1000 matches the node image user, so a mounted 0600 env file
@@ -22,6 +22,9 @@ RUN mkdir -p data && chown -R node:node /app/data
 USER node
 
 EXPOSE 3131
+
+# Bind to 0.0.0.0 in container so port mapping works
+ENV AMS_HOST=0.0.0.0
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD node -e "const p = process.env.PORT || 3131; fetch('http://127.0.0.1:' + p + '/api/billing').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"

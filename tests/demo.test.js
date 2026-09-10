@@ -26,39 +26,17 @@ describe('demo fixture', () => {
     for (const r of list) assert.equal(typeof r.detected, 'boolean');
   });
 
-  it('spend rows carry the fields the table renders', () => {
-    assert.ok(billing.spend.models.length >= 3);
-    for (const m of billing.spend.models) {
-      assert.equal(typeof m.model, 'string');
-      assert.equal(typeof m.provider, 'string');
-      assert.equal(typeof m.sessions, 'number');
-      assert.equal(typeof m.calls, 'number');
-      assert.ok(['estimated', 'local', 'unknown', 'no usage'].includes(m.costStatus));
-    }
+  it('shows the pi manual budget with its credit', () => {
+    const pi = billing.providers.pi;
+    assert.ok(pi);
+    assert.equal(pi.detected, true);
+    assert.equal(pi.kind, 'manual');
+    assert.equal(pi.credit, 42);
   });
 
-  it('spend total matches the estimated rows', () => {
-    const sum = billing.spend.models
-      .filter((m) => m.costStatus === 'estimated' && m.estimatedCostUsd != null)
-      .reduce((acc, m) => acc + m.estimatedCostUsd, 0);
-    assert.ok(Math.abs(sum - billing.spend.totalEstimatedUsd) < 1e-9);
-    assert.equal(billing.spend.modelCount, billing.spend.models.length);
-  });
-
-  it('pi spend rows and totals are consistent', () => {
-    const pi = billing.piSpend;
-    assert.ok(pi.models.length >= 1);
-    const cost = pi.models.reduce((acc, m) => acc + m.costUsd, 0);
-    assert.ok(Math.abs(cost - pi.totalUsd) < 1e-9);
-    assert.equal(pi.modelCount, pi.models.length);
-    assert.ok(pi.sessionCount >= pi.models.length);
-  });
-
-  it('keeps the anthropic purge: no claude models in spend', () => {
-    for (const m of billing.spend.models) {
-      assert.ok(!m.model.toLowerCase().startsWith('claude'));
-      assert.notEqual(m.provider, 'anthropic');
-    }
+  it('carries no spend payload', () => {
+    assert.equal(billing.spend, undefined);
+    assert.equal(billing.piSpend, undefined);
   });
 
   it('contains nothing that looks like an API key', () => {

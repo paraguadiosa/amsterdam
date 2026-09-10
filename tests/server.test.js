@@ -38,12 +38,7 @@ describe('server', () => {
     storeDir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-main-'));
     store = openManualStore(join(storeDir, 'manual-credits.db'));
     server = await listen(createApp({
-      env: {
-        PI_SESSIONS_DIR: join(storeDir, 'no-sessions'),
-        HERMES_STATE_DB: join(storeDir, 'no-state.db'),
-        AMSTERDAM_LOCAL_MODELS_DIR: join(storeDir, 'no-models'),
-        DSH_SESSIONS_DIR: join(storeDir, 'no-dsh'),
-      },
+      env: {},
       fetchFn: mockFetch({}),
       loadEnv: false,
       manualStore: store,
@@ -84,8 +79,6 @@ describe('server', () => {
     const data = await res.json();
     assert.ok(data.timestamp);
     assert.ok(data.providers);
-    assert.ok('spend' in data);
-    assert.ok('piSpend' in data);
     for (const p of Object.values(data.providers)) {
       assert.equal(p.detected, false);
     }
@@ -200,7 +193,7 @@ describe('server manual credits', () => {
     storeDir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-manual-'));
     store = openManualStore(join(storeDir, 'manual-credits.db'));
     server = await listen(createApp({
-      env: { PI_SESSIONS_DIR: join(storeDir, 'no-sessions') },
+      env: {},
       fetchFn: mockFetch({}),
       loadEnv: false,
       manualStore: store,
@@ -307,29 +300,20 @@ describe('server manual credits', () => {
 });
 
 describe('server manual credits feed billing', () => {
-  it('adds a pi provider with credit minus real spend and invalidates the cache', async () => {
+  it('adds and removes the pi provider with the credit and invalidates the cache', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'amsterdam-srv-pi-'));
-    const sessionsDir = join(dir, 'sessions');
-    mkdirSync(sessionsDir, { recursive: true });
-    writeFileSync(join(sessionsDir, '2026-08-07T00-00-00-000Z_sess.jsonl'),
-      '{"type":"session","version":3,"id":"s1","timestamp":"2026-08-07T00:00:00Z","cwd":"/home/eve/Coding_Projects/amsterdam"}\n' +
-      '{"type":"message","id":"m1","timestamp":"2026-08-07T00:01:00Z","message":{"role":"assistant","provider":"deepseek","model":"deepseek-v4-flash","usage":{"input":100,"output":50,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":150,"cost":{"total":1.23}},"stopReason":"toolUse"}}\n');
     const store = openManualStore(join(dir, 'manual-credits.db'));
     const app = await listen(createApp({
-      env: { PI_SESSIONS_DIR: sessionsDir },
+      env: {},
       fetchFn: mockFetch({}),
       loadEnv: false,
       manualStore: store,
     }));
     const base = baseUrl(app);
     try {
-      // First call primes the cache: pi is visible (real spend) but
-      // has no credit yet.
+      // Without a credit pi is absent.
       const before = await (await fetch(`${base}/api/billing`)).json();
-      assert.ok(before.providers.pi);
-      assert.equal(before.providers.pi.kind, 'manual');
-      assert.equal(before.providers.pi.credit, null);
-      assert.equal(before.providers.pi.remaining, null);
+      assert.ok(!before.providers.pi);
 
       // The POST must invalidate the billing cache.
       const postRes = await fetch(`${base}/api/manual-credits`, {
@@ -343,8 +327,8 @@ describe('server manual credits feed billing', () => {
       assert.ok(data.providers.pi);
       assert.equal(data.providers.pi.detected, true);
       assert.equal(data.providers.pi.credit, 50);
-      assert.equal(data.providers.pi.spend, 1.23);
-      assert.equal(data.providers.pi.remaining, 48.77);
+      assert.equal(data.providers.pi.spend, undefined);
+      assert.equal(data.providers.pi.remaining, undefined);
 
       // Manual credits for catalog providers ride along in the payload.
       await fetch(`${base}/api/manual-credits`, {
@@ -355,19 +339,15 @@ describe('server manual credits feed billing', () => {
       const fresh = await (await fetch(`${base}/api/billing?fresh=1`)).json();
       assert.equal(fresh.providers.xai.credit, 7);
       assert.equal(fresh.providers.xai.detected, false);
-      assert.equal(fresh.providers.pi.remaining, 48.77);
 
-      // Deleting the credit keeps pi (spend still exists) but nulls
-      // credit and remaining.
+      // Deleting the credit removes pi from the payload.
       await fetch(`${base}/api/manual-credits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'pi', amount: null }),
       });
       const after = await (await fetch(`${base}/api/billing?fresh=1`)).json();
-      assert.equal(after.providers.pi.credit, null);
-      assert.equal(after.providers.pi.remaining, null);
-      assert.equal(after.providers.pi.spend, 1.23);
+      assert.ok(!after.providers.pi);
     } finally {
       app.close();
       closeManualStore(store);
@@ -478,7 +458,7 @@ describe('server credential reload', () => {
     const { store, dir: storeDir } = tmpStore();
     try {
       app = await listen(createApp({
-        env: { PI_SESSIONS_DIR: join(tmp, 'no-sessions') },
+        env: {},
         fetchFn: mockFetch({}),
         loadEnv: true,
         manualStore: store,

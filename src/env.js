@@ -60,6 +60,44 @@ export function loadHermesPool(filePath, target = process.env) {
   }
 }
 
+// Codex stores credentials in ~/.codex/auth.json. Its file keys are
+// env-var names (e.g. OPENAI_API_KEY); only keys that match a catalog
+// envKey are accepted, so a new provider inherits the mapping for free.
+const CODEX_FILE_KEY_TO_ENV = {};
+for (const meta of globalThis.AMS_PROVIDERS) {
+  if (meta.envKey) CODEX_FILE_KEY_TO_ENV[meta.envKey] = meta.envKey;
+}
+
+export function parseCodexAuth(content) {
+  const vars = {};
+  try {
+    const data = JSON.parse(content);
+    if (data && typeof data === 'object') {
+      for (const [key, value] of Object.entries(data)) {
+        if (CODEX_FILE_KEY_TO_ENV[key] && typeof value === 'string' && value) {
+          vars[key] = value;
+        }
+      }
+    }
+  } catch {
+    // Invalid JSON means no codex credentials.
+  }
+  return vars;
+}
+
+export function loadCodexAuth(filePath, target = process.env) {
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    const vars = parseCodexAuth(content);
+    for (const [key, value] of Object.entries(vars)) {
+      if (!(key in target)) target[key] = value;
+    }
+    return Object.keys(vars);
+  } catch {
+    return [];
+  }
+}
+
 export function parseEnvFile(content) {
   const vars = {};
   for (const line of content.split('\n')) {
@@ -89,15 +127,22 @@ export function loadEnvFile(filePath, target = process.env) {
 }
 
 export function loadDefaults(target = process.env, { cwd = process.cwd(), home = homedir() } = {}) {
+  const codexPath = target.CODEX_AUTH_FILE || resolve(home, '.codex', 'auth.json');
   const paths = [
     resolve(cwd, '.env'),
     resolve(home, '.hermes', '.env'),
     resolve(home, '.hermes', 'auth.json'),
+    codexPath,
   ];
   const loaded = [];
-  const isPool = (p) => p.endsWith('auth.json');
+  const isPool = (p) => p.endsWith('.hermes/auth.json');
+  const isCodex = (p) => p === codexPath;
   for (const p of paths) {
-    const keys = isPool(p) ? loadHermesPool(p, target) : loadEnvFile(p, target);
+    const keys = isPool(p)
+      ? loadHermesPool(p, target)
+      : isCodex(p)
+        ? loadCodexAuth(p, target)
+        : loadEnvFile(p, target);
     if (keys.length) loaded.push(p);
   }
   return loaded;

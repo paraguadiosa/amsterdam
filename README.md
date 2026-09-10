@@ -25,17 +25,11 @@ live balance and usage numbers fetched straight from provider APIs.
 - **Credits remaining panel** — the live sum of all provider balances,
   with a per-provider split. Manual balances are supported for providers
   without an API.
-- **Spend table** — one sortable table merges the Hermes agent state
-  database (estimated) and Pi session logs (actual billed USD) per
-  provider and model: in/out/cache tokens, sessions, est. cost, and
-  price per 1M tokens. Amsterdam does not render charts: the section
-  header links to Grafana's Agent Telemetry dashboard instead.
-- **Monitoring via Grafana** — the header links to the Agent Telemetry
-  dashboard (Prometheus-backed,
+- **Monitoring via Grafana** — the only monitoring surface. The header
+  links to the Agent Telemetry dashboard (Prometheus-backed,
   `http://mini.tail66290a.ts.net:3005/d/agent-telemetry`, override with
-  `?grafana=URL`). The old in-repo Amsterdam Monitor page
-  was removed: per-orchestrator cost, tokens and sessions live in Grafana
-  now. The link is hidden in public demo mode (`?demo`).
+  `?grafana=URL`): per-orchestrator cost, tokens and sessions live there.
+  The link is hidden in public demo mode (`?demo`).
 - **Two serving modes** — live local daemon with an HTTP API, or a static
   `file://` snapshot with no server at all.
 - **Demo mode with onboarding** — `?demo` in the URL loads sample data and
@@ -168,19 +162,19 @@ output. `amster stop` reads the pidfile and kills exactly that process.
 |----------|---------|---------|
 | `PORT` | `3131` | Port for the daemon and the container |
 | `AMSTERDAM_OPEN` | `xdg-open` | Browser opener command (set to `echo` for headless use) |
-| `HERMES_STATE_DB` | `~/.hermes/state.db` | Hermes spend database path |
-| `PI_SESSIONS_DIR` | `~/.pi/agent/sessions` | Pi session log directory |
+| `CODEX_AUTH_FILE` | `~/.codex/auth.json` | Codex auth file path |
 | `AMSTERDAM_BIN_DIR` | `~/.local/bin` | Install target for `amsterdam-install` |
 
 ## Configuration — credentials in one place
 
-Amsterdam reads credentials from four sources, in order. The first source
+Amsterdam reads credentials from five sources, in order. The first source
 that defines a variable wins:
 
 1. `process.env` (already exported in your shell)
 2. `./.env` in the project directory
 3. `~/.hermes/.env`
 4. **`~/.hermes/auth.json`** — the Hermes credential pool
+5. **`~/.codex/auth.json`** — the Codex auth file (apikey mode)
 
 The Hermes credential pool is the recommended source. Keys added with
 `hermes auth add <provider> --api-key <key>` are picked up automatically.
@@ -190,6 +184,11 @@ env-sourced ones resolve through the `.env` files above. The pool's
 `base_url` is also honored for providers that read one
 (`KIMI_BASE_URL`, `DEEPSEEK_BASE_URL`, `GROQ_BASE_URL`), with the
 OpenAI-style trailing `/v1` stripped.
+
+The Codex auth file covers providers configured outside Hermes, such as
+an OpenAI key stored by `codex` in apikey mode. File keys are env-var
+names (for example `OPENAI_API_KEY`); only keys matching a catalog
+`envKey` are picked up. Override the path with `CODEX_AUTH_FILE`.
 
 So you maintain your keys in **one place** (`hermes auth`), and Amsterdam
 detects them without duplicating them in a project `.env`.
@@ -202,9 +201,9 @@ it must never be committed.
 
 Add `?demo` to the URL and the dashboard runs on the sample fixture in
 `demo/billing.js` instead of real data. No keys, no daemon, no Hermes
-or Pi data — nothing leaves the visitor's browser. A **Sample data**
+or Codex data — nothing leaves the visitor's browser. A **Sample data**
 badge marks the page, live polling is off, and the dashboard's
-seven-step onboarding tour auto-starts on the first visit.
+six-step onboarding tour auto-starts on the first visit.
 
 ```bash
 amsterdam demo    # open the dashboard demo locally
@@ -247,9 +246,7 @@ and shows a live status; over `file://` it renders the static snapshot
 and suggests `amster serve`. `amster open` opens the live URL when the
 daemon is running and falls back to the static file otherwise.
 
-## Spend data
-
-### Credits remaining
+## Credits and manual budgets
 
 The dashboard leads with a big **Credits remaining** panel: the live sum
 of all provider balances with real billing APIs (DeepSeek, Moonshot),
@@ -278,73 +275,21 @@ daemon exposes it over HTTP:
 
 ### Pi chip
 
-The dashboard shows a **Pi** chip in the summary row whenever there is
-real billed spend in the Pi session logs or a manual Pi credit. Pi has
-no balance API, so the chip is a budget: set the credit once via the
-chip's **edit** button and the chip shows
-`remaining = credit − actual spend`, where the spend is the real billed
-USD total parsed from `~/.pi/agent/sessions`. The remaining value is
-excluded from the HUD credits total — Pi is a budget, not a wallet
-balance. A POST to `/api/manual-credits` invalidates the 60-second
-billing cache so the chip updates immediately.
-
-### Spend table
-
-The dashboard shows one **Spend** table that merges the two sources by
-provider + model, so the question "where does the money go" has a
-single answer:
-
-**Hermes — estimated.** The local Hermes agent state database at
-`~/.hermes/state.db` (read-only, host daemon only). Amsterdam never writes
-to that database. The data is aggregated per `(model, billing_provider)`:
-sessions, tokens, and estimated/actual cost. Only rows whose cost status
-is `estimated` count toward the Hermes total; untrusted snapshots (for
-example a bad pricing row marked `unknown`) are excluded from the total
-and shown as `n/a`. Override the database path with `HERMES_STATE_DB`.
-
-**Pi sessions — actual.** Pi (pi.dev CLI) writes one JSONL file per
-session under `~/.pi/agent/sessions`. Every assistant message carries the
-provider, model, tokens, and real USD cost. Amsterdam aggregates per
-`(model, provider)` and per project (the basename of the session working
-directory; home-directory sessions count as `home`). Override the sessions
-directory with `PI_SESSIONS_DIR`. Pi costs are billed amounts, so they
-always show as USD — never `n/a`.
-
-Where a (provider, model) pair appears in both sources, the row sums the
-tokens, sessions, and cost. The table renders eight columns — Provider,
-Model, In tok, Out tok, Cache tok, Sessions, Est. cost, $/1M — and every
-column header sorts (default: est. cost descending, with the sort
-direction shown via `aria-sort`). The $/1M price comes from the `/api/billing`
-payload (`usdPerM`, rounded to 4 decimals; `null` when a group has no
-tokens or no trusted cost); merged rows are recomputed from their summed
-totals so all rows sort on the same basis. The section header carries an
-**Open in Grafana** link.
-
-In Docker there is no Hermes state DB and no Pi sessions, so the spend
-table stays empty — run `amster serve` on the host to see spend data.
-
-Local GGUF files in `~/models` appear in the table even without recorded
-usage, marked with status `no usage`. Groups with usage but no recorded
-cost get a token-based estimate when the model has an authoritative rate
-(deepseek-v4-flash, deepseek-v4-pro); local GGUF runs show as `free`.
-Models without a known rate keep `n/a`.
-
-Anthropic is purged at the data layer: rows from the `anthropic` billing
-provider and any `claude-*` model are dropped from the aggregation, the
-totals, and the CLI output — wherever the spend data goes.
+The dashboard shows a **Pi** chip in the summary row when a manual Pi
+credit exists. Pi has no balance API, so the chip is a budget: set the
+credit once via the chip's **edit** button and the chip shows the
+remaining amount. The value is excluded from the HUD credits total —
+Pi is a budget, not a wallet balance. A POST to `/api/manual-credits`
+invalidates the 60-second billing cache so the chip updates immediately.
 
 ### Monitoring via Grafana
 
-Amsterdam renders no spend charts: the in-repo per-orchestrator monitor
-(`usage.html`, `/api/usage`, the `usage-*` sources and the BI exports)
-was removed, and the observability stack (Prometheus + Pushgateway +
-Grafana, see `~/repos/observability`) is the monitoring surface now.
-Every agent pushes full accumulated totals to the Pushgateway; Grafana
-renders cost, tokens and sessions per orchestrator. The console header
-links to the Agent Telemetry dashboard
-(`http://mini.tail66290a.ts.net:3005/d/agent-telemetry`), and the Spend
-section header carries the same **Open in Grafana** link for handoff
-right at the table; override with
+Amsterdam renders no spend or usage charts: the observability stack
+(Prometheus + Pushgateway + Grafana, see `~/repos/observability`) is the
+monitoring surface. Every agent pushes full accumulated totals to the
+Pushgateway; Grafana renders cost, tokens and sessions per orchestrator.
+The console header links to the Agent Telemetry dashboard
+(`http://mini.tail66290a.ts.net:3005/d/agent-telemetry`); override with
 `?grafana=URL` when Grafana lives elsewhere.
 
 ## Architecture
@@ -360,9 +305,7 @@ src/
     index.js         # Builds the runtime registry from the catalog
   dam.js             # Orchestrator — fetches all, writes data/billing.js
   server.js          # Local HTTP server for live mode
-  env.js             # Credential loader (.env files + hermes pool)
-  spend.js           # Read-only per-model spend from the Hermes state DB
-  pi-spend.js        # Read-only spend from Pi session logs
+  env.js             # Credential loader (.env files + Hermes pool + Codex auth)
   manual-credits.js  # Server-side manual credit store (node:sqlite)
   themes.js          # Palette registry — one entry per theme, no CSS per theme
   format.js          # Output formatters (JS file + console)
@@ -421,9 +364,8 @@ npm run test:shell     # Shell + HTML tests (bats)
 npm run test:all       # Both
 ```
 
-The suite covers the providers, the credential loader, the spend
-aggregators, the HTTP server, the theme registry, the CLI scripts, and
-the dashboard HTML.
+The suite covers the providers, the credential loader, the HTTP server,
+the theme registry, the CLI scripts, and the dashboard HTML.
 
 ## CI
 
@@ -464,9 +406,6 @@ be rotated immediately.
 - Gitleaks pre-commit and pre-push hooks block accidental leaks.
 - The Docker container runs as a non-root user and mounts the keys file
   read-only.
-- Spend data reads are strictly read-only: Amsterdam never writes to
-  `~/.hermes/state.db` or `~/.pi/agent/sessions`, and neither is mounted
-  into the container.
 - The daemon binds to `127.0.0.1` only and rejects requests with a
   foreign `Host` header, so LAN peers and DNS-rebinding websites cannot
   read billing data or write credits. `POST /api/manual-credits` also
@@ -487,8 +426,8 @@ contains real keys.
 
 ## Related projects
 
-- **Hermes** — the local agent whose state database (`~/.hermes/state.db`)
-  and credential pool (`~/.hermes/auth.json`) feed the estimated side of
-  the spend table. Amsterdam reads both read-only.
-- [Pi](https://pi.dev) — the CLI whose session logs (`~/.pi/agent/sessions`)
-  feed the actual side of the spend table.
+- **Hermes** — the local agent whose credential pool
+  (`~/.hermes/auth.json`) feeds provider detection. Amsterdam reads it
+  read-only.
+- [Codex](https://openai.com/codex) — the CLI whose auth file
+  (`~/.codex/auth.json`) feeds OpenAI key detection in apikey mode.

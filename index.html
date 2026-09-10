@@ -391,9 +391,6 @@
     border-radius: var(--radius-sm);
   }
 
-  /* Collapsed spend summary blobs were removed with the old
-     toggle-based spend sections; the table is first-class now. */
-
   /* ── warning banner ──────────────────────────────────────────── */
   .warning {
     display: flex;
@@ -574,96 +571,6 @@
     font-size: 0.6875rem;
     letter-spacing: 0.2px;
   }
-
-  /* ── spend table ────────────────────────────────────────────── */
-  #spend-section {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 12px 12px 4px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .spend-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .spend-head h2 { margin: 22px 0 12px; }
-
-  .grafana-link {
-    flex-shrink: 0;
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--accent-2);
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .grafana-link:hover {
-    color: var(--text);
-    border-color: var(--border-hi);
-  }
-
-  #spend-table {
-    width: 100%;
-    min-width: 640px;
-    border-collapse: collapse;
-    font-size: 0.8125rem;
-    margin-bottom: 20px;
-  }
-
-  #spend-table th {
-    text-align: left;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-hi);
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  #spend-table th.active { color: var(--text); }
-
-  #spend-table th .sort-indicator {
-    display: inline-block;
-    margin-left: 4px;
-    color: var(--accent-2);
-    font-size: 0.6875rem;
-    line-height: 1;
-  }
-
-  #spend-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    vertical-align: top;
-    word-break: break-word;
-  }
-
-  #spend-table tbody tr:hover { background: var(--bg-soft); }
-
-  #spend-table .num {
-    text-align: right;
-    font-family: var(--font-mono);
-    white-space: nowrap;
-  }
-
-  #spend-table .model { font-family: var(--font-mono); }
-  #spend-table .cost { color: var(--green); font-family: var(--font-mono); white-space: nowrap; }
-  #spend-table .cost.na { color: var(--faint); }
 
   /* ── section headings ────────────────────────────────────────── */
   h2 {
@@ -1011,48 +918,6 @@
     h2.toggle { padding: 10px 4px; }
     .credits-split { overflow-wrap: anywhere; }
 
-    /* the spend table reflows into stacked cards */
-    #spend-section { overflow-x: visible; padding: 10px 10px 2px; }
-    #spend-table { min-width: 0; font-size: 0.875rem; }
-    #spend-table thead { display: none; }
-    #spend-table tbody { display: block; }
-    #spend-table tbody tr {
-      display: block;
-      margin-bottom: 10px;
-      padding: 4px 12px 8px;
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-    }
-    #spend-table tbody tr:hover { background: var(--bg-soft); }
-    #spend-table td {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 14px;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    #spend-table td:last-child { border-bottom: 0; }
-    #spend-table td::before {
-      content: attr(data-label);
-      font-family: var(--font);
-      font-size: 0.6875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-    }
-    #spend-table td.model {
-      display: block;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: -0.2px;
-    }
-    #spend-table td.model::before { display: none; }
-
     /* provider rows wrap instead of clipping */
     .cards[data-group="detected"] .card,
     .cards[data-group="extra"] .card { flex-wrap: wrap; padding: 10px 4px; }
@@ -1146,8 +1011,7 @@
   /* Calmer surfaces: panels use the plain theme card color. The
      glass blur and neon panel glows are gone; colors are intact. */
   .credits,
-  .card,
-  #spend-section {
+  .card {
     background: var(--card);
   }
 
@@ -1170,20 +1034,6 @@
 
   /* No CRT scanlines: tables and provider lists sit on the plain
      theme background for a quieter, more legible console. */
-
-  /* monospace tables */
-  #spend-table {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-  }
-
-  #spend-table tbody tr {
-    transition: background var(--t-fast);
-  }
-
-  #spend-table tbody tr:hover {
-    background: var(--row-glow);
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .live-dot { animation: none; }
@@ -1770,36 +1620,6 @@
   <div id="billing-summary"></div>
 
 
-  <!-- spend — populated from data/billing.js and /api/billing.
-       One table merges the Hermes state-DB spend with the Pi
-       session-log spend by provider + model. Charts live in Grafana
-       (Agent Telemetry), not here. -->
-  <section id="spend" aria-label="Spend by provider and model">
-    <div class="spend-head">
-      <h2><span class="dot" aria-hidden="true"></span>Spend</h2>
-      <a class="grafana-link" href="http://jacinto.paraguadiosa.com:3005/d/agent-telemetry" target="_blank" rel="noopener noreferrer">Open in Grafana</a>
-    </div>
-    <div id="spend-section">
-      <table id="spend-table" aria-label="Spend by provider and model">
-        <thead>
-          <tr>
-            <th scope="col" data-sort="provider">Provider<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="model">Model<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="inputTokens">In tok<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="outputTokens">Out tok<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="cacheReadTokens">Cache tok<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="sessions">Sessions<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="costUsd">Est. cost<span class="sort-indicator" aria-hidden="true"></span></th>
-            <th scope="col" data-sort="usdPerM">$/1M<span class="sort-indicator" aria-hidden="true"></span></th>
-          </tr>
-        </thead>
-        <tbody id="spend-body"></tbody>
-      </table>
-      <div class="hint" id="spend-unavailable">Spend data unavailable — needs the local Hermes state DB or Pi session logs (host daemon mode). Run <code>amster serve</code> on the host.</div>
-      <div class="hint" id="spend-empty">No usage recorded yet.</div>
-    </div>
-  </section>
-
   </main>
 
   <aside class="dock" aria-label="Provider consoles">
@@ -1986,12 +1806,9 @@
       return { cls: "usage", value: "$" + data.usage.toFixed(2) + " used" + limit };
     }
     if (data.username)       return { cls: "verified", value: data.username };
-    // Manual budget chip (Pi): remaining = credit minus real spend.
-    if (data.kind === "manual" && data.spend != null) {
-      if (data.remaining != null) {
-        return { cls: "balance", value: "$" + data.remaining.toFixed(2) + " left", editable: true };
-      }
-      return { cls: "usage", value: "$" + data.spend.toFixed(2) + " spent - edit to set credit", editable: true };
+    // Manual budget chip (Pi): the credit is the remaining amount.
+    if (data.kind === "manual" && data.credit != null) {
+      return { cls: "balance", value: "$" + Number(data.credit).toFixed(2) + " left", editable: true };
     }
     // Verified-only providers (no billing API): a manually tracked
     // balance overrides the badge; the chip stays editable.
@@ -2051,158 +1868,6 @@
     recordSpark("credits", credits.total);
   }
 
-  /* ── spend table ────────────────────────────────────────────── */
-  // One table merges the Hermes state-DB spend (estimated) with the
-  // Pi session-log spend (actual), keyed by provider + model. Sort
-  // state lives at module scope so the 2.5-min auto-refresh
-  // re-renders keep the user's chosen column and direction.
-  var sortState = { key: 'costUsd', dir: 'desc' };
-  var TEXT_SORT_KEYS = ['provider', 'model'];
-
-  // Merge spend + piSpend into one row per (provider, model).
-  // Where both sources report a group, tokens, sessions, and cost
-  // are summed; the price per 1M tokens is then recomputed from the
-  // merged totals so every row sorts on the same basis.
-  function mergeSpendRows(billing) {
-    var rows = new Map();
-
-    function keyOf(provider, model) {
-      return String(provider || 'unknown') + '\u0000' + String(model || '');
-    }
-
-    function fold(m, isPi) {
-      var key = keyOf(m.provider, m.model);
-      var row = rows.get(key);
-      if (!row) {
-        row = {
-          provider: m.provider || 'unknown',
-          model: m.model,
-          sessions: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheReadTokens: 0,
-          cacheCreationTokens: 0,
-          costUsd: null,
-          known: false,
-          costStatus: null,
-          lastSeen: m.lastSeen || null,
-          usdPerM: null,
-        };
-        rows.set(key, row);
-      } else {
-        row.merged = true;
-      }
-      row.sessions += m.sessions || 0;
-      row.inputTokens += m.inputTokens || 0;
-      row.outputTokens += m.outputTokens || 0;
-      row.cacheReadTokens += m.cacheReadTokens || 0;
-      row.cacheCreationTokens += isPi
-        ? (m.tokens && m.tokens.cacheCreation) || 0
-        : m.cacheWriteTokens || 0;
-      if (m.estimatedCostUsd != null) row.costUsd = (row.costUsd || 0) + m.estimatedCostUsd;
-      if (isPi && m.costUsd != null) row.costUsd = (row.costUsd || 0) + m.costUsd;
-      if (!isPi) {
-        row.costStatus = m.costStatus || row.costStatus;
-        if ((m.costStatus === 'estimated' || m.costStatus === 'local') && m.estimatedCostUsd != null) {
-          row.known = true;
-        }
-      } else if (m.costUsd != null) {
-        row.known = true; // Pi costs are actual, billed numbers
-      }
-      if (row.usdPerM == null) row.usdPerM = m.usdPerM;
-      if (m.lastSeen && (!row.lastSeen || m.lastSeen > row.lastSeen)) row.lastSeen = m.lastSeen;
-    }
-
-    var spend = billing && billing.spend;
-    var pi    = billing && billing.piSpend;
-    if (spend && spend.models) spend.models.forEach(function (m) { fold(m, false); });
-    if (pi && pi.models) pi.models.forEach(function (m) { fold(m, true); });
-
-    var out = [];
-    rows.forEach(function (row) {
-      if (row.merged) {
-        var total = row.inputTokens + row.outputTokens + row.cacheReadTokens + row.cacheCreationTokens;
-        row.usdPerM = row.costUsd != null && total > 0
-          ? Math.round(row.costUsd / total * 1e6 * 10000) / 10000
-          : null;
-      } else if (row.usdPerM == null && row.costUsd != null) {
-        // Old snapshots without usdPerM: derive the price from tokens.
-        var t = row.inputTokens + row.outputTokens + row.cacheReadTokens + row.cacheCreationTokens;
-        row.usdPerM = t > 0 ? Math.round(row.costUsd / t * 1e6 * 10000) / 10000 : null;
-      }
-      out.push(row);
-    });
-    return out;
-  }
-
-  function spendSortValue(row, key) {
-    switch (key) {
-      case 'provider':        return String(row.provider || '').toLowerCase();
-      case 'model':           return String(row.model || '').toLowerCase();
-      case 'sessions':        return row.sessions;
-      case 'inputTokens':     return row.inputTokens;
-      case 'outputTokens':    return row.outputTokens;
-      case 'cacheReadTokens': return row.cacheReadTokens;
-      case 'costUsd':         return row.known ? row.costUsd : null;
-      case 'usdPerM':         return row.usdPerM;
-    }
-    return null;
-  }
-
-  function compareSpendRows(a, b) {
-    var key = sortState.key;
-    var dir = sortState.dir === 'asc' ? 1 : -1;
-    var av  = spendSortValue(a, key);
-    var bv  = spendSortValue(b, key);
-    var aNa = av == null;
-    var bNa = bv == null;
-    if (aNa && bNa) {
-      return String(a.provider).localeCompare(String(b.provider))
-        || String(a.model).localeCompare(String(b.model));
-    }
-    if (aNa) return 1;  // missing values stay at the bottom, either direction
-    if (bNa) return -1;
-    if (typeof av === 'number' && typeof bv === 'number') {
-      return av < bv ? -dir : av > bv ? dir : 0;
-    }
-    return String(av).localeCompare(String(bv)) * dir;
-  }
-
-  function sortSpendRows(rows) {
-    return rows.slice().sort(compareSpendRows);
-  }
-
-  function sortSpendBy(key) {
-    if (sortState.key === key) {
-      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortState.key = key;
-      sortState.dir = TEXT_SORT_KEYS.indexOf(key) !== -1 ? 'asc' : 'desc';
-    }
-    renderSpend(window.BILLING);
-  }
-
-  function updateSortIndicator() {
-    Array.from(document.querySelectorAll('#spend-table thead th')).forEach(function (th) {
-      var indicator = th.querySelector('.sort-indicator');
-      var active    = th.getAttribute('data-sort') === sortState.key;
-      if (indicator) {
-        indicator.textContent = active ? (sortState.dir === 'asc' ? '\u25B2' : '\u25BC') : '';
-      }
-      th.setAttribute('aria-sort', active ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
-      th.classList.toggle('active', active);
-    });
-  }
-
-  function sortHandler(event) {
-    var th  = event.target.closest('th');
-    var key = th && th.getAttribute('data-sort');
-    if (!key) return;
-    sortSpendBy(key);
-  }
-
-  document.querySelector('#spend-table thead').addEventListener("click", sortHandler);
-
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -2210,80 +1875,6 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
-  }
-
-  function formatTokens(n) {
-    if (n == null) return '—';
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
-    return String(n);
-  }
-
-  function formatSpendCost(row) {
-    if (!row.known) return 'n/a';
-    if (row.costUsd === 0 && row.costStatus === 'local') return 'free';
-    return '$' + row.costUsd.toFixed(2);
-  }
-
-  /* Column labels drive the stacked mobile rows (data-label). */
-  var COLUMN_KEYS = ['provider', 'model', 'inputTokens', 'outputTokens', 'cacheReadTokens', 'sessions', 'costUsd', 'usdPerM'];
-  var COLUMN_LABELS = {
-    provider: 'Provider', model: 'Model', inputTokens: 'In tok', outputTokens: 'Out tok',
-    cacheReadTokens: 'Cache tok', sessions: 'Sessions', costUsd: 'Est. cost', usdPerM: '$/1M'
-  };
-
-  function spendCell(row, key) {
-    var label = ' data-label="' + COLUMN_LABELS[key] + '"';
-    switch (key) {
-      case 'provider':        return '<td' + label + '>' + escapeHtml(row.provider || '—') + '</td>';
-      case 'model':           return '<td class="model"' + label + '>' + escapeHtml(row.model) + '</td>';
-      case 'inputTokens':     return '<td class="num"' + label + '>' + formatTokens(row.inputTokens) + '</td>';
-      case 'outputTokens':    return '<td class="num"' + label + '>' + formatTokens(row.outputTokens) + '</td>';
-      case 'cacheReadTokens': return '<td class="num"' + label + '>' + formatTokens(row.cacheReadTokens) + '</td>';
-      case 'sessions':        return '<td class="num"' + label + '>' + row.sessions + '</td>';
-      case 'costUsd':
-        return '<td class="cost' + (row.known ? '' : ' na') + '"' + label + '>' + formatSpendCost(row) + '</td>';
-      case 'usdPerM':
-        return '<td class="cost"' + label + '>' + (row.usdPerM == null ? '—' : '$' + row.usdPerM.toFixed(2)) + '</td>';
-    }
-    return '';
-  }
-
-  function renderSpend(billing) {
-    var table      = document.getElementById('spend-table');
-    var unavailable = document.getElementById('spend-unavailable');
-    var empty      = document.getElementById('spend-empty');
-    unavailable.classList.remove('show');
-    empty.classList.remove('show');
-
-    // Anthropic was purged from the console: its usage history is
-    // filtered out of the spend table entirely. Anthropic models are
-    // all named claude-*, whatever billing provider labels them.
-    // (The data layer already purges; this guards old snapshots.)
-    var rows = mergeSpendRows(billing).filter(function (row) {
-      var name = String(row.model || '').toLowerCase();
-      return name.indexOf('claude') !== 0 && (row.provider || '') !== 'anthropic';
-    });
-
-    if (!billing || (!billing.spend && !billing.piSpend)) {
-      table.style.display = 'none';
-      unavailable.classList.add('show');
-      return;
-    }
-    if (rows.length === 0) {
-      table.style.display = 'none';
-      empty.classList.add('show');
-      return;
-    }
-
-    table.style.display = 'table';
-    var html = sortSpendRows(rows).map(function (row) {
-      var title = row.lastSeen ? ' title="Last seen ' + escapeHtml(row.lastSeen) + '"' : '';
-      var cells = COLUMN_KEYS.map(function (key) { return spendCell(row, key); }).join('');
-      return '<tr' + title + '>' + cells + '</tr>';
-    }).join('');
-    document.getElementById('spend-body').innerHTML = html;
-    updateSortIndicator();
   }
 
   var REFRESH_INTERVAL_MS = 150000; // 2.5 minutes
@@ -2350,7 +1941,6 @@
   function applyBilling(billing) {
     renderCredits(billing);
     renderSummary(billing);
-    renderSpend(billing);
     organizeCards(billing);
   }
 
@@ -2623,7 +2213,7 @@
     var STEPS = [
       { target: null,
         title: 'Welcome to the Amsterdam Console',
-        text: 'One dashboard for every LLM billing console, with live balances and spend per model. You are looking at sample data — no keys, no accounts, nothing leaves your browser.' },
+        text: 'One dashboard for every LLM billing console, with live balances and a link to each provider console. You are looking at sample data — no keys, no accounts, nothing leaves your browser.' },
       { target: '#theme-select',
         title: 'Pick a theme',
         text: 'Four bio-luminescent palettes. Auto follows the clock: EcoPunk day in the Bos, canal-city night after 20:00.' },
@@ -2633,9 +2223,6 @@
       { target: '#billing-summary',
         title: 'One chip per provider',
         text: 'Balances, verified keys, and errors at a glance. Providers without a billing API take a manual balance — click edit on a verified chip.' },
-      { target: '#spend-section',
-        title: 'Spend by model',
-        text: 'Estimated and actual cost side by side. Click a column header to sort, use Columns to reshape the table, or filter to one model.' },
       { target: '#search',
         title: 'Filter providers',
         text: 'Type to filter the cards live. Each card opens the provider console in a new tab.' },

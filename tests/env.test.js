@@ -8,6 +8,8 @@ import {
   loadEnvFile,
   parseHermesPool,
   loadHermesPool,
+  parseCodexAuth,
+  loadCodexAuth,
   loadDefaults,
 } from '../src/env.js';
 
@@ -222,6 +224,70 @@ describe('loadHermesPool', () => {
   });
 });
 
+// ── parseCodexAuth ───────────────────────────────
+
+describe('parseCodexAuth', () => {
+  it('maps the OpenAI key to its catalog env var', () => {
+    const content = JSON.stringify({
+      OPENAI_API_KEY: 'sk-codex-test',
+      auth_mode: 'apikey',
+      tokens: { access_token: 'not-a-var' },
+    });
+    const vars = parseCodexAuth(content);
+    assert.equal(vars.OPENAI_API_KEY, 'sk-codex-test');
+    assert.equal(Object.keys(vars).length, 1);
+  });
+
+  it('skips unknown and non-string values', () => {
+    const content = JSON.stringify({ RANDOM_VAR: 'x', OPENAI_API_KEY: 42, last_refresh: null });
+    assert.deepEqual(parseCodexAuth(content), {});
+  });
+
+  it('returns empty object for invalid JSON', () => {
+    assert.deepEqual(parseCodexAuth('not json'), {});
+  });
+
+  it('returns empty object for empty input', () => {
+    assert.deepEqual(parseCodexAuth(''), {});
+  });
+});
+
+// ── loadCodexAuth ────────────────────────────────
+
+describe('loadCodexAuth', () => {
+  const tmpDir = join(tmpdir(), 'amsterdam-codex-test-' + Date.now());
+
+  it('loads the key into target', () => {
+    mkdirSync(tmpDir, { recursive: true });
+    const file = join(tmpDir, 'auth.json');
+    writeFileSync(file, JSON.stringify({ OPENAI_API_KEY: 'sk-codex-test' }));
+    const target = {};
+    const keys = loadCodexAuth(file, target);
+    assert.equal(target.OPENAI_API_KEY, 'sk-codex-test');
+    assert.deepEqual(keys, ['OPENAI_API_KEY']);
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('does not overwrite existing vars', () => {
+    mkdirSync(tmpDir, { recursive: true });
+    const file = join(tmpDir, 'auth.json');
+    writeFileSync(file, JSON.stringify({ OPENAI_API_KEY: 'sk-codex-new' }));
+    const target = { OPENAI_API_KEY: 'sk-original' };
+    loadCodexAuth(file, target);
+    assert.equal(target.OPENAI_API_KEY, 'sk-original');
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns empty array for missing or broken file', () => {
+    assert.deepEqual(loadCodexAuth('/nonexistent/auth.json', {}), []);
+    mkdirSync(tmpDir, { recursive: true });
+    const file = join(tmpDir, 'broken.json');
+    writeFileSync(file, '{oops');
+    assert.deepEqual(loadCodexAuth(file, {}), []);
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+});
+
 // ── loadDefaults ─────────────────────────────────
 
 describe('loadDefaults', () => {
@@ -256,6 +322,26 @@ describe('loadDefaults', () => {
     const target = {};
     loadDefaults(target, { cwd: tmpDir, home: tmpDir });
     assert.equal(target.OPENAI_API_KEY, 'sk-project');
-    rmSync(tmpDir, { recursive: true });
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('reads the codex auth file from the default home path', () => {
+    mkdirSync(join(tmpDir, '.codex'), { recursive: true });
+    writeFileSync(join(tmpDir, '.codex', 'auth.json'), JSON.stringify({
+      OPENAI_API_KEY: 'sk-codex-home',
+    }));
+    const target = {};
+    loadDefaults(target, { cwd: tmpDir, home: tmpDir });
+    assert.equal(target.OPENAI_API_KEY, 'sk-codex-home');
+    rmSync(join(tmpDir, '.codex'), { recursive: true, force: true });
+  });
+
+  it('honors the CODEX_AUTH_FILE override and existing vars win', () => {
+    const file = join(tmpDir, 'codex-auth.json');
+    writeFileSync(file, JSON.stringify({ OPENAI_API_KEY: 'sk-codex-override' }));
+    const target = { CODEX_AUTH_FILE: file, OPENAI_API_KEY: 'sk-first' };
+    loadDefaults(target, { cwd: tmpDir, home: tmpDir });
+    assert.equal(target.OPENAI_API_KEY, 'sk-first');
+    rmSync(tmpDir, { recursive: true, force: true });
   });
 });

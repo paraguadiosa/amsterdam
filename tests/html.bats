@@ -89,9 +89,9 @@ setup() {
     [[ "$HTML_CONTENT" == *"localStorage.getItem(MANUAL_STORAGE)"* ]]
 }
 
-@test "pi chip shows remaining manual credit" {
+@test "pi chip shows the manual credit" {
     [[ "$HTML_CONTENT" == *'data.kind === "manual"'* ]]
-    [[ "$HTML_CONTENT" == *"data.remaining"* ]]
+    [[ "$HTML_CONTENT" == *"data.credit"* ]]
     [[ "$HTML_CONTENT" == *"left"* ]]
 }
 
@@ -207,7 +207,6 @@ setup() {
 @test "tour anchors to the main panels" {
     [[ "$HTML_CONTENT" == *"target: '#credits'"* ]]
     [[ "$HTML_CONTENT" == *"target: '#billing-summary'"* ]]
-    [[ "$HTML_CONTENT" == *"target: '#spend-section'"* ]]
     [[ "$HTML_CONTENT" == *"target: '#search'"* ]]
     [[ "$HTML_CONTENT" == *"target: '#theme-select'"* ]]
 }
@@ -238,43 +237,22 @@ setup() {
     [[ "$HTML_CONTENT" == *"floodgates"* ]]
 }
 
-# ── spend table (merged) ─────────────────────────
+# ── spend is gone, consoles and Grafana remain ──
 
-@test "spend section is a first-class section" {
-    [[ "$HTML_CONTENT" == *'<section id="spend"'* ]]
-    [[ "$HTML_CONTENT" == *'id="spend-table"'* ]]
+@test "no spend section or table remains" {
+    [[ "$HTML_CONTENT" != *'<section id="spend"'* ]]
+    [[ "$HTML_CONTENT" != *'spend-table'* ]]
+    [[ "$HTML_CONTENT" != *'mergeSpendRows'* ]]
 }
 
-@test "spend table lists the 8 planned column headers" {
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="provider">Provider'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="model">Model'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="inputTokens">In tok'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="outputTokens">Out tok'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="cacheReadTokens">Cache tok'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="sessions">Sessions'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="costUsd">Est. cost'* ]]
-    [[ "$HTML_CONTENT" == *'<th scope="col" data-sort="usdPerM">$/1M'* ]]
-}
-
-@test "all 8 spend columns carry a data-sort key" {
-    local count=$(grep -o 'data-sort="' "$HTML" | wc -l)
-    [ "$count" -eq 8 ]
-}
-
-@test "sortSpendBy exists and defaults to cost descending" {
-    [[ "$HTML_CONTENT" == *"function sortSpendBy"* ]]
-    [[ "$HTML_CONTENT" == *"{ key: 'costUsd', dir: 'desc' }"* ]]
-}
-
-@test "spend rows merge Hermes and Pi spend" {
-    [[ "$HTML_CONTENT" == *"mergeSpendRows"* ]]
-    [[ "$HTML_CONTENT" == *"spend.models"* ]]
-    [[ "$HTML_CONTENT" == *"pi.models"* ]]
-}
-
-@test "spend section carries an Open in Grafana link" {
-    [[ "$HTML_CONTENT" == *'Open in Grafana'* ]]
+@test "header keeps the Grafana monitoring link" {
+    [[ "$HTML_CONTENT" == *'id="grafana-link"'* ]]
     [[ "$HTML_CONTENT" == *'href="http://jacinto.paraguadiosa.com:3005/d/agent-telemetry"'* ]]
+}
+
+@test "provider cards link to their consoles" {
+    [[ "$HTML_CONTENT" == *'Open console'* ]]
+    [[ "$HTML_CONTENT" == *"p.consoleUrl"* ]]
 }
 
 # ── charts are gone, Grafana owns visualization ──
@@ -284,171 +262,8 @@ setup() {
     [[ "$HTML_CONTENT" != *'id="spend-charts"'* ]]
 }
 
-@test "Open in Grafana link survives the chart removal" {
-    [[ "$HTML_CONTENT" == *'Open in Grafana'* ]]
-}
-
-# ── spend by model ────────────────────────────────
-
-@test "spend section sits between summary and search" {
-    local summary_line=$(grep -n 'id="billing-summary"' "$HTML" | head -1 | cut -d: -f1)
-    local spend_line=$(grep -n 'id="spend-table"' "$HTML" | head -1 | cut -d: -f1)
-    local search_line=$(grep -n '<input id="search"' "$HTML" | head -1 | cut -d: -f1)
-    [ "$spend_line" -gt "$summary_line" ]
-    [ "$spend_line" -lt "$search_line" ]
-}
-
-@test "spend table lists expected columns" {
-    [[ "$HTML_CONTENT" == *"Est. cost"* ]]
-    [[ "$HTML_CONTENT" == *"In tok"* ]]
-    [[ "$HTML_CONTENT" == *"Sessions"* ]]
-}
-
-@test "spend sort handler is delegated on the table head" {
-    [[ "$HTML_CONTENT" == *'#spend-table thead'* ]]
-    [[ "$HTML_CONTENT" == *'addEventListener("click", sortHandler)'* ]]
-}
-
-@test "spend sort state survives re-renders" {
-    [[ "$HTML_CONTENT" == *"sortState"* ]]
-    [[ "$HTML_CONTENT" == *"renderSpend(window.BILLING)"* ]]
-}
-
-@test "spend sort indicator markup exists" {
-    [[ "$HTML_CONTENT" == *'class="sort-indicator"'* ]]
-    [[ "$HTML_CONTENT" == *"updateSortIndicator"* ]]
-    [[ "$HTML_CONTENT" == *"aria-sort"* ]]
-}
-
-@test "spend shows unavailable hint for missing DB" {
-    [[ "$HTML_CONTENT" == *"Spend data unavailable"* ]]
-    [[ "$HTML_CONTENT" == *"amster serve"* ]]
-}
-
-@test "spend shows empty hint for no usage" {
-    [[ "$HTML_CONTENT" == *"No usage recorded yet"* ]]
-}
-
-@test "has renderSpend function" {
-    [[ "$HTML_CONTENT" == *"renderSpend"* ]]
-}
-
-@test "has formatSpendCost function" {
-    [[ "$HTML_CONTENT" == *"formatSpendCost"* ]]
-}
-
-@test "spend cost shows n/a for unknown status" {
-    [[ "$HTML_CONTENT" == *"!row.known"* ]]
-    [[ "$HTML_CONTENT" == *"n/a"* ]]
-}
-
-@test "local models show free instead of n/a" {
-    [[ "$HTML_CONTENT" == *"return 'free'"* ]]
-    [[ "$HTML_CONTENT" == *"costStatus === 'local'"* ]]
-}
-
-@test "model counts are no longer shown as chips" {
-    run grep -F "10 models" "$HTML"
-    [ "$status" -eq 1 ]
-}
-
-# ── structure ─────────────────────────────────────
-
-@test "has search input" {
-    [[ "$HTML_CONTENT" == *'id="search"'* ]]
-}
-
-@test "search placeholder is English" {
-    [[ "$HTML_CONTENT" == *'placeholder="Filter providers…"'* ]]
-}
-
-@test "has detected group" {
-    [[ "$HTML_CONTENT" == *'data-group="detected"'* ]]
-}
-
-@test "detected cards container is empty by default" {
-    [[ "$HTML_CONTENT" == *'id="detected-cards"'* ]]
-}
-
-@test "has detected-empty hint" {
-    [[ "$HTML_CONTENT" == *'id="detected-empty"'* ]]
-}
-
-@test "summary filters to detected providers only" {
-    [[ "$HTML_CONTENT" == *"liveIds"* ]]
-}
-
-@test "cards are reorganized by detection" {
-    [[ "$HTML_CONTENT" == *"organizeCards"* ]]
-}
-
-@test "has extra group" {
-    [[ "$HTML_CONTENT" == *'data-group="extra"'* ]]
-}
-
-@test "extra group is a collapsible toggle" {
-    [[ "$HTML_CONTENT" == *'id="extra-toggle"'* ]]
-    [[ "$HTML_CONTENT" == *'role="button"'* ]]
-    [[ "$HTML_CONTENT" == *'aria-expanded="false"'* ]]
-}
-
-@test "extra cards start collapsed" {
-    [[ "$HTML_CONTENT" == *'id="extra-cards"'* ]]
-    [[ "$HTML_CONTENT" == *'class="cards collapsed"'* ]]
-}
-
-@test "has chevron indicator" {
-    [[ "$HTML_CONTENT" == *'class="chevron"'* ]]
-}
-
-@test "collapsed group excluded from search count" {
-    [[ "$HTML_CONTENT" == *'groupCollapsed'* ]]
-}
-
-@test "has empty-state element" {
-    [[ "$HTML_CONTENT" == *'id="empty"'* ]]
-}
-
-@test "empty state text is English" {
-    [[ "$HTML_CONTENT" == *"Nothing matches that filter"* ]]
-}
-
-# ── provider catalog (single source of truth) ─────
-
-@test "catalog defines every tracked provider id" {
-    for id in deepseek moonshot huggingface openai google groq together mistral fireworks xai anthropic; do
-        [[ "$CATALOG_CONTENT" == *"id: '$id'"* ]]
-    done
-}
-
-@test "xai is registered with its env var" {
-    [[ "$CATALOG_CONTENT" == *"id: 'xai'"* ]]
-    [[ "$CATALOG_CONTENT" == *"XAI_API_KEY"* ]]
-}
-
-@test "cards render from the catalog" {
-    [[ "$HTML_CONTENT" == *'window.AMS_PROVIDERS'* ]]
-    [[ "$HTML_CONTENT" == *'renderProviderCards'* ]]
-    [[ "$HTML_CONTENT" == *"getElementById('extra-cards')"* ]]
-}
-
-@test "catalog loads before the app script" {
-    local catalog_line=$(grep -n 'src="src/providers/catalog.js"' "$HTML" | head -1 | cut -d: -f1)
-    local app_line=$(grep -n 'data/billing.js' "$HTML" | head -1 | cut -d: -f1)
-    [ "$catalog_line" -lt "$app_line" ]
-}
-
-@test "anthropic is a catalog provider card" {
-    [[ "$CATALOG_CONTENT" == *"id: 'anthropic'"* ]]
-    [[ "$CATALOG_CONTENT" == *"ANTHROPIC_API_KEY"* ]]
-    [[ "$CATALOG_CONTENT" == *"console.anthropic.com"* ]]
-    [[ "$CATALOG_CONTENT" == *"'x-api-key'"* ]]
-    [[ "$CATALOG_CONTENT" == *"'anthropic-version'"* ]]
-}
-
-@test "spend table filters purged providers" {
-    [[ "$HTML_CONTENT" == *"name.indexOf('claude') !== 0"* ]]
-    [[ "$HTML_CONTENT" == *"(row.provider || '') !== 'anthropic'"* ]]
+@test "Grafana link survives the chart and spend removal" {
+    [[ "$HTML_CONTENT" == *'id="grafana-link"'* ]]
 }
 
 # ── buttons ───────────────────────────────────────
